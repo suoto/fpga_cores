@@ -10,6 +10,7 @@
 library	ieee;
     use ieee.std_logic_1164.all;  
     use ieee.std_logic_arith.all;			   
+    use ieee.std_logic_unsigned.all;
 
 library work;
     use work.tb_pkg.all;
@@ -17,31 +18,51 @@ library work;
 library pck_fio_lib;
     use pck_fio_lib.PCK_FIO.all;
 
+library common_lib;
+    use common_lib.common_pkg.all;
+
 entity dut is
 end dut;
 
 architecture dut of dut is
 
-    shared variable bfm : bfm_t;
+    constant CLK_PERIOD : time := 4 ns;
+
+    signal clk  : std_logic := '0';
+
+    signal din  : std_logic_vector(7 downto 0);
+    signal dout : std_logic_vector(7 downto 0);
 
 begin
+    
+    clk <= not clk after CLK_PERIOD/2;
+
+    sr_delay_u : entity common_lib.synchronizer
+        generic map (
+            SYNC_STAGES => 3,
+            DATA_WIDTH  => 8
+        )
+        port map (
+            clk     => clk,
+            clken   => '1',
+
+            din     => din,
+            dout    => dout
+        );
 
     process
-        variable wr_addr : integer;
-        variable wr_data : integer;
     begin
-        for i in 0 to 999 loop
-            wr_addr := i;
-            wr_data := i + 10;
-            fprint("Writing %d at %d\n", fo(wr_data), fo(wr_addr));
-            bfm.write(wr_addr, wr_data);
-        end loop;
-        for i in 0 to 999 loop
---            wr_data := bfm.read(i);
-            fprint("Data read: %d\n", fo(bfm.read(i)));
+        din <= (others => '0');
+        wait for 1 us;
+        while true loop
+            wait until clk = '1';
+            wait until clk = '1';
+            wait until clk = '1';
+            din <= din + 1;
         end loop;
         wait;
     end process;
+
 
 end dut;
 
