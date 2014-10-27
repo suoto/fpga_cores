@@ -43,6 +43,23 @@ architecture synchronizer of synchronizer is
     -------------
     signal din_sr   : din_t(SYNC_STAGES - 1 downto 0);
 
+    ----------------
+    -- Attributes --
+    ----------------
+    -- Synplify Pro: disable shift-register LUT (SRL) extraction
+    attribute syn_srlstyle : string;
+    attribute syn_srlstyle of din_sr : signal is "registers";
+
+    -- Xilinx XST: disable shift-register LUT (SRL) extraction
+    attribute shreg_extract : string;
+    attribute shreg_extract of din_sr : signal is "no";
+
+    -- Disable X propagation during timing simulation. In the event of 
+    -- a timing violation, the previous value is retained on the output instead 
+    -- of going unknown (see Xilinx UG625)
+    attribute ASYNC_REG : string;
+    attribute ASYNC_REG of din_sr : signal is "TRUE";
+
 begin
 
     -------------------
