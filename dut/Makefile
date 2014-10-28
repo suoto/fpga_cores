@@ -2,6 +2,7 @@ include ../opt/opt.mk
 
 LIB = work
 SOURCE_LIST += tb_pkg.vhd dut.vhd
+VCOM_ARGS = -2008
 ROOT_DIR = ./
 
 all:
@@ -14,7 +15,7 @@ all:
 	vmap $* $*
 
 $(LIB)/%/_primary.dat: %.vhd
-	vcom -64 -2008 -explicit -64 -work $(LIB) $*.vhd
+	vcom $(VCOM_ARGS_G) $(VCOM_ARGS) -work $(ROOT_DIR)/$(LIB) $*.vhd
 
 clean: $(wildcard */_info)
 	rm -rf $(patsubst %/_info,%/,$^)
