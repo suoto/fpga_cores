@@ -3,29 +3,30 @@ include ../opt/opt.mk
 LIB = work
 SOURCE_LIST += tb_pkg.vhd dut.vhd
 VCOM_ARGS = -2008
-ROOT_DIR = ./
+#export ROOT_DIR=$(abspath ./)
+export ROOT_DIR=../dut
 
 all:
-	export ROOT_DIR=$(abspath $(ROOT_DIR)) && cd ../common_lib/ && $(MAKE)
-	export ROOT_DIR=$(abspath $(ROOT_DIR)) && cd ../pck_fio_lib/ && $(MAKE)
+	cd ../common_lib/ && $(MAKE) $(MFLAGS)
+	cd ../pck_fio_lib/ && $(MAKE) $(MFLAGS)
 	$(MAKE) work/_info $(call vhd2obj,$(SOURCE_LIST))
 
 %/_info:
 	vlib $*
 	vmap $* $*
 
-$(LIB)/%/_primary.dat: %.vhd
-	vcom $(VCOM_ARGS_G) $(VCOM_ARGS) -work $(ROOT_DIR)/$(LIB) $*.vhd
+$(ROOT_DIR)/$(LIB)/%/_primary.dat: %.vhd
+	vcom $(VCOM_ARGS_G) $(VCOM_ARGS) -work $(ROOT_DIR)/$(LIB) $^
 
 clean: $(wildcard */_info)
 	rm -rf $(patsubst %/_info,%/,$^)
 	rm -rf modelsim.ini *.wlf transcript
-	export ROOT_DIR=$(abspath $(ROOT_DIR)) && cd ../common_lib/ && $(MAKE) clean
-	export ROOT_DIR=$(abspath $(ROOT_DIR)) && cd ../pck_fio_lib/ && $(MAKE) clean
+	cd ../common_lib/ && $(MAKE) clean
+	cd ../pck_fio_lib/ && $(MAKE) clean
 
 run: all
 	vsim -64 -t 1ns -c -lib $(LIB) dut -do "run 1 ms; exit -f"
 
-gui: $(LIB)
-	vsim -t 1ns -lib $(LIB) dut -do "do wave.do; run 1 ms"
+gui: all
+	vsim -t 1ns -gui -lib $(LIB) dut -do "do wave.do; run 1 ms"
 
