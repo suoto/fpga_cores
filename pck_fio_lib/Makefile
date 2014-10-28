@@ -1,21 +1,19 @@
+include ../opt/opt.mk
 
+LIB = pck_fio_lib
+ROOT_DIR ?= ./
+VCOM_ARGS :=-64 -93 -explicit
+SOURCE_LIST += pck_fio.vhd
 
-PCK_FIO_LIB = pck_fio_lib
+$(LIB): $(ROOT_DIR)/$(LIB)/_info $(call vhd2obj,$(SOURCE_LIST))
 
-$(PCK_FIO_LIB)_SOURCE_LIST += ../pck_fio_lib/pck_fio.vhd
+$(ROOT_DIR)/%/_info:
+	vlib $(ROOT_DIR)/$*
+	vmap $* $(ROOT_DIR)/$*
 
-VCOM_ARGS =-93 -explicit
+$(ROOT_DIR)/$(LIB)/%/_primary.dat:
+	vcom $(VCOM_ARGS) -work $(ROOT_DIR)/$(LIB) $*.vhd
 
-#pathsearch = $(firstword $(wildcard $(addsuffix /$(1),$(subst :, ,$(PATH)))))
-vhd2obj = $(patsubst %.vhd,$(PCK_FIO_LIB)/%/_primary.dat,$(1))
-
-$(PCK_FIO_LIB): $(PCK_FIO_LIB)/_info $(call vhd2obj,$($(PCK_FIO_LIB)_SOURCE_LIST))
-
-%/_info:
-	vlib $*
-	vmap $* $*
-
-$(PCK_FIO_LIB)/%/_primary.dat: %.vhd
-	vcom $(VCOM_ARGS) -work $(PCK_FIO_LIB) $*.vhd
-
+clean:
+	rm -rf $(ROOT_DIR)/$(LIB)/ modelsim.ini
 

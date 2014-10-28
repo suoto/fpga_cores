@@ -1,24 +1,21 @@
+include ../opt/opt.mk
 
+LIB = common_lib
+ROOT_DIR ?= ./
+VCOM_ARGS := -64 -2008 -explicit
+SOURCE_LIST += common_pkg.vhd
+SOURCE_LIST += sr_delay.vhd
+SOURCE_LIST += synchronizer.vhd
+SOURCE_LIST += edge_detector.vhd
 
-COMMON_LIB = common_lib
+$(LIB): $(ROOT_DIR)/$(LIB)/_info $(call vhd2obj,$(SOURCE_LIST))
 
-$(COMMON_LIB)_SOURCE_LIST += ../$(COMMON_LIB)/common_pkg.vhd
-$(COMMON_LIB)_SOURCE_LIST += ../$(COMMON_LIB)/sr_delay.vhd
-$(COMMON_LIB)_SOURCE_LIST += ../$(COMMON_LIB)/synchronizer.vhd
-$(COMMON_LIB)_SOURCE_LIST += ../$(COMMON_LIB)/edge_detector.vhd
+$(ROOT_DIR)/%/_info:
+	vlib $(ROOT_DIR)/$*
+	vmap $* $(ROOT_DIR)/$*
 
-$(COMMON_LIB)_VCOM_ARGS =-2008 -explicit
+$(ROOT_DIR)/$(LIB)/%/_primary.dat: $(addprefix $(ROOT_DIR)/../$(LIB)/,$(SOURCE_LIST))
+	vcom $(VCOM_ARGS) -work $(ROOT_DIR)/$(LIB) $*.vhd
 
-#pathsearch = $(firstword $(wildcard $(addsuffix /$(1),$(subst :, ,$(PATH)))))
-vhd2obj = $(patsubst %.vhd,$(COMMON_LIB)/%/_primary.dat,$(1))
-
-$(COMMON_LIB): $(COMMON_LIB)/_info $(call vhd2obj,$($(COMMON_LIB)_SOURCE_LIST))
-
-%/_info:
-	vlib $*
-	vmap $* $*
-
-$(COMMON_LIB)/%/_primary.dat: %.vhd
-	vcom $($(COMMON_LIB)_VCOM_ARGS) -work $(COMMON_LIB) $*.vhd
-
-
+clean:
+	rm -rf $(ROOT_DIR)/$(LIB)/ modelsim.ini
