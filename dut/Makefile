@@ -18,8 +18,8 @@ all:
 $(ROOT_DIR)/$(LIB)/%/_primary.dat: %.vhd
 	vcom $(VCOM_ARGS_G) $(VCOM_ARGS) -work $(ROOT_DIR)/$(LIB) $^
 
-clean: $(wildcard */_info)
-	rm -rf $(patsubst %/_info,%/,$^)
+clean:
+	rm -rf $(LIB)
 	rm -rf modelsim.ini *.wlf transcript
 	cd ../common_lib/ && $(MAKE) clean
 	cd ../pck_fio_lib/ && $(MAKE) clean
