@@ -17,19 +17,13 @@ all:
 	cd ../../memory/ && $(MAKE) $(MFLAGS)
 	$(MAKE) $(call vhd2obj,$(SOURCE_LIST))
 
-%/_info:
-	vlib $*
-	vmap  $* $(ROOT_DIR)/$*
+include ../../opt/msim-rules.mk
 
-$(ROOT_DIR)/$(LIB)/%/_primary.dat: %.vhd
-	vcom $(VCOM_ARGS_G) $(VCOM_ARGS) -modelsimini $(ROOT_DIR)/modelsim.ini -work $(ROOT_DIR)/$(LIB) $*.vhd
-
-clean:
-	rm -rf $(LIB)
-	rm -rf modelsim.ini *.wlf transcript
-	cd ../../common_lib/ && $(MAKE) clean
-	cd ../../pck_fio_lib/ && $(MAKE) clean
-	cd ../../memory/ && $(MAKE) clean
+clean: clean-lib
+	rm -rf *.wlf transcript
+	cd ../../common_lib/ && $(MAKE) clean-lib
+	cd ../../pck_fio_lib/ && $(MAKE) clean-lib
+	cd ../../memory/ && $(MAKE) clean-lib
 
 run: all
 	vsim -64 -t 1ns -c $(VSIM_ARGS_G) -lib $(LIB) dut -do "run $(RUN_TIME); exit -f"
