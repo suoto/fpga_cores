@@ -10,7 +10,7 @@ $(ROOT_DIR)/%/_info:
 	vmap $* $(ROOT_DIR)/$*
 
 $(ROOT_DIR)/$(LIB)/%/_primary.dat: %.vhd
-	vcom $(VCOM_ARGS_G) $(VCOM_ARGS) -modelsimini $(ROOT_DIR)/modelsim.ini -work $(ROOT_DIR)/$(LIB) $*.vhd
+	vcom -$(VHDL_VERSION) $(VCOM_ARGS_G) $(VCOM_ARGS) -modelsimini $(ROOT_DIR)/modelsim.ini -work $(ROOT_DIR)/$(LIB) $*.vhd
 
 clean-lib:
 	rm -rf $(ROOT_DIR)/$(LIB)/ modelsim.ini
