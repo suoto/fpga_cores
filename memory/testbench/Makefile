@@ -3,7 +3,8 @@ include ../../opt/opt.mk
 RUN_TIME ?= 250 ns
 
 LIB = work
-SOURCE_LIST += tb_pkg.vhd dut.vhd
+SOURCE_LIST += tb_pkg.vhd
+SOURCE_LIST += dut.vhd
 VCOM_ARGS = -2008
 export ROOT_DIR=$(abspath ./)
 #export ROOT_DIR=../dut

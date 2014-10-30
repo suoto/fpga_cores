@@ -3,96 +3,103 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_arith.all;
+use ieee.std_logic_unsigned.all;
 
 library pck_fio_lib;
     use pck_fio_lib.PCK_FIO.all;
 
 package tb_pkg is
 
-    type bfm_t is protected
-        procedure write (a, v : integer);
-        impure function read (p : integer) return integer;
+    type ram_bfm_type is protected
+        procedure write (a, d : std_logic_vector );
+        procedure write (a, d : integer);
+        impure function read (a : integer) return integer;
     end protected;
 end;
 
 package body tb_pkg is
 
-    type Item;
-    type link is access Item; --pointer to item
+    type memory_position;
+    type ptr_t is access memory_position; --pointer to item
 
-    type Item is record
-        data      : integer;
-        next_item : link;
+    type memory_position is record
+        addr    : integer; 
+        data    : integer; 
+        next_p  : ptr_t;
     end record;
 
---......
---variable StartOfList, Ptr : link;  --initialise to null
---.....
---ptr := new Item;
---ptr.data := 1982719;
---ptr.NextItem := StartOfList;  --link item into list
---StartOfList := ptr; 
---
---.......
---
-----To delete the list
---while StartOfList /= null loop
---  ptr := StartOfList.NextItem;
---  DEALLOCATE(StartOfList);
---  StartOfList := ptr;
---end loop;
+    type ram_bfm_type is protected body
 
+        variable ptr        : ptr_t;
+        variable wr_ptr     : integer := 0;
+        variable rd_ptr     : integer := 0;
+        variable locked     : boolean := false;
+        variable ADDR_WIDTH : integer := 16;
+        variable DATA_WIDTH : integer := 16;
 
-    type bfm_t is protected body
-
-        variable ptr      : link;
-        variable wr_ptr   : integer := 0;
-        variable rd_ptr   : integer := 0;
-        variable locked   : boolean := false;
-
-        procedure write (a, v : integer ) is
-                variable this_item : link;
-                variable last_item : link;
-                variable item_cnt  : integer;
+        procedure write (a, d : integer ) is
             begin
-                while locked loop
-                    fprint("==== Caught locked! ====");
-                end loop;
-                this_item      := new Item;
-                this_item.data := v;
+                write( conv_std_logic_vector(a, ADDR_WIDTH),
+                       conv_std_logic_vector(d, DATA_WIDTH));
+               end procedure write;
 
-                item_cnt := 0;
-                last_item := ptr;
+        procedure write (a, d : std_logic_vector ) is
+                variable this_item : ptr_t;
+                variable last_item : ptr_t;
+                variable a_i       : integer;
+                variable item_cnt  : integer := 0;
+            begin
+                a_i := conv_integer(a);
+                this_item      := new memory_position;
+                this_item.addr := conv_integer(a);
+                this_item.data := conv_integer(d);
 
-                if a = 0 then
-                    fprint("Writing at addr 0\n");
+                fprint("Write: (%r) <== %r\n", fo(a), fo(d));
+                
+                if ptr = null then
                     ptr := this_item;
+                    fprint("Assigning ptr\n");
                 else
-                    item_cnt := item_cnt + 1;
-                    for i in 1 to a - 1 loop
-                        last_item := last_item.next_item;
+                    last_item := ptr;
+                    while last_item.next_p /= null loop
+                        if last_item.addr = a_i then
+                            last_item.data := conv_integer(d);
+                            exit;
+                        end if;
+                        last_item := last_item.next_p;
                         item_cnt := item_cnt + 1;
                     end loop;
-                    fprint("Writing at addr %d\n", fo(item_cnt));
-                    last_item.next_item := this_item;
+                    if last_item.addr /= a_i then
+                        fprint("Item cnt: %d\n", fo(item_cnt));
+                        last_item.next_p := this_item;
+                    end if;
                 end if;
+
 
         end procedure write;
 
-        impure function read(p : integer) return integer is
+        impure function read(a : integer) return integer is
                 variable result : integer := 0;
-                variable this_item : link;
-                variable prev_item : link;
+                variable a_i    : integer := a;
+
+                variable this_item : ptr_t;
+                variable prev_item : ptr_t;
             begin
-                fprint("==== p = %d =====\n", fo (p));
-                while locked loop
-                    fprint("==== Caught locked! ====");
-                    null;
-                end loop;
                 this_item := ptr;
-                result := this_item.data;
-                ptr := this_item.next_item;
-                DEALLOCATE(this_item);
+                while this_item.addr /= a_i loop
+                    if this_item.next_p = null then
+                        result := -1;
+                        exit;
+                    end if;
+                        this_item := this_item.next_p;
+                end loop;
+                if this_item.next_p /= null then
+                    result := this_item.data;
+                end if;
+--                ptr := this_item.next_p;
+--                DEALLOCATE(this_item);
+
+                fprint("Read: %r => %r\n", fo(conv_std_logic_vector(a_i, ADDR_WIDTH)), fo(conv_std_logic_vector(result, DATA_WIDTH)));
                 return result;
             end function read;
     end protected body;
