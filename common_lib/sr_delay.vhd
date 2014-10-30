@@ -16,8 +16,8 @@ library common_lib;
 ------------------------
 entity sr_delay is
     generic (
-        DELAY_CYCLES : positive := 1;
-        DATA_WIDTH   : integer  := 1
+        DELAY_CYCLES : natural := 1;
+        DATA_WIDTH   : positive := 1
         );
     port (
         clk     : in  std_logic;
@@ -56,14 +56,16 @@ begin
     ---------------
     -- Processes --
     ---------------
-    process(clk)
-    begin
-        if clk'event and clk = '1' then
-            if clken = '1' then
-                din_sr  <= din_sr(DELAY_CYCLES - 2 downto 0) & din;
+    nzd_p : if DELAY_CYCLES > 0 generate
+        process(clk)
+        begin
+            if clk'event and clk = '1' then
+                if clken = '1' then
+                    din_sr  <= din_sr(DELAY_CYCLES - 2 downto 0) & din;
+                end if;
             end if;
-        end if;
-    end process;
+        end process;
+    end generate nzd_p;
 
 
 end sr_delay;
