@@ -11,7 +11,7 @@ VHDL_VERSION := 2008
 
 
 all:
-	$(MAKE) work/_info
+	$(MAKE) $(ROOT_DIR)/work/_info
 	cd ../../common_lib/ && $(MAKE) $(MFLAGS)
 	cd ../../pck_fio_lib/ && $(MAKE) $(MFLAGS)
 	cd ../../memory/ && $(MAKE) $(MFLAGS)
@@ -20,7 +20,7 @@ all:
 include ../../opt/msim-rules.mk
 
 clean: clean-lib
-	rm -rf *.wlf transcript
+	rm -rf *.wlf transcript modelsim.ini
 	cd ../../common_lib/ && $(MAKE) clean-lib
 	cd ../../pck_fio_lib/ && $(MAKE) clean-lib
 	cd ../../memory/ && $(MAKE) clean-lib
