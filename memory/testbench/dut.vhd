@@ -28,149 +28,75 @@ end dut;
 
 architecture dut of dut is
 
-    constant CLK_A_PERIOD : time := 4 ns;
-    constant CLK_B_PERIOD : time := 9 ns;
+    constant WR_CLK_PERIOD : time := 4 ns;
+    constant RD_CLK_PERIOD : time := 9 ns;
 
     constant ADDR_WIDTH         : positive := 16;
     constant DATA_WIDTH         : positive := 16;
     constant EXTRA_OUTPUT_DELAY : natural  := 0;
 
-    signal clk_a     : std_logic := '0';
-    signal clken_a   : std_logic;
-    signal wren_a    : std_logic;
-    signal addr_a    : std_logic_vector(ADDR_WIDTH - 1 downto 0);
-    signal wrdata_a  : std_logic_vector(DATA_WIDTH - 1 downto 0);
-    signal rddata_a  : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    signal wr_clk    : std_logic := '0';
+    signal wr_clken  : std_logic;
+    signal wr_rst    : std_logic;
+    signal wr_en     : std_logic;
+    signal wr_data   : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
-    signal clk_b     : std_logic := '0';
-    signal clken_b   : std_logic;
-    signal wren_b    : std_logic;
-    signal addr_b    : std_logic_vector(ADDR_WIDTH - 1 downto 0);
-    signal wrdata_b  : std_logic_vector(DATA_WIDTH - 1 downto 0);
-    signal rddata_b  : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
-    shared variable ram : ram_bfm_type;
+    signal rd_clk    : std_logic := '0';
+    signal rd_rst    : std_logic;
+    signal rd_clken  : std_logic;
+    signal rd_en     : std_logic;
+    signal rd_data   : std_logic_vector(DATA_WIDTH - 1 downto 0);
+
 
     begin
 
-        process
-        begin
-            for i in 2 to 9 loop
-                ram.write(i,i + 1);
-            end loop;
-            ram.write(3, 4);
+        wr_clk <= not wr_clk after WR_CLK_PERIOD/2;
+        rd_clk <= not rd_clk after RD_CLK_PERIOD/2;
 
-            fprint("%d\n", fo(ram.read(20)));
-            wait;
-        end process;
+        wr_clken <= '1';
+        rd_clken <= '1';
 
-        clk_a <= not clk_a after CLK_A_PERIOD/2;
-        clk_b <= not clk_b after CLK_B_PERIOD/2;
-
-        process
-        begin
-            clken_a <= '0';
-            for i in 0 to 3 loop
-                wait until clk_a = '1';
-            end loop;
-            clken_a <= '1';
-            wait until clk_a = '1';
-        end process;
-        clken_b <= '1';
+        wr_rst <= '1', '0' after 16*WR_CLK_PERIOD;
+        rd_rst <= '1', '0' after 16*RD_CLK_PERIOD;
     
-        ram_u : entity memory.ram_inference
+        dut : entity memory.async_fifo
             generic map (
-                ADDR_WIDTH         => ADDR_WIDTH,
-                DATA_WIDTH         => ADDR_WIDTH,
-                EXTRA_OUTPUT_DELAY => EXTRA_OUTPUT_DELAY
-                )
+                FIFO_LEN   => 512,
+                DATA_WIDTH => DATA_WIDTH
+            )
             port map (
-                -- Port A
-                clk_a    => clk_a,
-                clken_a  => clken_a,
-                wren_a   => wren_a,
-                addr_a   => addr_a,
-                wrdata_a => wrdata_a,
-                rddata_a => rddata_a,
-    
-                -- Port B
-                clk_b    => clk_b,
-                clken_b  => clken_b,
-                wren_b   => wren_b,
-                addr_b   => addr_b,
-                wrdata_b => wrdata_b,
-                rddata_b => rddata_b
+                -- Write port
+                wr_clk      => wr_clk, 
+                wr_clken    => wr_clken, 
+                wr_rst      => wr_rst,
+                wr_data     => wr_data, 
+                wr_en       => wr_en, 
+                wr_full     => open, 
+        
+                rd_clk      => rd_clk, 
+                rd_clken    => rd_clken, 
+                rd_rst      => rd_rst,
+                rd_data     => rd_data, 
+                rd_en       => rd_en, 
+                rd_dv       => open, 
+                rd_empty    => open
             );
-    
-        port_a : process
-            procedure write_data ( addr, data : in std_logic_vector) is
-                begin
-                    wren_a   <= '1';
-                    addr_a   <= addr;
-                    wrdata_a <= data;
-                    wait until clk_a = '1' and clken_a = '1';
-                    wren_a <= '0';
-                end procedure write_data;
-            procedure write_data ( addr, data : in integer) is
-                begin
-                    write_data( conv_std_logic_vector(addr, ADDR_WIDTH),
-                                conv_std_logic_vector(data, DATA_WIDTH));
-                end procedure write_data;
-    
-            procedure read_data ( addr : in std_logic_vector; data : out std_logic_vector) is
-                begin
-                    addr_a  <= addr;
-                    wait until clk_a = '1' and clken_a = '1';
-                    data    := rddata_a;
-                end procedure read_data;
-            
-        begin
-            wren_a <= '0';
-            for i in 0 to 10 loop
-            wait until clk_a = '1' and clken_a = '1';
-            end loop;
-            for i in 0 to 10 loop
-                write_data(i, i + 20);
-                wait until clk_a = '1' and clken_a = '1';
-            end loop;
-            wait;
-        end process;
-    
-        port_b : process
-            procedure write_data ( addr, data : in std_logic_vector) is
-                begin
-                    wren_b   <= '1';
-                    addr_b   <= addr;
-                    wrdata_b <= data;
-                    wait until clk_b = '1';
-                    wren_b <= '0';
-                end procedure write_data;
-            procedure write_data ( addr, data : in integer) is
-                begin
-                    write_data( conv_std_logic_vector(addr, ADDR_WIDTH),
-                                conv_std_logic_vector(data, DATA_WIDTH));
-                end procedure write_data;
-    
-            procedure read_data ( addr : in std_logic_vector; data : out std_logic_vector) is
-                begin
-                    addr_b  <= addr;
-                    wait until clk_b = '1';
-                    data    := rddata_b;
-                end procedure read_data;
-        begin
-            wren_b    <= '0';
-            addr_b    <= (others => '0');
-            addr_b(2) <= '1';
-            wait;
-            for i in 0 to 10 loop
-                wait until clk_b = '1';
-            end loop;
-            for i in 0 to 10 loop
-                write_data(i, i + 20);
-            end loop;
-            wait;
-        end process;
 
-
+    process
+    begin
+        wr_en <= '0';    
+        wait until wr_rst = '0';
+        for i in 0 to 20 loop
+            wait until wr_clk = '1';
+        end loop;
+        for i in 0 to 511 loop
+            wr_en <= '1';    
+            wait until wr_clk = '1';
+            wr_en <= '0';    
+            wait until wr_clk = '1';
+        end loop;
+        wait;
+    end process;
 end dut;
 

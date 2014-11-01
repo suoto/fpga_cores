@@ -34,7 +34,9 @@ entity ram_inference is
         -- Port B
         clk_b     : in  std_logic;
         clken_b   : in  std_logic;
+        wren_b    : in  std_logic;
         addr_b    : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);
+        wrdata_b  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
         rddata_b  : out std_logic_vector(DATA_WIDTH - 1 downto 0)
     );
 end ram_inference;
@@ -107,6 +109,9 @@ begin
     begin
         if clk_b'event and clk_b = '1' then
             if clken_b = '1' then
+                if wren_b = '1' then
+                    ram(conv_integer(addr_b)) := wrdata_b;
+                end if;
                 rddata_b_i <= ram(conv_integer(addr_b));
             end if;
         end if;

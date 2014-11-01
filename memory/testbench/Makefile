@@ -1,6 +1,6 @@
 include ../../opt/opt.mk
 
-RUN_TIME ?= 250 ns
+RUN_TIME ?= 1 us
 
 LIB = work
 SOURCE_LIST += ram_model_pkg.vhd

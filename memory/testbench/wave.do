@@ -1,12 +1,12 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
 #add wave -noupdate -radix hex {*}
-add wave -noupdate -radix hex -expand -group {ram u} {ram_u/*}
+add wave -noupdate -radix hex -expand -group {dut} {dut/*}
 
 TreeUpdate [SetDefaultTree]
 WaveRestoreCursors {{Cursor 1} {0 ns} 0}
 quietly wave cursor active 0
-configure wave -namecolwidth 150
+configure wave -namecolwidth 300
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
 configure wave -signalnamewidth 0
