@@ -17,8 +17,8 @@ library common_lib;
 ------------------------
 entity edge_detector is
     generic (
-        SYNCHRONIZE_INPUT : boolean  := false;
-        OUTPUT_DELAY      : positive := 1
+        SYNCHRONIZE_INPUT : boolean := false;
+        OUTPUT_DELAY      : natural := 1
         );
     port (
         -- Usual ports
@@ -90,9 +90,9 @@ begin
         din_i <= din;
     end generate ngsync_in;
 
-    rising_i <= '1' when din_i = '1' and din_d /= '1' else '0';
-    rising_i <= '1' when din_i /= '1' and din_d = '1' else '0';
-    toggle_i <= rising_i or falling_i;
+    rising_i  <= '1' when din_i = '1' and din_d /= '1' else '0';
+    falling_i <= '1' when din_i /= '1' and din_d = '1' else '0';
+    toggle_i  <= rising_i or falling_i;
 
     ---------------
     -- Processes --

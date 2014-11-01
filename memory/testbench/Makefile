@@ -1,10 +1,10 @@
 include ../../opt/opt.mk
 
-RUN_TIME ?= 1 us
+RUN_TIME ?= 6 us
 
 LIB = work
 SOURCE_LIST += ram_model_pkg.vhd
-SOURCE_LIST += dut.vhd
+SOURCE_LIST += async_fifo_tb.vhd
 export ROOT_DIR=$(abspath ./)
 VHDL_VERSION := 2008
 #export ROOT_DIR=../dut
@@ -25,9 +25,19 @@ clean: clean-lib
 	cd ../../pck_fio_lib/ && $(MAKE) clean-lib
 	cd ../../memory/ && $(MAKE) clean-lib
 
-run: all
-	vsim -64 -t 1ns -c $(VSIM_ARGS_G) -lib $(LIB) dut -do "run $(RUN_TIME); exit -f"
+run_async_fifo_tb: all
+	$(eval export TOP=async_fifo_tb)
+	$(MAKE) run
 
-gui: all
-	vsim -t 1ns -gui $(VSIM_ARGS_G) -lib $(LIB) dut -do "do wave.do; run $(RUN_TIME)"
+gui_async_fifo_tb: all
+	$(eval export TOP=async_fifo_tb)
+	$(MAKE) gui
+
+run:
+	vsim -64 -t 1ns -c $(VSIM_ARGS_G) -lib $(LIB) $(TOP) -do "run $(RUN_TIME); exit -f"
+
+gui:
+	vsim -t 1ns -gui $(VSIM_ARGS_G) -lib $(LIB) $(TOP) -do "do wave.do; run $(RUN_TIME)"
+
+
 

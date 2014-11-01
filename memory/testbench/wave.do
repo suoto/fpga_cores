@@ -2,6 +2,8 @@ onerror {resume}
 quietly WaveActivateNextPane {} 0
 #add wave -noupdate -radix hex {*}
 add wave -noupdate -radix hex -expand -group {dut} {dut/*}
+#add wave -noupdate -radix hex -expand -group {pulse sync} {dut/wr_error_s/*}
+#add wave -noupdate -radix hex -expand -group {pulse sync edge det} {dut/wr_error_s/dst_pulse_t/*}
 
 TreeUpdate [SetDefaultTree]
 WaveRestoreCursors {{Cursor 1} {0 ns} 0}
