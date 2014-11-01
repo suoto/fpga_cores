@@ -1,4 +1,4 @@
-include ../opt/opt.mk
+include ../opt/msim-options.mk
 
 LIB = common_lib
 ROOT_DIR ?= .
@@ -10,5 +10,4 @@ SOURCE_LIST += pulse_sync.vhd
 
 include ../opt/msim-rules.mk
 
-VHDL_VERSION = 2008
 

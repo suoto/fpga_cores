@@ -72,10 +72,10 @@ architecture async_fifo of async_fifo is
     signal fifo_full_wr     : std_logic;
     signal fifo_empty_rd    : std_logic;
 
-    signal error_wr    : std_logic;
-    signal error_rd_wr : std_logic;
-    signal error_rd    : std_logic;
-    signal error_wr_rd : std_logic;
+    signal error_wr         : std_logic;
+    signal error_rd_wr      : std_logic;
+    signal error_rd         : std_logic;
+    signal error_wr_rd      : std_logic;
 
 
 begin
@@ -221,8 +221,6 @@ begin
             end if;
         end if;
     end process;
-
-
 end async_fifo;
 
 

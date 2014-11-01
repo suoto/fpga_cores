@@ -1,4 +1,4 @@
-include ../../opt/opt.mk
+include ../../opt/msim-options.mk
 
 RUN_TIME ?= 6 us
 

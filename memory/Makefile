@@ -1,4 +1,4 @@
-include ../opt/opt.mk
+include ../opt/msim-options.mk
 
 LIB = memory
 ROOT_DIR ?= .

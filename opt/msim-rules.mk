@@ -1,11 +1,9 @@
 
 ROOT_DIR ?= .
+
 $(LIB): $(ROOT_DIR)/$(LIB)/_info $(call vhd2obj,$(SOURCE_LIST))
 
 $(ROOT_DIR)/%/_info:
-	if [ ! -d "$(ROOT_DIR)" ]; then \
-		mkdir -p $(ROOT_DIR); \
-	fi
 	if [ -f "$(ROOT_DIR)/modelsim.ini" ]; then \
 		vlib $(ROOT_DIR)/$*; \
 		vmap -modelsimini $(ROOT_DIR)/modelsim.ini $* $(ROOT_DIR)/$*; \
