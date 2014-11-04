@@ -6,10 +6,14 @@ FILES =
 $(LIB): $(ROOT_DIR)/$(LIB)/_info $(call vhd2obj,$(SOURCE_LIST)) comp-lib
 
 $(ROOT_DIR)/%/_info:
-	if [ -f "$(ROOT_DIR)/modelsim.ini" ]; then \
+	@if [ -f "$(ROOT_DIR)/modelsim.ini" ]; then \
+		echo vlib $(ROOT_DIR)/$*; \
+		echo vmap -modelsimini $(ROOT_DIR)/modelsim.ini $* $(ROOT_DIR)/$*; \
 		vlib $(ROOT_DIR)/$*; \
 		vmap -modelsimini $(ROOT_DIR)/modelsim.ini $* $(ROOT_DIR)/$*; \
 	else \
+		echo vlib $(ROOT_DIR)/$*; \
+		echo vmap $* $(ROOT_DIR)/$*; \
 		vlib $(ROOT_DIR)/$*; \
 		vmap $* $(ROOT_DIR)/$*; \
 	fi

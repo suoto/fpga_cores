@@ -11,11 +11,11 @@ VHDL_VERSION := 2008
 
 
 all:
-	$(MAKE) $(ROOT_DIR)/work/_info
-	cd ../../common_lib/ && $(MAKE) $(MFLAGS)
-	cd ../../pck_fio_lib/ && $(MAKE) $(MFLAGS)
-	cd ../../memory/ && $(MAKE) $(MFLAGS)
-	$(MAKE) $(LIB)
+	$(MAKE) $(MFLAGS) $(ROOT_DIR)/work/_info && \
+	cd $(ROOT_DIR)/../../common_lib/ && $(MAKE) $(MFLAGS) && \
+	cd $(ROOT_DIR)/../../pck_fio_lib/ && $(MAKE) $(MFLAGS) && \
+	cd $(ROOT_DIR)/../../memory/ && $(MAKE) $(MFLAGS) && \
+	cd $(ROOT_DIR) && $(MAKE) $(MFLAGS) $(LIB)
 
 include ../../opt/msim-rules.mk
 

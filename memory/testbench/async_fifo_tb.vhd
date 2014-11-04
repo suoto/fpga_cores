@@ -1,11 +1,3 @@
---------------------------------------------------------
--- Simple Microprocessor Design
---
--- Microprocessor composed of
--- Ctrl_Unit, Data_Path and Memory
--- structural modeling
--- microprocessor.vhd
---------------------------------------------------------
 
 library	ieee;
     use ieee.std_logic_1164.all;
