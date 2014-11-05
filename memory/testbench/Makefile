@@ -4,6 +4,7 @@ RUN_TIME ?= 6 us
 
 LIB = work
 SOURCE_LIST += ram_model_pkg.vhd
+SOURCE_LIST += fifo_bfm_pkg.vhd
 SOURCE_LIST += async_fifo_tb.vhd
 export ROOT_DIR=$(abspath ./)
 VHDL_VERSION := 2008
