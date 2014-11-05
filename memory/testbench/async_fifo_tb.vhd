@@ -6,6 +6,7 @@ library	ieee;
 
 library work;
     use work.ram_model_pkg.all;
+    use work.fifo_bfm_pkg.all;
 
 library pck_fio_lib;
     use pck_fio_lib.PCK_FIO.all;
@@ -15,16 +16,21 @@ library common_lib;
 
 library memory;
 
+library std;
+    use std.env.all;
+
+
 entity async_fifo_tb is
 end async_fifo_tb;
 
 architecture async_fifo_tb of async_fifo_tb is
 
-    constant WR_CLK_PERIOD : time := 4 ns;
-    constant RD_CLK_PERIOD : time := 16 ns;
 
     constant ADDR_WIDTH         : positive := 16;
     constant DATA_WIDTH         : positive := 16;
+    
+    signal WR_CLK_PERIOD : time := 4 ns;
+    signal RD_CLK_PERIOD : time := 16 ns;
 
     signal wr_clk    : std_logic := '0';
     signal wr_clken  : std_logic;
@@ -40,8 +46,9 @@ architecture async_fifo_tb of async_fifo_tb is
     signal rd_dv     : std_logic;
     signal rd_data   : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
+    shared variable fifo : fifo_bfm_type;
 
-    begin
+begin
 
         wr_clk <= not wr_clk after WR_CLK_PERIOD/2;
         rd_clk <= not rd_clk after RD_CLK_PERIOD/2;
@@ -83,22 +90,37 @@ architecture async_fifo_tb of async_fifo_tb is
 
     process
         variable wr_data_v : std_logic_vector(DATA_WIDTH - 1 downto 0);
+        variable rd_data : std_logic_vector(15 downto 0);
     begin
-        wr_en     <= '0';    
-        wr_data_v := (others => '0');
-        wait until wr_rst = '0';
-        for i in 0 to 20 loop
-            wait until wr_clk = '1';
-        end loop;
-        for i in 0 to 511 loop
-            wr_data_v := wr_data_v + 1;
-            wr_en     <= '1';    
-            wr_data   <= wr_data_v;
-            wait until wr_clk = '1';
---            wr_en <= '0';    
+--        wr_en     <= '0';    
+--        wr_data_v := (others => '0');
+--        wait until wr_rst = '0';
+--        for i in 0 to 20 loop
 --            wait until wr_clk = '1';
+--        end loop;
+--        for i in 0 to 511 loop
+--            wr_data_v := wr_data_v + 1;
+--            wr_en     <= '1';    
+--            wr_data   <= wr_data_v;
+--            wait until wr_clk = '1';
+----            wr_en <= '0';    
+----            wait until wr_clk = '1';
+--        end loop;
+--        wr_en     <= '0';   
+
+        fprint("Writing data\n");
+        for i in 0 to 2**16 loop
+            fifo.write(i);
         end loop;
-        wr_en     <= '0';    
+        fprint("Reading data\n");
+        while not fifo.is_empty loop
+            rd_data := fifo.read;
+        end loop;
+
+        fifo.free;
+        
+        finish(2);
+
         wait;
     end process;
 end async_fifo_tb;
