@@ -7,16 +7,17 @@ SOURCE_LIST += ram_model_pkg.vhd
 SOURCE_LIST += fifo_bfm_pkg.vhd
 SOURCE_LIST += async_fifo_tb.vhd
 export ROOT_DIR=$(abspath ./)
-VHDL_VERSION := 2008
+VHDL_VERSION := -2008
 #export ROOT_DIR=../dut
 
 
-all:
-	$(MAKE) $(MFLAGS) $(ROOT_DIR)/work/_info && \
-	cd $(ROOT_DIR)/../../common_lib/ && $(MAKE) $(MFLAGS) && \
-	cd $(ROOT_DIR)/../../pck_fio_lib/ && $(MAKE) $(MFLAGS) && \
-	cd $(ROOT_DIR)/../../memory/ && $(MAKE) $(MFLAGS) && \
-	cd $(ROOT_DIR) && $(MAKE) $(MFLAGS) $(LIB)
+all: $(ROOT_DIR)/work/_info .deps work
+
+
+.deps:
+	cd $(ROOT_DIR)/../../common_lib/ && $(MAKE) $(MFLAGS)
+	cd $(ROOT_DIR)/../../pck_fio_lib/ && $(MAKE) $(MFLAGS)
+	cd $(ROOT_DIR)/../../memory/ && $(MAKE) $(MFLAGS)
 
 include ../../opt/msim-rules.mk
 
