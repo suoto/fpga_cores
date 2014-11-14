@@ -3,7 +3,7 @@ include ../../opt/msim-options.mk
 RUN_TIME ?= 6 us
 
 LIB = work
-SOURCE_LIST += ram_model_pkg.vhd
+#SOURCE_LIST += ram_model_pkg.vhd
 SOURCE_LIST += fifo_bfm_pkg.vhd
 SOURCE_LIST += async_fifo_tb.vhd
 export ROOT_DIR=$(abspath ./)
@@ -36,7 +36,9 @@ gui_async_fifo_tb: all
 	$(MAKE) .gui $(MFLAGS)
 
 .run:
-	vsim -64 -t 1ns -c $(VSIM_ARGS_G) -lib $(LIB) $(TOP) -do "run $(RUN_TIME); exit -f"
+	ghdl -e --std=02 $(GHDL_OPTIONS) --ieee=synopsys --workdir=$(ROOT_DIR)/libs -P$(ROOT_DIR)/libs --work=$(LIB) $(TOP)
+	
+#	vsim -64 -t 1ns -c $(VSIM_ARGS_G) -lib $(LIB) $(TOP) -do "run $(RUN_TIME); exit -f"
 
 .gui:
 	vsim -t 1ns -gui $(VSIM_ARGS_G) -lib $(LIB) $(TOP) -do "do wave.do; run $(RUN_TIME)"

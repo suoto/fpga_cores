@@ -5,7 +5,7 @@ library	ieee;
     use ieee.std_logic_unsigned.all;
 
 library work;
-    use work.ram_model_pkg.all;
+--    use work.ram_model_pkg.all;
     use work.fifo_bfm_pkg.all;
 
 library pck_fio_lib;
@@ -16,8 +16,8 @@ library common_lib;
 
 library memory;
 
-library std;
-    use std.env.all;
+--library std;
+--    use std.env.all;
 
 
 entity async_fifo_tb is
@@ -109,9 +109,14 @@ begin
 --        wr_en     <= '0';   
 
         fprint("Writing data\n");
-        for i in 0 to 2**16 loop
+        fifo.write(1);
+        for i in 0 to integer(2**10) loop
             fifo.write(i);
+            wait for 1 us;
         end loop;
+--        for i in 0 to 2**10 loop
+--            fifo.write(i);
+--        end loop;
         fprint("Reading data\n");
         while not fifo.is_empty loop
             rd_data := fifo.read;
@@ -119,7 +124,7 @@ begin
 
         fifo.free;
         
-        finish(2);
+--        finish(2);
 
         wait;
     end process;
