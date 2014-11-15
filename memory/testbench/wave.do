@@ -1,6 +1,6 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
-#add wave -noupdate -radix hex {*}
+add wave -noupdate -radix hex -expando -group {tb} {*}
 add wave -noupdate -radix hex -expand -group {dut} {dut/*}
 #add wave -noupdate -radix hex -expand -group {pulse sync} {dut/wr_error_s/*}
 #add wave -noupdate -radix hex -expand -group {pulse sync edge det} {dut/wr_error_s/dst_pulse_t/*}

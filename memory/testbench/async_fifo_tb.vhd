@@ -45,6 +45,7 @@ architecture async_fifo_tb of async_fifo_tb is
     signal rd_en     : std_logic;
     signal rd_dv     : std_logic;
     signal rd_data   : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    signal rd_empty  : std_logic;
 
     shared variable fifo : fifo_bfm_type;
 
@@ -56,7 +57,7 @@ begin
         wr_clken <= '1';
         rd_clken <= '1';
 
-        wr_rst <= '1', '0' after 16*WR_CLK_PERIOD;
+        wr_rst <= '1', '0' after 16*RD_CLK_PERIOD;
         rd_rst <= '1', '0' after 16*RD_CLK_PERIOD;
     
         dut : entity memory.async_fifo
@@ -83,45 +84,70 @@ begin
                 rd_data     => rd_data, 
                 rd_en       => rd_en, 
                 rd_dv       => rd_dv, 
-                rd_empty    => open
+                rd_empty    => rd_empty
             );
-
-    rd_en <= '1';
 
     process
         variable wr_data_v : std_logic_vector(DATA_WIDTH - 1 downto 0);
-        variable rd_data : std_logic_vector(15 downto 0);
+        procedure write_data (d : std_logic_vector) is
+            begin
+                wr_en <= '1';
+                wr_data <= d;
+                wait until wr_clk = '1';
+                wr_en <= '0';
+            end procedure write_data;
+        procedure write_data (d : integer) is
+            begin
+                write_data(conv_std_logic_vector(d, DATA_WIDTH));
+            end procedure write_data;
     begin
---        wr_en     <= '0';    
---        wr_data_v := (others => '0');
---        wait until wr_rst = '0';
---        for i in 0 to 20 loop
---            wait until wr_clk = '1';
---        end loop;
---        for i in 0 to 511 loop
---            wr_data_v := wr_data_v + 1;
---            wr_en     <= '1';    
---            wr_data   <= wr_data_v;
---            wait until wr_clk = '1';
-----            wr_en <= '0';    
-----            wait until wr_clk = '1';
---        end loop;
---        wr_en     <= '0';   
-
+        wr_en <= '0';
+        wait until wr_rst = '0';
+        wait until wr_clk = '1';
+        wait until wr_clk = '1';
+        wait until wr_clk = '1';
         fprint("Writing data\n");
-        for i in 0 to 2**16 loop
+        for i in 1 to 15 loop --2**16 loop
             fifo.write(i);
-        end loop;
-        fprint("Reading data\n");
-        while not fifo.is_empty loop
-            rd_data := fifo.read;
+            write_data(i);
         end loop;
 
-        fifo.free;
-        
+        wait for 10 us;
         finish(2);
 
         wait;
     end process;
+    process
+        variable wr_data_v : std_logic_vector(DATA_WIDTH - 1 downto 0);
+        procedure read_data (d : out std_logic_vector) is
+            begin
+                rd_en <= '1';
+                wait until rd_clk = '1';
+                d     := rd_data;
+                rd_en <= '0';
+            end procedure read_data;
+
+            variable data : std_logic_vector(DATA_WIDTH - 1 downto 0);
+
+        begin
+            rd_en <= '0';
+            wait until rd_rst = '0';
+            wait until rd_clk = '1';
+            wait until rd_clk = '1';
+            wait until rd_clk = '1';
+            wait until rd_clk = '1';
+            wait until rd_clk = '1';
+            wait until rd_clk = '1';
+            wait until rd_clk = '1';
+            wait until rd_clk = '1';
+            while true loop
+                if rd_empty = '0' then
+                    read_data(data);
+                    fprint("Data read: %r\n", fo(data));
+                else
+                    wait until rd_clk = '1';
+                end if;
+            end loop;
+        end process;
 end async_fifo_tb;
 
