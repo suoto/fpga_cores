@@ -1,6 +1,6 @@
 include ../../opt/msim-options.mk
 
-RUN_TIME ?= 6 us
+RUN_TIME ?= 1 ms
 
 LIB = work
 SOURCE_LIST += ram_model_pkg.vhd
@@ -8,11 +8,12 @@ SOURCE_LIST += fifo_bfm_pkg.vhd
 SOURCE_LIST += async_fifo_tb.vhd
 export ROOT_DIR=$(abspath ./)
 VHDL_VERSION := -2008
-#export ROOT_DIR=../dut
-
 
 all: $(ROOT_DIR)/work/_info .deps work
 
+@cover:
+	$(eval export VCOM_ARGS_G+=-coversub +cover=sbced)
+	$(eval export VSIM_ARGS_G+=-assertcover -coverage)
 
 .deps:
 	cd $(ROOT_DIR)/../../common_lib/ && $(MAKE) $(MFLAGS)
