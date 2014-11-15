@@ -58,10 +58,6 @@ begin
     -------------------
     -- Port mappings --
     -------------------
-
-    -----------------------------
-    -- Asynchronous asignments --
-    -----------------------------
     rddata_a_delay : entity common_lib.sr_delay
         generic map (
             DELAY_CYCLES => EXTRA_OUTPUT_DELAY,
@@ -77,7 +73,7 @@ begin
 
     rddata_b_delay : entity common_lib.sr_delay
         generic map (
-            DELAY_CYCLES => EXTRA_OUTPUT_DELAY + 1,
+            DELAY_CYCLES => EXTRA_OUTPUT_DELAY,
             DATA_WIDTH   => DATA_WIDTH
             )
         port map (
@@ -87,6 +83,10 @@ begin
             din     => rddata_b_i,
             dout    => rddata_b
     );
+
+    -----------------------------
+    -- Asynchronous asignments --
+    -----------------------------
 
     ---------------
     -- Processes --
