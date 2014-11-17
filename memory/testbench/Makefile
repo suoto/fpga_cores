@@ -1,6 +1,6 @@
 include ../../opt/msim-options.mk
 
-RUN_TIME ?= 1 ms
+RUN_TIME ?= 50 us
 
 LIB = work
 SOURCE_LIST += ram_model_pkg.vhd
@@ -19,6 +19,7 @@ all: $(ROOT_DIR)/work/_info .deps work
 	cd $(ROOT_DIR)/../../common_lib/ && $(MAKE) $(MFLAGS)
 	cd $(ROOT_DIR)/../../pck_fio_lib/ && $(MAKE) $(MFLAGS)
 	cd $(ROOT_DIR)/../../memory/ && $(MAKE) $(MFLAGS)
+	cd $(ROOT_DIR)/../../osvvm_lib/ && $(MAKE) $(MFLAGS)
 
 include ../../opt/msim-rules.mk
 
@@ -27,20 +28,23 @@ clean: clean-lib
 	cd ../../common_lib/ && $(MAKE) clean-lib
 	cd ../../pck_fio_lib/ && $(MAKE) clean-lib
 	cd ../../memory/ && $(MAKE) clean-lib
+	cd ../../osvvm_lib/ && $(MAKE) clean-lib
 
 run_async_fifo_tb: all
-	$(eval export TOP=async_fifo_tb)
-	$(MAKE) .run $(MFLAGS)
+	$(MAKE) .run $(MFLAGS) TOP=async_fifo_tb
 
 gui_async_fifo_tb: all
-	$(eval export TOP=async_fifo_tb)
-	$(MAKE) .gui $(MFLAGS)
+	$(MAKE) .gui $(MFLAGS) TOP=async_fifo_tb
 
 .run:
-	vsim -64 -t 1ns -c $(VSIM_ARGS_G) -lib $(LIB) $(TOP) -do "run $(RUN_TIME); exit -f"
+	vsim -64 -t 1ns -c $(VSIM_ARGS_G) -lib $(LIB) $(TOP) \
+		-do "run $(RUN_TIME); exit -f"
 
 .gui:
-	vsim -t 1ns -gui $(VSIM_ARGS_G) -lib $(LIB) $(TOP) -do "do wave.do; run $(RUN_TIME)"
+	vsim -t 1ns -gui $(VSIM_ARGS_G) -lib $(LIB) $(TOP) \
+		-do "do wave.do; \
+		run $(RUN_TIME); \
+		wave zoom full"
 
 
 

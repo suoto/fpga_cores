@@ -10,9 +10,10 @@ library work;
 
 library pck_fio_lib;
     use pck_fio_lib.PCK_FIO.all;
-
 library common_lib;
     use common_lib.common_pkg.all;
+library osvvm_lib;
+    use osvvm_lib.RandomPkg.all;
 
 library memory;
 
@@ -26,8 +27,10 @@ end async_fifo_tb;
 architecture async_fifo_tb of async_fifo_tb is
 
 
-    constant ADDR_WIDTH         : positive := 16;
-    constant DATA_WIDTH         : positive := 16;
+    constant ADDR_WIDTH         : integer := 16;
+    constant DATA_WIDTH         : integer := 16;
+    constant UPPER_TRESHOLD     : integer := 500;
+    constant LOWER_TRESHOLD     : integer := 10;
     
     signal WR_CLK_PERIOD : time := 4 ns;
     signal RD_CLK_PERIOD : time := 16 ns;
@@ -37,6 +40,8 @@ architecture async_fifo_tb of async_fifo_tb is
     signal wr_rst    : std_logic;
     signal wr_en     : std_logic;
     signal wr_data   : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    signal wr_upper  : std_logic;
+    signal wr_full   : std_logic;
 
 
     signal rd_clk    : std_logic := '0';
@@ -47,7 +52,11 @@ architecture async_fifo_tb of async_fifo_tb is
     signal rd_data   : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal rd_empty  : std_logic;
 
-    shared variable fifo : fifo_bfm_type;
+    shared variable fifo     : fifo_bfm_type;
+    shared variable rand_gen : RandomPType;
+
+    type test_state_t is (upper_test_write, upper_test_read);
+    signal test_state : test_state_t := upper_test_write;
 
 begin
 
@@ -64,8 +73,8 @@ begin
             generic map (
                 FIFO_LEN        => 512,
                 DATA_WIDTH      => DATA_WIDTH,
-                UPPER_TRESHOLD  => 500,
-                LOWER_TRESHOLD  => 10,
+                UPPER_TRESHOLD  => UPPER_TRESHOLD,
+                LOWER_TRESHOLD  => LOWER_TRESHOLD,
                 OVERFLOW_ACTION => "SATURATE",
                 UNDERFLOW_ACTION=> "SATURATE"
             )
@@ -76,7 +85,8 @@ begin
                 wr_rst      => wr_rst,
                 wr_data     => wr_data, 
                 wr_en       => wr_en, 
-                wr_full     => open, 
+                wr_full     => wr_full,
+                wr_upper    => wr_upper,
         
                 rd_clk      => rd_clk, 
                 rd_clken    => rd_clken, 
@@ -88,7 +98,12 @@ begin
             );
 
     process
-        variable wr_data_v : std_logic_vector(DATA_WIDTH - 1 downto 0);
+        procedure wait_clock (c : integer) is
+            begin
+                for i in 1 to c loop
+                    wait until wr_clk = '1';
+                end loop;
+            end procedure wait_clock;
         procedure write_data (d : std_logic_vector) is
             begin
                 wr_en <= '1';
@@ -100,13 +115,36 @@ begin
             begin
                 write_data(conv_std_logic_vector(d, DATA_WIDTH));
             end procedure write_data;
+        variable wr_data_v : std_logic_vector(DATA_WIDTH - 1 downto 0);
     begin
+        test_state <= upper_test_write;
         wr_en <= '0';
         wait until wr_rst = '0';
-        wait until wr_clk = '1';
-        wait until wr_clk = '1';
-        wait until wr_clk = '1';
-        fprint("Writing data\n");
+        wait_clock(4);
+        for i in 0 to UPPER_TRESHOLD loop
+            assert wr_full /= '1'
+                report "Error: wr_full = " & std_logic'image(wr_full) & ", it should be '0'"
+                severity error;
+            assert wr_upper /= '1'
+                report "Error: wr_upper = " & std_logic'image(wr_full) & ", it should be '0'"
+                severity error;
+            wr_data_v := rand_gen.RandSlv(DATA_WIDTH);
+            write_data(wr_data_v);
+            fifo.write(wr_data_v);
+        end loop;
+        wait_clock(1);
+        assert wr_full /= '1'
+            report "Error: wr_full = " & std_logic'image(wr_full)
+            severity error;
+
+        assert wr_upper = '1'
+            report "Error: wr_upper = " & std_logic'image(wr_full) & ", it should be '1'"
+            severity error;
+        
+        test_state <= upper_test_read;
+        wait;
+
+
         for i in 1 to 15 loop --2**16 loop
             fifo.write(i);
             write_data(i);
@@ -117,33 +155,43 @@ begin
 
         wait;
     end process;
+
+
     process
-        variable wr_data_v : std_logic_vector(DATA_WIDTH - 1 downto 0);
+        procedure wait_clock ( c : integer) is
+            begin
+                for i in 1 to c loop
+                    wait until rd_clk = '1';
+                end loop;
+            end procedure wait_clock;
         procedure read_data (d : out std_logic_vector) is
             begin
                 rd_en <= '1';
                 wait until rd_clk = '1';
-                d     := rd_data;
                 rd_en <= '0';
+                wait until rd_clk = '1';
+                d     := rd_data;
             end procedure read_data;
 
-            variable data : std_logic_vector(DATA_WIDTH - 1 downto 0);
+            variable rd_data      : std_logic_vector(DATA_WIDTH - 1 downto 0);
+            variable fifo_rd_data : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
         begin
             rd_en <= '0';
             wait until rd_rst = '0';
-            wait until rd_clk = '1';
-            wait until rd_clk = '1';
-            wait until rd_clk = '1';
-            wait until rd_clk = '1';
-            wait until rd_clk = '1';
-            wait until rd_clk = '1';
-            wait until rd_clk = '1';
-            wait until rd_clk = '1';
+            wait_clock(16);
+            wait until test_state = upper_test_read;
+            assert rd_empty = '0'
+                report "Fifo should not be empty by now"
+                severity failure;
+            wait_clock(1);
             while true loop
                 if rd_empty = '0' then
-                    read_data(data);
-                    fprint("Data read: %r\n", fo(data));
+                    read_data(rd_data);
+                    fifo_rd_data := fifo.read;
+                    assert rd_data = fifo_rd_data
+                        report "Data read: " & fo(rd_data) & ", expected " & fo(fifo_rd_data)
+                        severity error;
                 else
                     wait until rd_clk = '1';
                 end if;
