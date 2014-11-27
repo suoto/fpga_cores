@@ -9,7 +9,6 @@ library pck_fio_lib;
     use pck_fio_lib.PCK_FIO.all;
 
 package ram_model_pkg is
-
     type ram_bfm_type is protected
         procedure write (a, d : std_logic_vector );
         procedure write (a, d : integer);

@@ -26,7 +26,6 @@ end async_fifo_tb;
 
 architecture async_fifo_tb of async_fifo_tb is
 
-
     constant ADDR_WIDTH         : integer := 16;
     constant DATA_WIDTH         : integer := 16;
     constant UPPER_TRESHOLD     : integer := 500;
@@ -42,7 +41,6 @@ architecture async_fifo_tb of async_fifo_tb is
     signal wr_data   : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal wr_upper  : std_logic;
     signal wr_full   : std_logic;
-
 
     signal rd_clk    : std_logic := '0';
     signal rd_rst    : std_logic;
@@ -60,42 +58,42 @@ architecture async_fifo_tb of async_fifo_tb is
 
 begin
 
-        wr_clk <= not wr_clk after WR_CLK_PERIOD/2;
-        rd_clk <= not rd_clk after RD_CLK_PERIOD/2;
+    wr_clk <= not wr_clk after WR_CLK_PERIOD/2;
+    rd_clk <= not rd_clk after RD_CLK_PERIOD/2;
 
-        wr_clken <= '1';
-        rd_clken <= '1';
+    wr_clken <= '1';
+    rd_clken <= '1';
 
-        wr_rst <= '1', '0' after 16*RD_CLK_PERIOD;
-        rd_rst <= '1', '0' after 16*RD_CLK_PERIOD;
-    
-        dut : entity memory.async_fifo
-            generic map (
-                FIFO_LEN        => 512,
-                DATA_WIDTH      => DATA_WIDTH,
-                UPPER_TRESHOLD  => UPPER_TRESHOLD,
-                LOWER_TRESHOLD  => LOWER_TRESHOLD,
-                OVERFLOW_ACTION => "SATURATE",
-                UNDERFLOW_ACTION=> "SATURATE"
+    wr_rst <= '1', '0' after 16*RD_CLK_PERIOD;
+    rd_rst <= '1', '0' after 16*RD_CLK_PERIOD;
+
+    dut : entity memory.async_fifo
+        generic map (
+            FIFO_LEN        => 512,
+            DATA_WIDTH      => DATA_WIDTH,
+            UPPER_TRESHOLD  => UPPER_TRESHOLD,
+            LOWER_TRESHOLD  => LOWER_TRESHOLD,
+            OVERFLOW_ACTION => "SATURATE",
+            UNDERFLOW_ACTION=> "SATURATE"
             )
-            port map (
-                -- Write port
-                wr_clk      => wr_clk, 
-                wr_clken    => wr_clken, 
-                wr_rst      => wr_rst,
-                wr_data     => wr_data, 
-                wr_en       => wr_en, 
-                wr_full     => wr_full,
-                wr_upper    => wr_upper,
-        
-                rd_clk      => rd_clk, 
-                rd_clken    => rd_clken, 
-                rd_rst      => rd_rst,
-                rd_data     => rd_data, 
-                rd_en       => rd_en, 
-                rd_dv       => rd_dv, 
-                rd_empty    => rd_empty
-            );
+        port map (
+            -- Write port
+            wr_clk      => wr_clk, 
+            wr_clken    => wr_clken, 
+            wr_rst      => wr_rst,
+            wr_data     => wr_data, 
+            wr_en       => wr_en, 
+            wr_full     => wr_full,
+            wr_upper    => wr_upper,
+
+            rd_clk      => rd_clk, 
+            rd_clken    => rd_clken, 
+            rd_rst      => rd_rst,
+            rd_data     => rd_data, 
+            rd_en       => rd_en, 
+            rd_dv       => rd_dv, 
+            rd_empty    => rd_empty
+        );
 
     process
         procedure wait_clock (c : integer) is
@@ -104,6 +102,7 @@ begin
                     wait until wr_clk = '1';
                 end loop;
             end procedure wait_clock;
+
         procedure write_data (d : std_logic_vector) is
             begin
                 wr_en <= '1';
@@ -111,11 +110,14 @@ begin
                 wait until wr_clk = '1';
                 wr_en <= '0';
             end procedure write_data;
+
         procedure write_data (d : integer) is
             begin
                 write_data(conv_std_logic_vector(d, DATA_WIDTH));
             end procedure write_data;
+
         variable wr_data_v : std_logic_vector(DATA_WIDTH - 1 downto 0);
+
     begin
         test_state <= upper_test_write;
         wr_en <= '0';
@@ -144,7 +146,6 @@ begin
         test_state <= upper_test_read;
         wait;
 
-
         for i in 1 to 15 loop --2**16 loop
             fifo.write(i);
             write_data(i);
@@ -154,9 +155,8 @@ begin
         finish(2);
 
         wait;
-    end process;
-
-
+    end process; 
+     
     process
         procedure wait_clock ( c : integer) is
             begin
@@ -164,6 +164,7 @@ begin
                     wait until rd_clk = '1';
                 end loop;
             end procedure wait_clock;
+
         procedure read_data (d : out std_logic_vector) is
             begin
                 rd_en <= '1';
@@ -197,5 +198,6 @@ begin
                 end if;
             end loop;
         end process;
+
 end async_fifo_tb;
 

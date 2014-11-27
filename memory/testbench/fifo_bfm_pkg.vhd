@@ -17,6 +17,7 @@ package fifo_bfm_pkg is
         procedure free;
         impure function is_empty return boolean;
     end protected;
+
 end package fifo_bfm_pkg;
 
 package body fifo_bfm_pkg is
@@ -85,7 +86,7 @@ package body fifo_bfm_pkg is
             begin
                 return fifo_empty;
             end function is_empty;
-        
+
         procedure free is
             begin
                 deallocate(ptr);

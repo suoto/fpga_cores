@@ -54,7 +54,6 @@ architecture async_fifo of async_fifo is
     -- Types --
     -----------
 
-
     -------------
     -- Signals --
     -------------
@@ -184,7 +183,6 @@ begin
         end if;
     end process;
 
-
     process(rd_clk)
     begin
         if rd_clk'event and rd_clk = '1' then
@@ -222,5 +220,6 @@ begin
         end if;
     end process;
 end async_fifo;
+
 
 
