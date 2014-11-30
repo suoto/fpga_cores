@@ -20,23 +20,26 @@ library memory;
 ------------------------
 entity async_fifo is
     generic (
-        FIFO_LEN         : positive := 512;
-        UPPER_TRESHOLD   : natural  := 510;
-        LOWER_TRESHOLD   : natural  := 10;
-        DATA_WIDTH       : natural  := 8;
+        -- FIFO configuration
+        FIFO_LEN         : positive := 512;         -- FIFO length in number of positions
+        UPPER_TRESHOLD   : natural  := 510;         -- FIFO level to assert wr_upper
+        LOWER_TRESHOLD   : natural  := 10;          -- FIFO level to assert rd_lower
+        DATA_WIDTH       : natural  := 8;           -- Data width
+        -- FIFO config for error cases
         OVERFLOW_ACTION  : string   := "SATURATE";
         UNDERFLOW_ACTION : string   := "SATURATE"
     );
     port (
         -- Write port
-        wr_clk      : in  std_logic;
-        wr_clken    : in  std_logic;
-        wr_rst      : in  std_logic;
-        wr_data     : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
-        wr_en       : in  std_logic;
-        wr_full     : out std_logic;
-        wr_upper    : out std_logic;
+        wr_clk      : in  std_logic;                                 -- Write clock
+        wr_clken    : in  std_logic;                                 -- Write clock enable
+        wr_rst      : in  std_logic;                                 -- Reset input at write clock
+        wr_data     : in  std_logic_vector(DATA_WIDTH - 1 downto 0); -- Fifo write data
+        wr_en       : in  std_logic;                                 -- Fifo write enable
+        wr_full     : out std_logic;                                 -- Fifo write full status
+        wr_upper    : out std_logic;                                 -- Fifo write upper status
 
+        -- Read port
         rd_clk      : in  std_logic;
         rd_clken    : in  std_logic;
         rd_rst      : in  std_logic;
