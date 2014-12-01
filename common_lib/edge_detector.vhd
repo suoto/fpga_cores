@@ -19,7 +19,7 @@ entity edge_detector is
     generic (
         SYNCHRONIZE_INPUT : boolean := false;
         OUTPUT_DELAY      : natural := 1
-        );
+    );
     port (
         -- Usual ports
         clk     : in  std_logic;
@@ -55,11 +55,11 @@ begin
             generic map (
                 SYNC_STAGES => 1,
                 DATA_WIDTH  => 1
-            )
+                )
             port map (
                 clk     => clk,
                 clken   => clken,
-        
+
                 din(0)  => din,
                 dout(0) => din_i
             );
@@ -73,7 +73,7 @@ begin
         port map (
             clk     => clk,
             clken   => clken,
-    
+
             din(0)  => rising_i,
             din(1)  => falling_i,
             din(2)  => toggle_i,

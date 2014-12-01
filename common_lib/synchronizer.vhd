@@ -19,7 +19,7 @@ entity synchronizer is
     generic (
         SYNC_STAGES  : positive := 2;
         DATA_WIDTH   : integer  := 1
-        );
+    );
     port (
         -- Usual ports
         clk     : in  std_logic;
@@ -79,7 +79,7 @@ begin
         if clk'event and clk = '1' then
             if clken = '1' then
                 din_sr  <= din_sr(SYNC_STAGES - 2 downto 0) & din;
-                
+
                 is_stable := true;
                 for i in 0 to SYNC_STAGES - 2 loop
                     if din_sr(i) /= din_sr(SYNC_STAGES - 1) then

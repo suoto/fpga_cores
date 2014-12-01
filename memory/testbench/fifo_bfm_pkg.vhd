@@ -1,9 +1,9 @@
 
 
 library ieee;
-use ieee.std_logic_1164.all;
-use ieee.std_logic_arith.all;
-use ieee.std_logic_unsigned.all;
+    use ieee.std_logic_1164.all;
+    use ieee.std_logic_arith.all;
+    use ieee.std_logic_unsigned.all;
 
 library pck_fio_lib;
     use pck_fio_lib.PCK_FIO.all;
@@ -39,19 +39,19 @@ package body fifo_bfm_pkg is
         procedure write (d : integer ) is
             begin
                 write(conv_std_logic_vector(d, DATA_WIDTH));
-               end procedure write;
+            end procedure write;
 
         procedure write (d : std_logic_vector ) is
-                variable this_item : ptr_t;
-                variable last_item : ptr_t;
-                variable item_cnt  : integer := 0;
+            variable this_item : ptr_t;
+            variable last_item : ptr_t;
+            variable item_cnt  : integer := 0;
             begin
                 this_item      := new memory_position;
                 this_item.data := d;
 
                 if ptr = null then
                     ptr := this_item;
-                else
+                    else
                     last_item := ptr;
                     while last_item.next_p /= null loop
                         last_item := last_item.next_p;
@@ -60,11 +60,11 @@ package body fifo_bfm_pkg is
                     last_item.next_p := this_item;
                     fifo_empty := false;
                 end if;
-        end procedure write;
+            end procedure write;
 
         impure function read return std_logic_vector is
-                variable result : std_logic_vector(DATA_WIDTH - 1 downto 0);
-                variable this_item : ptr_t;
+            variable result : std_logic_vector(DATA_WIDTH - 1 downto 0);
+            variable this_item : ptr_t;
             begin
                 this_item := ptr;
                 assert this_item /= null

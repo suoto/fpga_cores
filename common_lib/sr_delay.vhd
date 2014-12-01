@@ -18,7 +18,7 @@ entity sr_delay is
     generic (
         DELAY_CYCLES : natural := 1;
         DATA_WIDTH   : positive := 1
-        );
+    );
     port (
         clk     : in  std_logic;
         clken   : in  std_logic;

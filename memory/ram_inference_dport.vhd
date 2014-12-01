@@ -21,7 +21,7 @@ entity ram_inference is
         ADDR_WIDTH         : positive := 16;
         DATA_WIDTH         : positive := 16;
         EXTRA_OUTPUT_DELAY : natural  := 0
-        );
+    );
     port (
         -- Port A
         clk_a     : in  std_logic;
@@ -75,7 +75,7 @@ begin
 
             din     => rddata_a_i,
             dout    => rddata_a
-    );
+        );
 
     rddata_b_delay : entity common_lib.sr_delay
         generic map (
@@ -88,7 +88,7 @@ begin
 
             din     => rddata_b_i,
             dout    => rddata_b
-    );
+        );
 
     ---------------
     -- Processes --

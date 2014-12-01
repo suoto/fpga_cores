@@ -18,7 +18,7 @@ library common_lib;
 entity pulse_sync is
     generic (
         EXTRA_DELAY_CYCLES : natural := 1
-        );
+    );
     port (
         -- Usual ports
         src_clk     : in  std_logic;
@@ -56,7 +56,7 @@ begin
             -- Usual ports
             clk     => dst_clk,
             clken   => dst_clken,
-    
+
             -- 
             din     => pulse_toggle,
             -- Edges detected
@@ -64,7 +64,7 @@ begin
             falling => open, 
             toggle  => dst_pulse
         );
-    
+
     -----------------------------
     -- Asynchronous asignments --
     -----------------------------

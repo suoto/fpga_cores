@@ -30,7 +30,7 @@ architecture async_fifo_tb of async_fifo_tb is
     constant DATA_WIDTH         : integer := 16;
     constant UPPER_TRESHOLD     : integer := 500;
     constant LOWER_TRESHOLD     : integer := 10;
-    
+
     signal WR_CLK_PERIOD : time := 4 ns;
     signal RD_CLK_PERIOD : time := 16 ns;
 
@@ -86,6 +86,7 @@ begin
             wr_full     => wr_full,
             wr_upper    => wr_upper,
 
+            -- Read port
             rd_clk      => rd_clk, 
             rd_clken    => rd_clken, 
             rd_rst      => rd_rst,
@@ -142,7 +143,7 @@ begin
         assert wr_upper = '1'
             report "Error: wr_upper = " & std_logic'image(wr_full) & ", it should be '1'"
             severity error;
-        
+
         test_state <= upper_test_read;
         wait;
 
@@ -156,7 +157,7 @@ begin
 
         wait;
     end process; 
-     
+
     process
         procedure wait_clock ( c : integer) is
             begin
@@ -174,30 +175,30 @@ begin
                 d     := rd_data;
             end procedure read_data;
 
-            variable rd_data      : std_logic_vector(DATA_WIDTH - 1 downto 0);
-            variable fifo_rd_data : std_logic_vector(DATA_WIDTH - 1 downto 0);
+        variable rd_data      : std_logic_vector(DATA_WIDTH - 1 downto 0);
+        variable fifo_rd_data : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
-        begin
-            rd_en <= '0';
-            wait until rd_rst = '0';
-            wait_clock(16);
-            wait until test_state = upper_test_read;
-            assert rd_empty = '0'
-                report "Fifo should not be empty by now"
-                severity failure;
-            wait_clock(1);
-            while true loop
-                if rd_empty = '0' then
-                    read_data(rd_data);
-                    fifo_rd_data := fifo.read;
-                    assert rd_data = fifo_rd_data
-                        report "Data read: " & fo(rd_data) & ", expected " & fo(fifo_rd_data)
-                        severity error;
-                else
-                    wait until rd_clk = '1';
-                end if;
-            end loop;
-        end process;
+    begin
+        rd_en <= '0';
+        wait until rd_rst = '0';
+        wait_clock(16);
+        wait until test_state = upper_test_read;
+        assert rd_empty = '0'
+            report "Fifo should not be empty by now"
+            severity failure;
+        wait_clock(1);
+        while true loop
+            if rd_empty = '0' then
+                read_data(rd_data);
+                fifo_rd_data := fifo.read;
+                assert rd_data = fifo_rd_data
+                    report "Data read: " & fo(rd_data) & ", expected " & fo(fifo_rd_data)
+                    severity error;
+            else
+                wait until rd_clk = '1';
+            end if;
+        end loop;
+    end process;
 
 end async_fifo_tb;
 

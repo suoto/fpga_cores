@@ -1,9 +1,9 @@
 
 
 library ieee;
-use ieee.std_logic_1164.all;
-use ieee.std_logic_arith.all;
-use ieee.std_logic_unsigned.all;
+    use ieee.std_logic_1164.all;
+    use ieee.std_logic_arith.all;
+    use ieee.std_logic_unsigned.all;
 
 library pck_fio_lib;
     use pck_fio_lib.PCK_FIO.all;
@@ -39,14 +39,14 @@ package body ram_model_pkg is
         procedure write (a, d : integer ) is
             begin
                 write( conv_std_logic_vector(a, ADDR_WIDTH),
-                       conv_std_logic_vector(d, DATA_WIDTH));
-               end procedure write;
+                    conv_std_logic_vector(d, DATA_WIDTH));
+            end procedure write;
 
         procedure write (a, d : std_logic_vector ) is
-                variable this_item : ptr_t;
-                variable last_item : ptr_t;
-                variable a_i       : integer;
-                variable item_cnt  : integer := 0;
+            variable this_item : ptr_t;
+            variable last_item : ptr_t;
+            variable a_i       : integer;
+            variable item_cnt  : integer := 0;
             begin
                 a_i := conv_integer(a);
                 this_item      := new memory_position;
@@ -54,11 +54,11 @@ package body ram_model_pkg is
                 this_item.data := conv_integer(d);
 
                 fprint("Write: (%r) <== %r\n", fo(a), fo(d));
-                
+
                 if ptr = null then
                     ptr := this_item;
                     fprint("Assigning ptr\n");
-                else
+                    else
                     last_item := ptr;
                     while last_item.next_p /= null loop
                         if last_item.addr = a_i then
@@ -73,14 +73,14 @@ package body ram_model_pkg is
                         last_item.next_p := this_item;
                     end if;
                 end if;
-        end procedure write;
+            end procedure write;
 
         impure function read(a : integer) return integer is
-                variable result : integer := 0;
-                variable a_i    : integer := a;
+            variable result : integer := 0;
+            variable a_i    : integer := a;
 
-                variable this_item : ptr_t;
-                variable prev_item : ptr_t;
+            variable this_item : ptr_t;
+            variable prev_item : ptr_t;
             begin
                 this_item := ptr;
                 while this_item.addr /= a_i loop
@@ -88,7 +88,7 @@ package body ram_model_pkg is
                         result := -1;
                         exit;
                     end if;
-                        this_item := this_item.next_p;
+                    this_item := this_item.next_p;
                 end loop;
                 if this_item.next_p /= null then
                     result := this_item.data;
@@ -96,7 +96,9 @@ package body ram_model_pkg is
 --                ptr := this_item.next_p;
 --                DEALLOCATE(this_item);
 
-                fprint("Read: %r => %r\n", fo(conv_std_logic_vector(a_i, ADDR_WIDTH)), fo(conv_std_logic_vector(result, DATA_WIDTH)));
+                fprint("Read: %r => %r\n",
+                    fo(conv_std_logic_vector(a_i, ADDR_WIDTH)),
+                    fo(conv_std_logic_vector(result, DATA_WIDTH)));
                 return result;
             end function read;
     end protected body;
