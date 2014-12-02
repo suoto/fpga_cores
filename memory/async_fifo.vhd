@@ -49,7 +49,7 @@ entity async_fifo is
         rd_lower    : out std_logic;
         rd_empty    : out std_logic
     );
-end async_fifo;
+    end async_fifo;
 
 architecture async_fifo of async_fifo is
 
@@ -172,7 +172,7 @@ begin
                     elsif OVERFLOW_ACTION = "RESET" then
                         if fifo_full_wr = '0' then
                             wr_ptr <= wr_ptr + 1;
-                            else
+                        else
                             error_wr <= '1';
                             wr_ptr <= (others => '0');
                         end if;
@@ -210,7 +210,7 @@ begin
                         if fifo_empty_rd = '0' then
                             rd_dv  <= '1';
                             rd_ptr <= rd_ptr + 1;
-                            else
+                        else
                             error_rd <= '1';
                             rd_ptr <= (others => '0');
                         end if;

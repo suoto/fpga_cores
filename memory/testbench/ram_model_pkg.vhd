@@ -38,7 +38,8 @@ package body ram_model_pkg is
 
         procedure write (a, d : integer ) is
             begin
-                write( conv_std_logic_vector(a, ADDR_WIDTH),
+                write(
+                    conv_std_logic_vector(a, ADDR_WIDTH),
                     conv_std_logic_vector(d, DATA_WIDTH));
             end procedure write;
 
@@ -58,7 +59,7 @@ package body ram_model_pkg is
                 if ptr = null then
                     ptr := this_item;
                     fprint("Assigning ptr\n");
-                    else
+                else
                     last_item := ptr;
                     while last_item.next_p /= null loop
                         if last_item.addr = a_i then
