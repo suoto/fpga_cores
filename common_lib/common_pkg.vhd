@@ -16,7 +16,7 @@ end;
 
 package body common_pkg is
 
-    function numbits (v : positive) return positive is
+    function numbits (v : integer) return positive is
             variable result : integer;
             variable base : positive := 2;
         begin
