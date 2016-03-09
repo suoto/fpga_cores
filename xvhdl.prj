@@ -1,0 +1,28 @@
+# Use relaxed flags when building the whole project
+# batch_build_flags = -explicit -permissive
+# Use stricter flags for building the file we're working on
+# single_build_flags = -explicit -check_synthesis -lint -rangecheck
+# Compiler selection
+builder = xvhdl
+# Location of the built files
+target_dir = .build
+
+vhdl   osvvm_lib     osvvm_lib/MessagePkg.vhd
+vhdl   osvvm_lib     osvvm_lib/SortListPkg_int.vhd
+vhdl   osvvm_lib     osvvm_lib/NamePkg.vhd
+vhdl   osvvm_lib     osvvm_lib/RandomBasePkg.vhd
+vhdl   osvvm_lib     osvvm_lib/RandomPkg.vhd
+vhdl   osvvm_lib     osvvm_lib/CoveragePkg.vhd
+vhdl   pck_fio_lib   pck_fio_lib/PCK_FIO_1993.vhd
+vhdl   pck_fio_lib   pck_fio_lib/PCK_FIO_1993_BODY.vhd
+vhdl   common_lib    common_lib/common_pkg.vhd
+vhdl   common_lib    common_lib/synchronizer.vhd
+vhdl   common_lib    common_lib/sr_delay.vhd
+vhdl   common_lib    common_lib/edge_detector.vhd
+vhdl   common_lib    common_lib/pulse_sync.vhd
+vhdl   memory        memory/ram_inference.vhd
+vhdl   memory        memory/ram_inference_dport.vhd
+vhdl   memory        memory/async_fifo.vhd
+vhdl   work          memory/testbench/ram_model_pkg.vhd
+vhdl   work          memory/testbench/fifo_bfm_pkg.vhd
+vhdl   work          memory/testbench/async_fifo_tb.vhd

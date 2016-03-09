@@ -7,6 +7,7 @@ use ieee.math_real.all;
 
 package common_pkg is
 
+
     function numbits (v : integer) return integer;
     function bin_to_gray ( bin  : std_logic_vector) return std_logic_vector;
     function gray_to_bin ( gray : std_logic_vector) return std_logic_vector;
@@ -16,9 +17,8 @@ end;
 
 package body common_pkg is
 
-    function numbits (v : integer) return positive is
+    function numbits (v : integer) return integer is
             variable result : integer;
-            variable base : positive := 2;
         begin
             if v = 0 or v = 1 then
                 result := 1;

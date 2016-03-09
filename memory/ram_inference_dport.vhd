@@ -16,7 +16,7 @@ library common_lib;
 ------------------------
 -- Entity declaration --
 ------------------------
-entity ram_inference is
+entity ram_inference_dport is
     generic (
         ADDR_WIDTH         : positive := 16;
         DATA_WIDTH         : positive := 16;
@@ -39,9 +39,9 @@ entity ram_inference is
         wrdata_b  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
         rddata_b  : out std_logic_vector(DATA_WIDTH - 1 downto 0)
     );
-end ram_inference;
+end ram_inference_dport;
 
-architecture ram_inference of ram_inference is
+architecture ram_inference_dport of ram_inference_dport is
 
     -----------
     -- Types --
@@ -117,6 +117,6 @@ begin
         end if;
     end process;
 
-end ram_inference;
+end ram_inference_dport;
 
 
