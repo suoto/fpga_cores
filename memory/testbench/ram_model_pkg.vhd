@@ -5,8 +5,8 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_arith.all;
 use ieee.std_logic_unsigned.all;
 
-library pck_fio_lib;
-    use pck_fio_lib.PCK_FIO.all;
+-- library pck_fio_lib;
+--     use pck_fio_lib.PCK_FIO.all;
 
 package ram_model_pkg is
     type ram_bfm_type is protected
@@ -53,11 +53,11 @@ package body ram_model_pkg is
                 this_item.addr := conv_integer(a);
                 this_item.data := conv_integer(d);
 
-                fprint("Write: (%r) <== %r\n", fo(a), fo(d));
+                -- fprint("Write: (%r) <== %r\n", fo(a), fo(d));
                 
                 if ptr = null then
                     ptr := this_item;
-                    fprint("Assigning ptr\n");
+                    -- fprint("Assigning ptr\n");
                 else
                     last_item := ptr;
                     while last_item.next_p /= null loop
@@ -69,7 +69,7 @@ package body ram_model_pkg is
                         item_cnt := item_cnt + 1;
                     end loop;
                     if last_item.addr /= a_i then
-                        fprint("Item cnt: %d\n", fo(item_cnt));
+                        -- fprint("Item cnt: %d\n", fo(item_cnt));
                         last_item.next_p := this_item;
                     end if;
                 end if;
@@ -96,7 +96,7 @@ package body ram_model_pkg is
 --                ptr := this_item.next_p;
 --                DEALLOCATE(this_item);
 
-                fprint("Read: %r => %r\n", fo(conv_std_logic_vector(a_i, ADDR_WIDTH)), fo(conv_std_logic_vector(result, DATA_WIDTH)));
+                -- fprint("Read: %r => %r\n", fo(conv_std_logic_vector(a_i, ADDR_WIDTH)), fo(conv_std_logic_vector(result, DATA_WIDTH)));
                 return result;
             end function read;
     end protected body;

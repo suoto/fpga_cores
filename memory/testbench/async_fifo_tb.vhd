@@ -8,8 +8,8 @@ library work;
     use work.ram_model_pkg.all;
     use work.fifo_bfm_pkg.all;
 
-library pck_fio_lib;
-    use pck_fio_lib.PCK_FIO.all;
+-- library pck_fio_lib;
+--     use pck_fio_lib.PCK_FIO.all;
 library common_lib;
     use common_lib.common_pkg.all;
 library osvvm_lib;
@@ -21,8 +21,15 @@ library std;
     use std.env.all;
 
 
+library vunit_lib;
+context vunit_lib.vunit_context;
+
 entity async_fifo_tb is
-end async_fifo_tb;
+    generic (
+        runner_cfg : string
+    );
+end entity;
+
 
 architecture async_fifo_tb of async_fifo_tb is
 
@@ -178,6 +185,8 @@ begin
             variable fifo_rd_data : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
         begin
+            test_runner_setup(runner, runner_cfg);
+
             rd_en <= '0';
             wait until rd_rst = '0';
             wait_clock(16);
@@ -186,17 +195,21 @@ begin
                 report "Fifo should not be empty by now"
                 severity failure;
             wait_clock(1);
-            while true loop
+            -- while true loop
+            for i in 0 to 31 loop
                 if rd_empty = '0' then
                     read_data(rd_data);
                     fifo_rd_data := fifo.read;
                     assert rd_data = fifo_rd_data
-                        report "Data read: " & fo(rd_data) & ", expected " & fo(fifo_rd_data)
+                        report "Data read: " & integer'image(conv_integer(rd_data)) &
+                                ", expected " & integer'image(conv_integer(fifo_rd_data))
+                        -- report "Data read: " & fo(rd_data) & ", expected " & fo(fifo_rd_data)
                         severity error;
                 else
                     wait until rd_clk = '1';
                 end if;
             end loop;
+            test_runner_cleanup(runner); -- Simulation ends here
         end process;
 
 end async_fifo_tb;
