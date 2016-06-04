@@ -23,11 +23,11 @@ vhdl  common_lib         common_lib/pulse_sync.vhd
 vhdl  memory             memory/ram_inference.vhd
 vhdl  memory             memory/ram_inference_dport.vhd
 vhdl  memory             memory/async_fifo.vhd
-vhdl  exp_golomb_lib     vhdl/src/exp_golomb_encoder.vhd
-vhdl  exp_golomb_lib     vhdl/src/exp_golomb_pkg.vhd
-vhdl  exp_golomb_tb_lib  vhdl/src/test/file_dumper.vhd
-vhdl  exp_golomb_tb_lib  vhdl/src/test/exp_golomb_encoder_tb.vhd
-vhdl  exp_golomb_tb_lib  vhdl/src/test/exp_golomb_encoder_no_vunit_tb.vhd
+vhdl  exp_golomb_lib     exponential_golomb/src/exp_golomb_encoder.vhd
+vhdl  exp_golomb_lib     exponential_golomb/src/exp_golomb_pkg.vhd
+vhdl  exp_golomb_tb_lib  exponential_golomb/src/test/file_dumper.vhd
+vhdl  exp_golomb_tb_lib  exponential_golomb/src/test/exp_golomb_encoder_tb.vhd
+vhdl  exp_golomb_tb_lib  exponential_golomb/src/test/exp_golomb_encoder_no_vunit_tb.vhd
 vhdl  work               memory/testbench/ram_model_pkg.vhd
 vhdl  work               memory/testbench/fifo_bfm_pkg.vhd
 vhdl  work               memory/testbench/async_fifo_tb.vhd
