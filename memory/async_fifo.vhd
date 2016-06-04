@@ -224,5 +224,3 @@ begin
     end process;
 end async_fifo;
 
-
-
