@@ -55,7 +55,9 @@ package exp_golomb_pkg is
     function numbits (v : integer) return integer;
 
     -- 
-    procedure runtime_check (data : std_logic_vector; encoded : std_logic_vector);
+    procedure runtime_check (
+        constant data       : std_logic_vector;
+        constant encoded    : std_logic_vector);
 
     procedure runtime_check (
         constant data       : unsigned;
