@@ -24,12 +24,11 @@ from vunit import VUnit
 
 def main():
     ui = VUnit.from_argv()
-    ui.add_osvvm()
 
     src_path = join(dirname(__file__), "src")
 
-    exp_golomb_lib = ui.add_library("pck_fio_pkg")
-    exp_golomb_lib.add_source_files(join(src_path, "*.vhd"))
+    pck_fio_lib = ui.add_library("pck_fio_lib")
+    pck_fio_lib.add_source_files(join(src_path, "*.vhd"))
 
     tb = ui.add_library("tb")
     tb.add_source_files(join(src_path, "test", "*.vhd"))

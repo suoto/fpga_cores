@@ -88,7 +88,7 @@ package PCK_FIO is
   function fo (Arg: unsigned)          return string;
   function fo (Arg: signed)            return string;
   function fo (Arg: std_logic_vector)  return string;
-  function fo (Arg: std_ulogic_vector) return string;
+  -- function fo (Arg: std_ulogic_vector) return string;
   function fo (Arg: bit_vector)        return string;
   function fo (Arg: integer)           return string;
   function fo (Arg: std_ulogic)        return string;
@@ -101,6 +101,14 @@ package PCK_FIO is
   procedure FIO_FormatExpand (FMT:          inout line; 
 			      Format:       in    string; 
 			      StartPointer: in    positive);
+
+impure function sprintf (
+    Format:  in    string;  
+    A1 , A2 , A3 , A4 , A5 , A6 , A7 , A8 : in string := FIO_NIL;
+    A9 , A10, A11, A12, A13, A14, A15, A16: in string := FIO_NIL;
+    A17, A18, A19, A20, A21, A22, A23, A24: in string := FIO_NIL;
+    A25, A26, A27, A28, A29, A30, A31, A32: in string := FIO_NIL
+    ) return string;
 
 end PCK_FIO;
 

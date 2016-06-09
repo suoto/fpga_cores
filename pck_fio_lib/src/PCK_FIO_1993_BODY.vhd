@@ -718,15 +718,15 @@
     return ("V:" & Result);
   end fo;
 
-  function fo (Arg: std_ulogic_vector) return string is
-    constant Argument: std_ulogic_vector(1 to Arg'length) := Arg;
-    variable Result: string(1 to Arg'length); 
-  begin
-    for i in Argument'range loop
-      Result(i) := C_STD_LOGIC_MAP(Argument(i));
-    end loop;
-    return ("V:" & Result);
-  end fo;
+  -- function fo (Arg: std_ulogic_vector) return string is
+  --   constant Argument: std_ulogic_vector(1 to Arg'length) := Arg;
+  --   variable Result: string(1 to Arg'length); 
+  -- begin
+  --   for i in Argument'range loop
+  --     Result(i) := C_STD_LOGIC_MAP(Argument(i));
+  --   end loop;
+  --   return ("V:" & Result);
+  -- end fo;
 
   function fo (Arg: bit_vector) return string is
     constant Argument: bit_vector(1 to Arg'length) := Arg;
@@ -809,6 +809,32 @@
   begin
     return fo (integer (Arg / 1 ns));   
   end fo;
+
+
+  -- 
+  -- 
+  --
+
+    impure function sprintf (
+        Format:  in    string;  
+        A1 , A2 , A3 , A4 , A5 , A6 , A7 , A8 : in string := FIO_NIL;
+        A9 , A10, A11, A12, A13, A14, A15, A16: in string := FIO_NIL;
+        A17, A18, A19, A20, A21, A22, A23, A24: in string := FIO_NIL;
+        A25, A26, A27, A28, A29, A30, A31, A32: in string := FIO_NIL
+        ) return string is
+
+        file F     : text;
+        variable L : line;
+    begin
+        fprint (F, L,
+        Format,
+        A1 , A2 , A3 , A4 , A5 , A6 , A7 , A8 ,
+        A9 , A10, A11, A12, A13, A14, A15, A16,
+        A17, A18, A19, A20, A21, A22, A23, A24,
+        A25, A26, A27, A28, A29, A30, A31, A32);
+
+        return L.all;
+    end function;
 
 end PCK_FIO;
 
