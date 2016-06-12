@@ -4,69 +4,73 @@ library	ieee;
     use ieee.std_logic_arith.all;
     use ieee.std_logic_unsigned.all;
 
-library work;
-    use work.ram_model_pkg.all;
-    use work.fifo_bfm_pkg.all;
-
 library pck_fio_lib;
     use pck_fio_lib.PCK_FIO.all;
+
 library common_lib;
     use common_lib.common_pkg.all;
-library osvvm_lib;
-    use osvvm_lib.RandomPkg.all;
+
+library vunit_lib;
+    context vunit_lib.vunit_context;
+
+library osvvm;
+    use osvvm.RandomPkg.all;
 
 library memory;
 
 library std;
     use std.env.all;
 
-
 entity async_fifo_tb is
+    generic (
+        runner_cfg    : string;
+        WR_CLK_PERIOD : time := 4 ns;
+        RD_CLK_PERIOD : time := 16 ns;
+        WR_EN_RANDOM  : integer := 10;
+        RD_EN_RANDOM  : integer := 10);
 end async_fifo_tb;
 
 architecture async_fifo_tb of async_fifo_tb is
 
-    constant ADDR_WIDTH         : integer := 16;
+    --
+    procedure walk (
+        signal   clk   : in std_logic;
+        constant steps : natural := 1) is
+    begin
+        if steps /= 0 then
+            for step in 0 to steps - 1 loop
+                wait until rising_edge(clk);
+            end loop;
+        end if;
+    end procedure;
+
     constant DATA_WIDTH         : integer := 16;
     constant UPPER_TRESHOLD     : integer := 500;
     constant LOWER_TRESHOLD     : integer := 10;
-    
-    signal WR_CLK_PERIOD : time := 4 ns;
-    signal RD_CLK_PERIOD : time := 16 ns;
 
     signal wr_clk    : std_logic := '0';
-    signal wr_clken  : std_logic;
-    signal wr_rst    : std_logic;
+    signal wr_arst   : std_logic;
     signal wr_en     : std_logic;
     signal wr_data   : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal wr_upper  : std_logic;
     signal wr_full   : std_logic;
 
     signal rd_clk    : std_logic := '0';
-    signal rd_rst    : std_logic;
-    signal rd_clken  : std_logic;
+    signal rd_arst   : std_logic;
     signal rd_en     : std_logic;
     signal rd_dv     : std_logic;
     signal rd_data   : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal rd_empty  : std_logic;
 
-    shared variable fifo     : fifo_bfm_type;
-    shared variable rand_gen : RandomPType;
-
-    type test_state_t is (upper_test_write, upper_test_read);
-    signal test_state : test_state_t := upper_test_write;
+    shared variable wr_data_gen : RandomPType;
+    shared variable rd_data_gen : RandomPType;
+    shared variable random_gen  : RandomPType;
 
 begin
 
-    wr_clk <= not wr_clk after WR_CLK_PERIOD/2;
-    rd_clk <= not rd_clk after RD_CLK_PERIOD/2;
-
-    wr_clken <= '1';
-    rd_clken <= '1';
-
-    wr_rst <= '1', '0' after 16*RD_CLK_PERIOD;
-    rd_rst <= '1', '0' after 16*RD_CLK_PERIOD;
-
+    -------------------
+    -- Port mappings --
+    -------------------
     dut : entity memory.async_fifo
         generic map (
             FIFO_LEN        => 512,
@@ -77,125 +81,129 @@ begin
             UNDERFLOW_ACTION=> "SATURATE")
         port map (
             -- Write port
-            wr_clk      => wr_clk, 
-            wr_clken    => wr_clken, 
-            wr_rst      => wr_rst,
-            wr_data     => wr_data, 
-            wr_en       => wr_en, 
+            wr_clk      => wr_clk,
+            wr_arst     => wr_arst,
+            wr_data     => wr_data,
+            wr_en       => wr_en,
             wr_full     => wr_full,
             wr_upper    => wr_upper,
 
-            rd_clk      => rd_clk, 
-            rd_clken    => rd_clken, 
-            rd_rst      => rd_rst,
-            rd_data     => rd_data, 
-            rd_en       => rd_en, 
-            rd_dv       => rd_dv, 
+            rd_clk      => rd_clk,
+            rd_arst     => rd_arst,
+            rd_data     => rd_data,
+            rd_en       => rd_en,
+            rd_dv       => rd_dv,
             rd_empty    => rd_empty);
 
-    process
-        procedure wait_clock (c : integer) is
-            begin
-                for i in 1 to c loop
-                    wait until wr_clk = '1';
-                end loop;
-            end procedure wait_clock;
+    ------------------------------
+    -- Asynchronous assignments --
+    ------------------------------
+    wr_clk <= not wr_clk after WR_CLK_PERIOD/2;
+    rd_clk <= not rd_clk after RD_CLK_PERIOD/2;
 
-        procedure write_data (d : std_logic_vector) is
-            begin
-                wr_en <= '1';
-                wr_data <= d;
-                wait until wr_clk = '1';
-                wr_en <= '0';
-            end procedure write_data;
+    wr_arst <= '1', '0' after 16*RD_CLK_PERIOD;
+    rd_arst <= '1', '0' after 16*RD_CLK_PERIOD;
 
-        procedure write_data (d : integer) is
-            begin
-                write_data(conv_std_logic_vector(d, DATA_WIDTH));
-            end procedure write_data;
+    test_runner_watchdog(runner, 1 ms);
 
-        variable wr_data_v : std_logic_vector(DATA_WIDTH - 1 downto 0);
-
-    begin
-        test_state <= upper_test_write;
-        wr_en <= '0';
-        wait until wr_rst = '0';
-        wait_clock(4);
-        for i in 0 to UPPER_TRESHOLD loop
-            assert wr_full /= '1'
-                report "Error: wr_full = " & std_logic'image(wr_full) & ", it should be '0'"
-                severity error;
-            assert wr_upper /= '1'
-                report "Error: wr_upper = " & std_logic'image(wr_full) & ", it should be '0'"
-                severity error;
-            wr_data_v := rand_gen.RandSlv(DATA_WIDTH);
-            write_data(wr_data_v);
-            fifo.write(wr_data_v);
-        end loop;
-        wait_clock(1);
-        assert wr_full /= '1'
-            report "Error: wr_full = " & std_logic'image(wr_full)
-            severity error;
-
-        assert wr_upper = '1'
-            report "Error: wr_upper = " & std_logic'image(wr_full) & ", it should be '1'"
-            severity error;
-        
-        test_state <= upper_test_read;
-        wait;
-
-        for i in 1 to 15 loop --2**16 loop
-            fifo.write(i);
-            write_data(i);
-        end loop;
-
-        wait for 10 us;
-        finish(2);
-
-        wait;
-    end process; 
-     
-    process
-        procedure wait_clock ( c : integer) is
-            begin
-                for i in 1 to c loop
-                    wait until rd_clk = '1';
-                end loop;
-            end procedure wait_clock;
-
-        procedure read_data (d : out std_logic_vector) is
-            begin
-                rd_en <= '1';
-                wait until rd_clk = '1';
-                rd_en <= '0';
-                wait until rd_clk = '1';
-                d     := rd_data;
-            end procedure read_data;
-
-            variable rd_data      : std_logic_vector(DATA_WIDTH - 1 downto 0);
-            variable fifo_rd_data : std_logic_vector(DATA_WIDTH - 1 downto 0);
-
+    ---------------
+    -- Processes --
+    ---------------
+    wr_side : process
+        --
+        procedure write_data (
+            constant d : std_logic_vector(DATA_WIDTH - 1 downto 0)) is
         begin
-            rd_en <= '0';
-            wait until rd_rst = '0';
-            wait_clock(16);
-            wait until test_state = upper_test_read;
-            assert rd_empty = '0'
-                report "Fifo should not be empty by now"
-                severity failure;
-            wait_clock(1);
-            while true loop
-                if rd_empty = '0' then
-                    read_data(rd_data);
-                    fifo_rd_data := fifo.read;
-                    assert rd_data = fifo_rd_data
-                        report "Data read: " & fo(rd_data) & ", expected " & fo(fifo_rd_data)
-                        severity error;
-                else
-                    wait until rd_clk = '1';
-                end if;
+            if wr_full = '1' then
+                wait until wr_full = '0';
+            end if;
+            info(sprintf("Writing %r", fo(d)));
+            wr_data <= d;
+            wr_en   <= '1';
+            walk(wr_clk, 1);
+            wr_data <= (others => 'U');
+            wr_en   <= '0';
+        end procedure;
+
+        --
+        variable stat   : checker_stat_t;
+        variable filter : log_filter_t;
+    begin
+
+        -- Start both wr and rd data random generators with the same seed so
+        -- we get the same sequence
+        wr_data_gen.InitSeed("some_seed");
+        rd_data_gen.InitSeed("some_seed");
+
+        checker_init(display_format => verbose,
+                     file_name      => join(output_path(runner_cfg), "error.csv"),
+                     file_format    => verbose_csv);
+        logger_init(display_format => verbose,
+                    file_name      => join(output_path(runner_cfg), "log.csv"),
+                    file_format    => verbose_csv);
+        stop_level((debug, verbose), display_handler, filter);
+        test_runner_setup(runner, runner_cfg);
+
+        wait until wr_arst = '0';
+
+        walk(wr_clk, 16);
+
+        while test_suite loop
+            for i in 0 to 1000 loop
+                write_data(wr_data_gen.RandSlv(DATA_WIDTH));
+                walk(wr_clk, random_gen.RandInt(WR_EN_RANDOM));
             end loop;
-        end process;
+            wait for 1 us;
+        end loop;
+
+        if not active_python_runner(runner_cfg) then
+            get_checker_stat(stat);
+            info(LF & "Result:" & LF & to_string(stat));
+        end if;
+
+        test_runner_cleanup(runner);
+        wait;
+    end process;
+
+    rd_side : process
+        variable cmp_data : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    begin
+
+        wait until rd_arst = '0';
+
+        while True loop
+            walk(rd_clk, 1);
+            -- if rd_en = '1' and 
+            if rd_empty = '0' then
+                if rd_dv = '1' then
+                    cmp_data := rd_data_gen.RandSlv(DATA_WIDTH);
+                    info(sprintf("Got %r, expected %r", fo(rd_data), fo(cmp_data)));
+                    check_equal(rd_data, cmp_data);
+                end if;
+            end if;
+        end loop;
+
+        wait;
+    end process;
+
+    rd_en_randomize : process
+    begin
+        rd_en <= '0';
+        wait until rd_arst = '0';
+        walk(rd_clk, 10);
+
+        if RD_EN_RANDOM = 0 then
+            rd_en <= '1';
+            wait;
+        else
+            while True loop
+                rd_en <= '1';
+                walk(rd_clk, random_gen.RandInt(RD_EN_RANDOM));
+                rd_en <= '0';
+                walk(rd_clk, random_gen.RandInt(RD_EN_RANDOM));
+            end loop;
+        end if;
+    end process;
 
 end async_fifo_tb;
 
