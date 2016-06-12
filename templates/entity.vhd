@@ -18,17 +18,16 @@ library common_lib;
 entity entity_t is
     generic (
         DELAY_CYCLES : positive := 1;
-        DATA_WIDTH   : integer  := 1
-        );
+        DATA_WIDTH   : integer  := 1);
     port (
         -- Usual ports
         clk     : in  std_logic;
         clken   : in  std_logic;
+        rst     : in  std_logic;
 
         -- Block specifics
         din     : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
-        dout    : out std_logic_vector(DATA_WIDTH - 1 downto 0)
-    );
+        dout    : out std_logic_vector(DATA_WIDTH - 1 downto 0));
 end entity_t;
 
 architecture entity_t of entity_t is
@@ -49,17 +48,20 @@ begin
     -- Port mappings --
     -------------------
 
-    -----------------------------
-    -- Asynchronous asignments --
-    -----------------------------
+    ------------------------------
+    -- Asynchronous assignments --
+    ------------------------------
 
     ---------------
     -- Processes --
     ---------------
-    process(clk)
+    process(clk, rst)
     begin
-        if clk'event and clk = '1' then
+        if rst = '1' then
+            null;
+        elsif clk'event and clk = '1' then
             if clken = '1' then
+
             end if;
         end if;
     end process;

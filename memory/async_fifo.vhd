@@ -27,8 +27,7 @@ entity async_fifo is
         DATA_WIDTH       : natural  := 8;           -- Data width
         -- FIFO config for error cases
         OVERFLOW_ACTION  : string   := "SATURATE";
-        UNDERFLOW_ACTION : string   := "SATURATE"
-    );
+        UNDERFLOW_ACTION : string   := "SATURATE");
     port (
         -- Write port
         wr_clk      : in  std_logic;        -- Write clock
@@ -47,8 +46,7 @@ entity async_fifo is
         rd_en       : in  std_logic;        -- Read enable
         rd_dv       : out std_logic;        -- Read data valid
         rd_lower    : out std_logic;        -- Fifo lower threshold
-        rd_empty    : out std_logic         -- Fifo empty status
-    );
+        rd_empty    : out std_logic);       -- Fifo empty status
 end async_fifo;
 
 architecture async_fifo of async_fifo is
@@ -126,9 +124,9 @@ begin
             dst_clk     => wr_clk,
             dst_clken   => wr_clken,
             dst_pulse   => error_rd_wr);
-    -----------------------------
-    -- Asynchronous asignments --
-    -----------------------------
+    ------------------------------
+    -- Asynchronous assignments --
+    ------------------------------
     ptr_diff_w      <= wr_ptr - rd_ptr_at_wr_clk;
     ptr_diff_r      <= wr_ptr_at_rd_clk - rd_ptr;
 

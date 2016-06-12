@@ -83,9 +83,9 @@ begin
             dout(2) => toggle
         );
 
-    -----------------------------
-    -- Asynchronous asignments --
-    -----------------------------
+    ------------------------------
+    -- Asynchronous assignments --
+    ------------------------------
     ngsync_in : if not SYNCHRONIZE_INPUT generate
         din_i <= din;
     end generate ngsync_in;

@@ -20,8 +20,7 @@ entity ram_inference is
     generic (
         ADDR_WIDTH         : positive := 16;
         DATA_WIDTH         : positive := 16;
-        EXTRA_OUTPUT_DELAY : natural  := 0
-        );
+        EXTRA_OUTPUT_DELAY : natural  := 0);
     port (
         -- Port A
         clk_a     : in  std_logic;
@@ -35,8 +34,7 @@ entity ram_inference is
         clk_b     : in  std_logic;
         clken_b   : in  std_logic;
         addr_b    : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);
-        rddata_b  : out std_logic_vector(DATA_WIDTH - 1 downto 0)
-    );
+        rddata_b  : out std_logic_vector(DATA_WIDTH - 1 downto 0));
 end ram_inference;
 
 architecture ram_inference of ram_inference is
@@ -61,32 +59,28 @@ begin
     rddata_a_delay : entity common_lib.sr_delay
         generic map (
             DELAY_CYCLES => EXTRA_OUTPUT_DELAY,
-            DATA_WIDTH   => DATA_WIDTH
-            )
+            DATA_WIDTH   => DATA_WIDTH)
         port map (
             clk     => clk_a,
             clken   => clken_a,
 
             din     => rddata_a_i,
-            dout    => rddata_a
-    );
+            dout    => rddata_a);
 
     rddata_b_delay : entity common_lib.sr_delay
         generic map (
             DELAY_CYCLES => EXTRA_OUTPUT_DELAY,
-            DATA_WIDTH   => DATA_WIDTH
-            )
+            DATA_WIDTH   => DATA_WIDTH)
         port map (
             clk     => clk_b,
             clken   => clken_b,
 
             din     => rddata_b_i,
-            dout    => rddata_b
-    );
+            dout    => rddata_b);
 
-    -----------------------------
-    -- Asynchronous asignments --
-    -----------------------------
+    ------------------------------
+    -- Asynchronous assignments --
+    ------------------------------
 
     ---------------
     -- Processes --

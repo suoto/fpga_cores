@@ -74,8 +74,7 @@ begin
             UPPER_TRESHOLD  => UPPER_TRESHOLD,
             LOWER_TRESHOLD  => LOWER_TRESHOLD,
             OVERFLOW_ACTION => "SATURATE",
-            UNDERFLOW_ACTION=> "SATURATE"
-            )
+            UNDERFLOW_ACTION=> "SATURATE")
         port map (
             -- Write port
             wr_clk      => wr_clk, 
@@ -92,8 +91,7 @@ begin
             rd_data     => rd_data, 
             rd_en       => rd_en, 
             rd_dv       => rd_dv, 
-            rd_empty    => rd_empty
-        );
+            rd_empty    => rd_empty);
 
     process
         procedure wait_clock (c : integer) is

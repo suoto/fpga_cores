@@ -42,9 +42,9 @@ architecture sr_delay of sr_delay is
 
 begin
 
-    -----------------------------
-    -- Asynchronous asignments --
-    -----------------------------
+    ------------------------------
+    -- Asynchronous assignments --
+    ------------------------------
     zd : if DELAY_CYCLES = 0 generate
         dout <= din;
     end generate zd;
