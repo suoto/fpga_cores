@@ -41,7 +41,7 @@ entity async_fifo is
         -- Read port
         rd_clk      : in  std_logic;        -- Read clock
         rd_clken    : in  std_logic := '1'; -- Read clock enable
-        rd_rst      : in  std_logic;        -- Read side asynchronous reset
+        rd_arst     : in  std_logic;        -- Read side asynchronous reset
         rd_data     : out std_logic_vector(DATA_WIDTH - 1 downto 0); -- Fifo read data
         rd_en       : in  std_logic;        -- Read enable
         rd_dv       : out std_logic;        -- Read data valid
@@ -54,25 +54,24 @@ architecture async_fifo of async_fifo is
     -------------
     -- Signals --
     -------------
-    signal wr_ptr           : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    signal rd_ptr_at_wr_clk : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    signal ptr_diff_w       : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+    signal wr_ptr      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
+    signal wclk_rd_ptr : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
+    signal wclk_pdiff  : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
 
-    signal rd_dv_i          : std_logic;
-    signal rd_ptr           : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    signal wr_ptr_at_rd_clk : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    signal ptr_diff_r       : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+    signal rd_ptr      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
+    signal rclk_wr_ptr : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
+    signal rclk_pdiff  : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
 
-    signal wr_ptr_gray      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    signal rd_ptr_gray      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+    signal wr_ptr_gray : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+    signal rd_ptr_gray : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
 
-    signal fifo_full_wr     : std_logic;
-    signal fifo_empty_rd    : std_logic;
+    signal fifo_full_wr  : std_logic;
+    signal fifo_empty_rd : std_logic;
 
-    signal error_wr         : std_logic;
-    signal error_rd_wr      : std_logic;
-    signal error_rd         : std_logic;
-    signal error_wr_rd      : std_logic;
+    signal error_wr      : std_logic;
+    signal error_rd_wr   : std_logic;
+    signal error_rd      : std_logic;
+    signal error_wr_rd   : std_logic;
 
 begin
 
@@ -124,34 +123,38 @@ begin
             dst_clk     => wr_clk,
             dst_clken   => wr_clken,
             dst_pulse   => error_rd_wr);
+
     ------------------------------
     -- Asynchronous assignments --
     ------------------------------
-    ptr_diff_w      <= wr_ptr - rd_ptr_at_wr_clk;
-    ptr_diff_r      <= wr_ptr_at_rd_clk - rd_ptr;
+    wclk_pdiff      <= wr_ptr - wclk_rd_ptr;
+    rclk_pdiff      <= rclk_wr_ptr - rd_ptr;
 
-    fifo_full_wr    <= '1' when ptr_diff_w = FIFO_LEN - 1 else '0';
-    fifo_empty_rd   <= '1' when ptr_diff_r = 0 else '0';
+    fifo_full_wr    <= '1' when wclk_pdiff = FIFO_LEN - 1 else '0';
+    fifo_empty_rd   <= '1' when rclk_pdiff = 0 else '0';
 
     wr_full         <= fifo_full_wr;
     rd_empty        <= fifo_empty_rd;
 
-    rd_dv           <= '1' when rd_dv_i = '1' and rd_en = '1' else '0';
 
     ---------------
     -- Processes --
     ---------------
-    process(wr_clk)
+    process(wr_clk, wr_arst)
     begin
-        if wr_clk'event and wr_clk = '1' then
+        if wr_arst = '1' then
+            wr_ptr      <= (others => '0');
+            wclk_rd_ptr <= (others => '0');
+            wr_ptr_gray <= (others => '0');
+        elsif wr_clk'event and wr_clk = '1' then
             if wr_clken = '1' then
-
+                
                 -- Get the binary value of the read pointer inside the write clock
-                rd_ptr_at_wr_clk <= gray_to_bin(rd_ptr_gray);
-                wr_ptr_gray      <= bin_to_gray(wr_ptr);
+                wclk_rd_ptr <= gray_to_bin(rd_ptr_gray);
+                wr_ptr_gray <= bin_to_gray(wr_ptr);
 
                 wr_upper <= '0';
-                if ptr_diff_w >= UPPER_TRESHOLD then
+                if wclk_pdiff >= UPPER_TRESHOLD then
                     wr_upper <= '1';
                 end if;
 
@@ -169,47 +172,48 @@ begin
                     end if;
                 end if;
 
-                if wr_arst = '1' or error_rd_wr = '1' then
+                if error_rd_wr = '1' then
                     wr_ptr <= (others => '0');
                 end if;
             end if;
         end if;
     end process;
 
-    process(rd_clk)
+    process(rd_clk, rd_arst)
     begin
-        if rd_clk'event and rd_clk = '1' then
+        if rd_arst = '1' then
+            rd_ptr      <= (others => '0');
+            rclk_wr_ptr <= (others => '0');
+            rd_ptr_gray <= (others => '0');
+        elsif rd_clk'event and rd_clk = '1' then
             if rd_clken = '1' then
                 -- Get the binary value of the write pointer inside the read clock
-                wr_ptr_at_rd_clk <= gray_to_bin(wr_ptr_gray);
+                rclk_wr_ptr <= gray_to_bin(wr_ptr_gray);
 
-                rd_ptr_gray      <= bin_to_gray(rd_ptr);
-
-                if ptr_diff_r <= LOWER_TRESHOLD then
+                rd_ptr_gray <= bin_to_gray(rd_ptr);
+                
+                rd_lower <= '0';
+                if rclk_pdiff <= LOWER_TRESHOLD then
                     rd_lower <= '1';
-                else
-                    rd_lower <= '0';
                 end if;
 
-                rd_dv_i  <= '0';
+                rd_dv    <= '0';
                 error_rd <= '0';
                 if rd_en = '1' then
                     if UNDERFLOW_ACTION = "SATURATE" and fifo_empty_rd = '0' then
-                        rd_dv_i <= '1';
-                        if rd_dv_i = '1' then
-                            rd_ptr  <= rd_ptr + 1;
-                        end if;
+                        rd_dv  <= '1';
+                        rd_ptr <= rd_ptr + 1;
                     elsif UNDERFLOW_ACTION = "RESET" then
                         if fifo_empty_rd = '0' then
-                            rd_dv_i <= '1';
-                            rd_ptr  <= rd_ptr + 1;
+                            rd_dv  <= '1';
+                            rd_ptr <= rd_ptr + 1;
                         else
                             error_rd <= '1';
                             rd_ptr   <= (others => '0');
                         end if;
                     end if;
                 end if;
-                if rd_rst = '1' or error_wr_rd = '1' then
+                if error_wr_rd = '1' then
                     rd_ptr <= (others => '0');
                 end if;
             end if;
