@@ -5,7 +5,7 @@
 # Compiler selection
 # builder = msim
 builder = ghdl
-global_build_flags = -fexplicit #-frelaxed-rules
+global_build_flags[vhdl] = -fexplicit #-frelaxed-rules
 # Location of the built files
 target_dir = .build
 
@@ -17,6 +17,7 @@ vhdl  osvvm_lib          osvvm_lib/RandomPkg.vhd                                
 vhdl  osvvm_lib          osvvm_lib/CoveragePkg.vhd                                       --std=08
 vhdl  pck_fio_lib        pck_fio_lib/PCK_FIO_1993.vhd                                    --std=93c
 vhdl  pck_fio_lib        pck_fio_lib/PCK_FIO_1993_BODY.vhd                               --std=93c
+vhdl  tb                 pck_fio_lib/src/test/pck_fio_tb.vhd                             --std=93c
 vhdl  common_lib         common_lib/common_pkg.vhd                                       --ieee=synopsys  --std=02
 vhdl  common_lib         common_lib/synchronizer.vhd                                     --ieee=synopsys  --std=02
 vhdl  common_lib         common_lib/sr_delay.vhd                                         --ieee=synopsys  --std=02
