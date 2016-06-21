@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-"Golomb library unit test runner"
-
+# hdl_lib -- A(nother) HDL library
+#
+# Copyright 2016 by Andre Souto (suoto)
+#
 # This file is part of hdl_lib
 #
 # hdl_lib is free software: you can redistribute it and/or modify
@@ -29,6 +31,8 @@
 # Author: Andre Souto (github.com/suoto) [DO NOT REMOVE]
 # Date: 2016/04/18 [DO NOT REMOVE]
 
+"Golomb library unit test runner"
+
 from os.path import join, dirname
 from vunit import VUnit
 
@@ -41,8 +45,8 @@ def main():
     exp_golomb_lib = ui.add_library("exp_golomb_lib")
     exp_golomb_lib.add_source_files(join(src_path, "*.vhd"))
 
-    exp_golomb_tb = ui.add_library("exp_golomb_tb_lib")
-    exp_golomb_tb.add_source_files(join(src_path, "test", "*.vhd"))
+    tb_exp_golomb_lib = ui.add_library("tb_exp_golomb_lib")
+    tb_exp_golomb_lib.add_source_files(join(src_path, "test", "*.vhd"))
 
     ui.set_compile_option('modelsim.vcom_flags', ['-novopt', '-explicit'])
     ui.set_sim_option('modelsim.vsim_flags', ['-novopt'])

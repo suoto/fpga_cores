@@ -1,11 +1,27 @@
+--
+-- hdl_lib -- A(nother) HDL library
+--
+-- Copyright 2016 by Andre Souto (suoto)
+--
+-- This file is part of hdl_lib.
+--
+-- hdl_lib is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+
+-- hdl_lib is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with hdl_lib.  If not, see <http://www.gnu.org/licenses/>.
 
 library	ieee;
     use ieee.std_logic_1164.all;
     use ieee.std_logic_arith.all;
     use ieee.std_logic_unsigned.all;
-
-library pck_fio_lib;
-    use pck_fio_lib.PCK_FIO.all;
 
 library common_lib;
     use common_lib.common_pkg.all;
@@ -18,8 +34,10 @@ library osvvm;
 
 library memory;
 
-library std;
-    use std.env.all;
+-- library std;
+--     use std.env.all;
+library str_format;
+    use str_format.str_format_pkg.all;
 
 entity async_fifo_tb is
     generic (
@@ -117,7 +135,7 @@ begin
             if wr_full = '1' then
                 wait until wr_full = '0';
             end if;
-            info(sprintf("Writing %r", fo(d)));
+            info(sformat("Writing %r", fo(d)));
             wr_data <= d;
             wr_en   <= '1';
             walk(wr_clk, 1);
@@ -177,7 +195,7 @@ begin
             if rd_empty = '0' then
                 if rd_dv = '1' then
                     cmp_data := rd_data_gen.RandSlv(DATA_WIDTH);
-                    info(sprintf("Got %r, expected %r", fo(rd_data), fo(cmp_data)));
+                    info(sformat("Got %r, expected %r", fo(rd_data), fo(cmp_data)));
                     check_equal(rd_data, cmp_data);
                 end if;
             end if;

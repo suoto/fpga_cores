@@ -8,29 +8,23 @@ builder = msim
 target_dir = .build
 
 
+vhdl  str_format         hdl_string_format/src/str_format_pkg.vhd
+vhdl  common_lib         common_lib/common_pkg.vhd
+vhdl  common_lib         common_lib/synchronizer.vhd
+vhdl  common_lib         common_lib/sr_delay.vhd
+vhdl  common_lib         common_lib/edge_detector.vhd
+vhdl  common_lib         common_lib/pulse_sync.vhd
+vhdl  memory             memory/ram_inference.vhd
+vhdl  memory             memory/ram_inference_dport.vhd
+vhdl  memory             memory/async_fifo.vhd
+vhdl  exp_golomb_lib     exponential_golomb/src/exp_golomb_encoder.vhd                   -93
+vhdl  exp_golomb_lib     exponential_golomb/src/exp_golomb_pkg.vhd                       -93
+vhdl  work               memory/testbench/ram_model_pkg.vhd                              -2008
+vhdl  work               memory/testbench/fifo_bfm_pkg.vhd                               -2008
+vhdl  work               memory/testbench/async_fifo_tb.vhd                              -2008
 
-vhdl  osvvm_lib       osvvm_lib/MessagePkg.vhd                                        -2008
-vhdl  osvvm_lib       osvvm_lib/SortListPkg_int.vhd                                   -2008
-vhdl  osvvm_lib       osvvm_lib/NamePkg.vhd                                           -2008
-vhdl  osvvm_lib       osvvm_lib/RandomBasePkg.vhd                                     -2008
-vhdl  osvvm_lib       osvvm_lib/RandomPkg.vhd                                         -2008
-vhdl  osvvm_lib       osvvm_lib/CoveragePkg.vhd                                       -2008
-vhdl  pck_fio_lib     pck_fio_lib/src/PCK_FIO_1993.vhd                                -93
-vhdl  pck_fio_lib     pck_fio_lib/src/PCK_FIO_1993_BODY.vhd                           -93
-vhdl  tb              pck_fio_lib/src/test/pck_fio_tb.vhd                             -93
-vhdl  common_lib      common_lib/common_pkg.vhd
-vhdl  common_lib      common_lib/synchronizer.vhd
-vhdl  common_lib      common_lib/sr_delay.vhd
-vhdl  common_lib      common_lib/edge_detector.vhd
-vhdl  common_lib      common_lib/pulse_sync.vhd
-vhdl  memory          memory/ram_inference.vhd
-vhdl  memory          memory/ram_inference_dport.vhd
-vhdl  memory          memory/async_fifo.vhd
-vhdl  exp_golomb_lib  exponential_golomb/src/exp_golomb_encoder.vhd                   -93
-vhdl  exp_golomb_lib  exponential_golomb/src/exp_golomb_pkg.vhd                       -93
-vhdl  tb              exponential_golomb/src/test/file_dumper.vhd                     -2008
-vhdl  tb              exponential_golomb/src/test/exp_golomb_encoder_tb.vhd           -2008
-vhdl  tb              exponential_golomb/src/test/exp_golomb_encoder_no_vunit_tb.vhd  -2008
-vhdl  work            memory/testbench/ram_model_pkg.vhd                              -2008
-vhdl  work            memory/testbench/fifo_bfm_pkg.vhd                               -2008
-vhdl  work            memory/testbench/async_fifo_tb.vhd                              -2008
+# Testbench files
+vhdl  tb_str_format      hdl_string_format/src/test/str_format_tb.vhd                    -2008
+vhdl  tb_exp_golomb_lib  exponential_golomb/src/test/file_dumper.vhd                     -2008
+vhdl  tb_exp_golomb_lib  exponential_golomb/src/test/exp_golomb_encoder_tb.vhd           -2008
+vhdl  tb_exp_golomb_lib  exponential_golomb/src/test/exp_golomb_encoder_no_vunit_tb.vhd  -2008

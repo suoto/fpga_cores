@@ -1,15 +1,15 @@
--- This file is part of hdl_lib
 --
+-- hdl_lib -- A(nother) HDL library
+--
+-- Copyright 2016 by Andre Souto (suoto)
+--
+-- This file is part of hdl_lib.
+-- 
 -- hdl_lib is free software: you can redistribute it and/or modify
 -- it under the terms of the GNU General Public License as published by
 -- the Free Software Foundation, either version 3 of the License, or
 -- (at your option) any later version.
---
--- hdl_lib is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
+-- 
 -- In addition to the GNU General Public License terms and conditions,
 -- under the section 7 - Additional Terms, include the following:
 --    g) All files of this work contain lines identifying the original
@@ -20,9 +20,13 @@
 --    evaluation of candidates from employers. All remaining GNU
 --    General Public License terms still apply.
 --
+-- hdl_lib is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
 -- You should have received a copy of the GNU General Public License
 -- along with hdl_lib.  If not, see <http://www.gnu.org/licenses/>.
-
+--
 -- Author: Andre Souto (github.com/suoto) [DO NOT REMOVE]
 -- Date: 2016/04/18 [DO NOT REMOVE]
 ---------------
@@ -35,7 +39,7 @@ library ieee;
 library vunit_lib;
     context vunit_lib.vunit_context;
 
-library exp_golomb_tb_lib;
+library tb_exp_golomb_lib;
 
 library exp_golomb_lib;
     use exp_golomb_lib.exp_golomb_pkg;
@@ -95,7 +99,7 @@ begin
             axi_out_tready => axi_out_tready 
         );
 
-    file_dump_u : entity exp_golomb_tb_lib.file_dumper
+    file_dump_u : entity tb_exp_golomb_lib.file_dumper
         generic map (
             FILENAME => "output.bin",
             DATA_WIDTH => DATA_WIDTH
