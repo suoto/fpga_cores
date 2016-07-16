@@ -4,12 +4,12 @@
 -- Copyright 2014-2016 by Andre Souto (suoto)
 --
 -- This file is part of hdl_lib.
--- 
+--
 -- hdl_lib is free software: you can redistribute it and/or modify
 -- it under the terms of the GNU General Public License as published by
 -- the Free Software Foundation, either version 3 of the License, or
 -- (at your option) any later version.
--- 
+--
 -- hdl_lib is distributed in the hope that it will be useful,
 -- but WITHOUT ANY WARRANTY; without even the implied warranty of
 -- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -26,12 +26,10 @@
 -- Libraries --
 ---------------
 library	ieee;
-    use ieee.std_logic_1164.all;  
-    use ieee.std_logic_arith.all;			   
-    use ieee.std_logic_unsigned.all;			   
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
 
 library common_lib;
-    use common_lib.common_pkg.all;
 
 ------------------------
 -- Entity declaration --
@@ -110,9 +108,9 @@ begin
         if clk_a'event and clk_a = '1' then
             if clken_a = '1' then
                 if wren_a = '1' then
-                    ram(conv_integer(addr_a)) := wrdata_a;
+                    ram(to_integer(unsigned(addr_a))) := wrdata_a;
                 end if;
-                rddata_a_i <= ram(conv_integer(addr_a));
+                rddata_a_i <= ram(to_integer(unsigned(addr_a)));
             end if;
         end if;
     end process;
@@ -121,7 +119,7 @@ begin
     begin
         if clk_b'event and clk_b = '1' then
             if clken_b = '1' then
-                rddata_b_i <= ram(conv_integer(addr_b));
+                rddata_b_i <= ram(to_integer(unsigned(addr_b)));
             end if;
         end if;
     end process;

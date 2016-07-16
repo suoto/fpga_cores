@@ -20,8 +20,7 @@
 
 library ieee;
     use ieee.std_logic_1164.all;
-    use ieee.std_logic_arith.all;
-    use ieee.std_logic_unsigned.all;
+    use ieee.numeric_std.all;
     use ieee.math_real.all;
 
 package common_pkg is
@@ -30,7 +29,9 @@ package common_pkg is
     function numbits (constant v : integer) return integer;
     -- Gray <-> Binary conversion
     function bin_to_gray (bin  : std_logic_vector) return std_logic_vector;
+    function bin_to_gray (bin  : unsigned) return unsigned;
     function gray_to_bin (gray : std_logic_vector) return std_logic_vector;
+    function gray_to_bin (gray : unsigned) return unsigned;
 
 end common_pkg;
 
@@ -71,5 +72,15 @@ package body common_pkg is
         end loop;
         return bin;
     end function gray_to_bin;
+
+    function bin_to_gray (bin  : unsigned) return unsigned is
+    begin
+        return unsigned(bin_to_gray(std_logic_vector(bin)));
+    end bin_to_gray;
+
+    function gray_to_bin (gray : unsigned) return unsigned is
+    begin
+        return unsigned(gray_to_bin(std_logic_vector(gray)));
+    end gray_to_bin;
 
 end package body;

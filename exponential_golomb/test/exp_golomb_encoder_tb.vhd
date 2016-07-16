@@ -39,10 +39,10 @@ library ieee;
 library vunit_lib;
     context vunit_lib.vunit_context;
 
-library tb_exp_golomb_lib;
+library exp_golomb_tb;
 
-library exp_golomb_lib;
-    use exp_golomb_lib.exp_golomb_pkg;
+library exp_golomb;
+    use exp_golomb.exp_golomb_pkg;
 
 ------------------------
 -- Entity declaration --
@@ -79,7 +79,7 @@ begin
     -------------------
     -- Port mappings --
     -------------------
-    dut : entity exp_golomb_lib.exp_golomb_encoder
+    dut : entity exp_golomb.exp_golomb_encoder
         generic map (
             DATA_WIDTH   => DATA_WIDTH)
         port map (
@@ -97,9 +97,9 @@ begin
             axi_out_tvalid => axi_out_tvalid,
             axi_out_tready => axi_out_tready);
 
-    file_dump_u : entity tb_exp_golomb_lib.file_dumper
+    file_dump_u : entity exp_golomb_tb.file_dumper
         generic map (
-            FILENAME => "output.bin",
+            FILENAME   => "output.bin",
             DATA_WIDTH => DATA_WIDTH)
         port map (
             clk     => clk,
@@ -140,25 +140,25 @@ begin
 
             for i in 0 to 8 loop
                 data := to_unsigned(i, DATA_WIDTH);
-                bin_width_result := exp_golomb_lib.exp_golomb_pkg.bin_width(data);
+                bin_width_result := exp_golomb.exp_golomb_pkg.bin_width(data);
                 check_equal(
                     bin_width_result,
-                    exp_golomb_lib.exp_golomb_pkg.numbits(i));
+                    exp_golomb.exp_golomb_pkg.numbits(i));
                 end loop;
 
             data := to_unsigned(32, DATA_WIDTH);
-            bin_width_result := exp_golomb_lib.exp_golomb_pkg.bin_width(data);
+            bin_width_result := exp_golomb.exp_golomb_pkg.bin_width(data);
             check_equal(
                 bin_width_result,
-                exp_golomb_lib.exp_golomb_pkg.numbits(32));
+                exp_golomb.exp_golomb_pkg.numbits(32));
 
             for i in 29 downto 2 loop
                 for offset in -2 to 2 loop
                     data := to_unsigned(2**i + offset, DATA_WIDTH);
-                    bin_width_result := exp_golomb_lib.exp_golomb_pkg.bin_width(data);
+                    bin_width_result := exp_golomb.exp_golomb_pkg.bin_width(data);
                     check_equal(
                         bin_width_result,
-                        exp_golomb_lib.exp_golomb_pkg.numbits(2**i + offset));
+                        exp_golomb.exp_golomb_pkg.numbits(2**i + offset));
                 end loop;
             end loop;
 

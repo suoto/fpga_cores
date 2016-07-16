@@ -27,8 +27,7 @@
 ---------------
 library	ieee;
     use ieee.std_logic_1164.all;
-    use ieee.std_logic_arith.all;
-    use ieee.std_logic_unsigned.all;
+    use ieee.numeric_std.all;
 
 library common_lib;
     use common_lib.common_pkg.all;
@@ -75,18 +74,18 @@ architecture async_fifo of async_fifo is
     -- Signals --
     -------------
     -- Signals on the write side of the FIFO
-    signal wr_ptr      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
-    signal wclk_rd_ptr : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
-    signal wclk_pdiff  : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+    signal wr_ptr      : unsigned(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
+    signal wclk_rd_ptr : unsigned(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
+    signal wclk_pdiff  : unsigned(numbits(FIFO_LEN) - 1 downto 0);
 
     -- Signals on the write side of the FIFO
-    signal rd_ptr      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
-    signal rclk_wr_ptr : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
-    signal rclk_pdiff  : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+    signal rd_ptr      : unsigned(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
+    signal rclk_wr_ptr : unsigned(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
+    signal rclk_pdiff  : unsigned(numbits(FIFO_LEN) - 1 downto 0);
 
     -- Signals used to cross clock domains
-    signal wr_ptr_gray : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    signal rd_ptr_gray : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+    signal wr_ptr_gray : unsigned(numbits(FIFO_LEN) - 1 downto 0);
+    signal rd_ptr_gray : unsigned(numbits(FIFO_LEN) - 1 downto 0);
 
     signal fifo_full_wr  : std_logic;
     signal fifo_empty_rd : std_logic;
@@ -111,14 +110,14 @@ begin
             clk_a     => wr_clk,
             clken_a   => wr_clken,
             wren_a    => wr_en,
-            addr_a    => wr_ptr,
+            addr_a    => std_logic_vector(wr_ptr),
             wrdata_a  => wr_data,
             rddata_a  => open,
 
             -- Port B
             clk_b     => rd_clk,
             clken_b   => rd_clken,
-            addr_b    => rd_ptr,
+            addr_b    => std_logic_vector(rd_ptr),
             rddata_b  => rd_data);
 
     wr_error_s : entity common_lib.pulse_sync
@@ -212,7 +211,6 @@ begin
             if rd_clken = '1' then
                 -- Get the binary value of the write pointer inside the read clock
                 rclk_wr_ptr <= gray_to_bin(wr_ptr_gray);
-
                 rd_ptr_gray <= bin_to_gray(rd_ptr);
                 
                 rd_lower <= '0';

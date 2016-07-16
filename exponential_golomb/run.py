@@ -40,13 +40,13 @@ def main():
     ui = VUnit.from_argv()
     ui.add_osvvm()
 
-    src_path = join(dirname(__file__), "src")
+    root_path = dirname(__file__)
 
-    exp_golomb_lib = ui.add_library("exp_golomb_lib")
-    exp_golomb_lib.add_source_files(join(src_path, "*.vhd"))
+    exp_golomb = ui.add_library("exp_golomb")
+    exp_golomb.add_source_files(join(root_path, "src", "*.vhd"))
 
-    tb_exp_golomb_lib = ui.add_library("tb_exp_golomb_lib")
-    tb_exp_golomb_lib.add_source_files(join(src_path, "test", "*.vhd"))
+    exp_golomb_tb = ui.add_library("exp_golomb_tb")
+    exp_golomb_tb.add_source_files(join(root_path, "test", "*.vhd"))
 
     ui.set_compile_option('modelsim.vcom_flags', ['-novopt', '-explicit'])
     ui.set_sim_option('modelsim.vsim_flags', ['-novopt'])

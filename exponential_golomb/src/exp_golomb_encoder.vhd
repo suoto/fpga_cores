@@ -37,8 +37,8 @@ library ieee;
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
 
-library exp_golomb_lib;
-    use exp_golomb_lib.exp_golomb_pkg.all;
+library exp_golomb;
+    use exp_golomb.exp_golomb_pkg.all;
 
 ------------------------
 -- Entity declaration --
