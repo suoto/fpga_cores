@@ -1,7 +1,7 @@
 --
 -- hdl_lib -- A(nother) HDL library
 --
--- Copyright 2016 by Andre Souto (suoto)
+-- Copyright 2014-2016 by Andre Souto (suoto)
 --
 -- This file is part of hdl_lib.
 -- 

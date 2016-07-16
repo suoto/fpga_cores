@@ -1,34 +1,39 @@
----------------------------------
--- Block name and description --
---------------------------------
+--
+-- hdl_lib -- An HDL core library
+--
+-- Copyright 2014-2016 by Andre Souto (suoto)
+--
+-- This file is part of hdl_lib.
+-- 
+-- hdl_lib is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+-- 
+-- hdl_lib is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
 
----------------
--- Libraries --
----------------
+-- You should have received a copy of the GNU General Public License
+-- along with hdl_lib.  If not, see <http://www.gnu.org/licenses/>.
+
 library	ieee;
     use ieee.std_logic_1164.all;  
-    use ieee.std_logic_arith.all;			   
 
-library common_lib;
-    use common_lib.common_pkg.all;
-
-------------------------
--- Entity declaration --
-------------------------
+-- Synchronizes a data bus between different clock domains
 entity synchronizer is
     generic (
         SYNC_STAGES  : positive := 2;
-        DATA_WIDTH   : integer  := 1
-        );
+        DATA_WIDTH   : integer  := 1);
     port (
         -- Usual ports
         clk     : in  std_logic;
-        clken   : in  std_logic;
+        clken   : in  std_logic := '1';
 
         -- Block specifics
         din     : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
-        dout    : out std_logic_vector(DATA_WIDTH - 1 downto 0)
-    );
+        dout    : out std_logic_vector(DATA_WIDTH - 1 downto 0));
 end synchronizer;
 
 architecture synchronizer of synchronizer is
@@ -69,29 +74,16 @@ begin
     ------------------------------
     -- Asynchronous assignments --
     ------------------------------
+    dout   <= din_sr(SYNC_STAGES - 1);
 
     ---------------
     -- Processes --
     ---------------
     process(clk)
-        variable is_stable : boolean;
     begin
         if clk'event and clk = '1' then
             if clken = '1' then
-                din_sr  <= din_sr(SYNC_STAGES - 2 downto 0) & din;
-                
-                is_stable := true;
-                for i in 0 to SYNC_STAGES - 2 loop
-                    if din_sr(i) /= din_sr(SYNC_STAGES - 1) then
-                        is_stable := false;
-                        exit;
-                    end if;
-                end loop;
-
-                if is_stable then
-                    dout <= din_sr(SYNC_STAGES - 1);
-                end if;
-
+                din_sr <= din_sr(SYNC_STAGES - 2 downto 0) & din;
             end if;
         end if;
     end process;
