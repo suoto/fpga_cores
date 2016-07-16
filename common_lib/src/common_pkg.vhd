@@ -27,10 +27,10 @@ library ieee;
 package common_pkg is
 
     -- Calculates the number of bits required to represent a given value
-    function numbits (v : integer) return integer;
+    function numbits (constant v : integer) return integer;
     -- Gray <-> Binary conversion
-    function bin_to_gray ( bin  : std_logic_vector) return std_logic_vector;
-    function gray_to_bin ( gray : std_logic_vector) return std_logic_vector;
+    function bin_to_gray (bin  : std_logic_vector) return std_logic_vector;
+    function gray_to_bin (gray : std_logic_vector) return std_logic_vector;
 
 end common_pkg;
 

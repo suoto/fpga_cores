@@ -1,30 +1,27 @@
-# Use relaxed flags when building the whole project
-batch_build_flags[vhdl]  = -explicit -permissive
-# Use stricter flags for building the file we're working on
-single_build_flags[vhdl] = -explicit -check_synthesis -lint -rangecheck
 # Compiler selection
 builder = msim
-# Location of the built files
-target_dir = .build
+
+
+
+
+
 
 
 vhdl  str_format         hdl_string_format/src/str_format_pkg.vhd
-vhdl  common_lib         common_lib/common_pkg.vhd
-vhdl  common_lib         common_lib/synchronizer.vhd
-vhdl  common_lib         common_lib/sr_delay.vhd
-vhdl  common_lib         common_lib/edge_detector.vhd
-vhdl  common_lib         common_lib/pulse_sync.vhd
-vhdl  memory             memory/ram_inference.vhd
-vhdl  memory             memory/ram_inference_dport.vhd
-vhdl  memory             memory/async_fifo.vhd
+vhdl  common_lib         common_lib/src/common_pkg.vhd
+vhdl  common_lib         common_lib/src/synchronizer.vhd
+vhdl  common_lib         common_lib/src/sr_delay.vhd
+vhdl  common_lib         common_lib/src/edge_detector.vhd
+vhdl  common_lib         common_lib/src/pulse_sync.vhd
+vhdl  memory             memory/src/ram_inference.vhd
+vhdl  memory             memory/src/ram_inference_dport.vhd
+vhdl  memory             memory/src/async_fifo.vhd
 vhdl  exp_golomb_lib     exponential_golomb/src/exp_golomb_encoder.vhd                   -93
 vhdl  exp_golomb_lib     exponential_golomb/src/exp_golomb_pkg.vhd                       -93
-vhdl  work               memory/testbench/ram_model_pkg.vhd                              -2008
-vhdl  work               memory/testbench/fifo_bfm_pkg.vhd                               -2008
-vhdl  work               memory/testbench/async_fifo_tb.vhd                              -2008
-
-# Testbench files
+vhdl  work               memory/test/ram_model_pkg.vhd                                   -2008
+vhdl  work               memory/test/fifo_bfm_pkg.vhd                                    -2008
+vhdl  work               memory/test/async_fifo_tb.vhd                                   -2008
 vhdl  tb_str_format      hdl_string_format/src/test/str_format_tb.vhd                    -2008
-vhdl  tb_exp_golomb_lib  exponential_golomb/src/test/file_dumper.vhd                     -2008
-vhdl  tb_exp_golomb_lib  exponential_golomb/src/test/exp_golomb_encoder_tb.vhd           -2008
-vhdl  tb_exp_golomb_lib  exponential_golomb/src/test/exp_golomb_encoder_no_vunit_tb.vhd  -2008
+vhdl  tb_exp_golomb_lib  exponential_golomb/test/file_dumper.vhd                     -2008
+vhdl  tb_exp_golomb_lib  exponential_golomb/test/exp_golomb_encoder_tb.vhd           -2008
+vhdl  tb_exp_golomb_lib  exponential_golomb/test/exp_golomb_encoder_no_vunit_tb.vhd  -2008

@@ -45,8 +45,7 @@ use ieee.std_logic_textio.all;
 entity file_dumper is
     generic (
         FILENAME   : string := "output.bin";
-        DATA_WIDTH : integer := 32
-    );
+        DATA_WIDTH : integer := 32);
     port (
         -- Usual ports
         clk     : in  std_logic;
@@ -56,9 +55,8 @@ entity file_dumper is
         -- Data input
         tdata   : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
         tvalid  : in  std_logic;
-        tready  : in  std_logic
-    );
-end file_dumper;
+        tready  : in  std_logic);
+end entity file_dumper;
 
 architecture file_dumper of file_dumper is
 
@@ -85,7 +83,5 @@ begin
         end loop;
     end process;
 
-
 end file_dumper;
-
 

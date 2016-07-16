@@ -133,4 +133,3 @@ begin
 
 end ram_inference_dport;
 
-

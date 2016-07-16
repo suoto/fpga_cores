@@ -81,8 +81,7 @@ begin
     -------------------
     dut : entity exp_golomb_lib.exp_golomb_encoder
         generic map (
-            DATA_WIDTH   => DATA_WIDTH
-        )
+            DATA_WIDTH   => DATA_WIDTH)
         port map (
             clk            => clk,
             clken          => '1',
@@ -96,14 +95,12 @@ begin
             -- Data output
             axi_out_tdata  => axi_out_tdata,
             axi_out_tvalid => axi_out_tvalid,
-            axi_out_tready => axi_out_tready 
-        );
+            axi_out_tready => axi_out_tready);
 
     file_dump_u : entity tb_exp_golomb_lib.file_dumper
         generic map (
             FILENAME => "output.bin",
-            DATA_WIDTH => DATA_WIDTH
-        )
+            DATA_WIDTH => DATA_WIDTH)
         port map (
             clk     => clk,
             clken   => '1',
@@ -112,8 +109,7 @@ begin
             -- Data input
             tdata   => axi_out_tdata,
             tvalid  => axi_out_tvalid,
-            tready  => axi_out_tready
-        );
+            tready  => axi_out_tready);
     -----------------------------
     -- Asynchronous assignments --
     -----------------------------
@@ -231,3 +227,4 @@ begin
     test_runner_watchdog(runner, 10 ms);
 
 end architecture;
+

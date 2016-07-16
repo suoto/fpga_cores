@@ -128,4 +128,3 @@ begin
 
 end ram_inference;
 
-
