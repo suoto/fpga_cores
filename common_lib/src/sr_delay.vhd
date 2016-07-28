@@ -24,8 +24,9 @@ library	ieee;
 -- Shit register based delay --
 entity sr_delay is
     generic (
-        DELAY_CYCLES : natural := 1;
-        DATA_WIDTH   : positive := 1);
+        DELAY_CYCLES  : natural  := 1;
+        DATA_WIDTH    : positive := 1;
+        EXTRACT_SHREG : boolean  := True);
     port (
         clk     : in  std_logic;
         clken   : in  std_logic;
@@ -36,6 +37,28 @@ end sr_delay;
 
 architecture sr_delay of sr_delay is
 
+    -- Converts EXTRACT_SHREG (boolean) to "yes" or "no" (string) for Xilinx's
+    -- SHREG_EXTRACT attribute
+    function xilinx_shreg_extract return string is
+    begin
+        if EXTRACT_SHREG then
+            return "yes";
+        else
+            return "no";
+        end if;
+    end xilinx_shreg_extract;
+
+    -- Converts EXTRACT_SHREG (boolean) to "TRUE" or "FALSE" (string) for
+    -- Xilinx's ASYNC_REG attribute
+    function xilinx_async_reg return string is
+    begin
+        if EXTRACT_SHREG then
+            return "TRUE";
+        else
+            return "FALSE";
+        end if;
+    end xilinx_async_reg;
+
     -----------
     -- Types --
     -----------
@@ -45,6 +68,16 @@ architecture sr_delay of sr_delay is
     -- Signals --
     -------------
     signal din_sr   : din_t(DELAY_CYCLES - 1 downto 0);
+
+    -- Xilinx XST: disable shift-register LUT (SRL) extraction
+    attribute SHREG_EXTRACT : string;
+    attribute SHREG_EXTRACT of din_sr : signal is xilinx_shreg_extract;
+
+    -- Disable X propagation during timing simulation. In the event of 
+    -- a timing violation, the previous value is retained on the output instead 
+    -- of going unknown (see Xilinx UG625)
+    attribute ASYNC_REG : string;
+    attribute ASYNC_REG of din_sr : signal is xilinx_async_reg;
 
 begin
 
