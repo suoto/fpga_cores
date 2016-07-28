@@ -2,26 +2,33 @@
 'IGMP reply unit test runner'
 
 from os.path import join, dirname
-from vunit import VUnit
+from vunit.verilog import VUnit
 
 def main():
     ui = VUnit.from_argv()
     ui.add_osvvm()
+    #  ui.add_com()
     ui.disable_ieee_warnings()
 
-    src_path = join(dirname(__file__), 'src')
-
-    pck_fio_lib = ui.add_library('pck_fio_lib')
-    pck_fio_lib.add_source_files('pck_fio_lib/src/*.vhd')
+    root = dirname(__file__)
 
     for library_name in ('common_lib', 'memory'):
-        library = ui.add_library(library_name)
-        library.add_source_files(library_name + '/*.vhd')
+        ui.add_library(library_name).add_source_files(
+            join(root, library_name, 'src', '*.vhd'))
 
-    memory_tb = ui.add_library('memory_tb')
-    memory_tb.add_source_files('./memory/testbench/*.vhd')
+    ui.add_library('str_format').add_source_files(
+        join(root, 'hdl_string_format', 'src', '*.vhd'))
 
-    add_async_fifo_tests(ui.library('memory_tb').entity('async_fifo_tb'))
+    ui.add_library('memory_tb').add_source_files(
+        join(root, 'memory', 'test', 'async_fifo_tb.sv'))
+
+    ui.add_library('exp_golomb').add_source_files(
+        join(root, 'exponential_golomb', 'src', '*.vhd'))
+
+    #  ui.add_library('exp_golomb_tb').add_source_files(
+    #      join(root, 'exponential_golomb', 'test', '*.vhd'))
+
+    #  add_async_fifo_tests(ui.library('memory_tb').entity('async_fifo_tb'))
 
     ui.set_compile_option('modelsim.vcom_flags', ['-novopt', '-explicit'])
     ui.set_sim_option('modelsim.vsim_flags', ['-novopt'])
