@@ -33,8 +33,6 @@ library osvvm;
 
 library memory;
 
--- library std;
---     use std.env.all;
 library str_format;
     use str_format.str_format_pkg.all;
 
@@ -134,7 +132,7 @@ begin
             if wr_full = '1' then
                 wait until wr_full = '0';
             end if;
-            info(sformat("Writing %r", fo(d)));
+            verbose(sformat("Writing %r", fo(d)));
             wr_data <= d;
             wr_en   <= '1';
             walk(wr_clk, 1);
@@ -155,6 +153,7 @@ begin
         checker_init(display_format => verbose,
                      file_name      => join(output_path(runner_cfg), "error.csv"),
                      file_format    => verbose_csv);
+
         logger_init(display_format => verbose,
                     file_name      => join(output_path(runner_cfg), "log.csv"),
                     file_format    => verbose_csv);
@@ -175,7 +174,7 @@ begin
 
         if not active_python_runner(runner_cfg) then
             get_checker_stat(stat);
-            info(LF & "Result:" & LF & to_string(stat));
+            warning(LF & "Result:" & LF & to_string(stat));
         end if;
 
         test_runner_cleanup(runner);
@@ -183,20 +182,14 @@ begin
     end process;
 
     rd_side : process
-        variable cmp_data : std_logic_vector(DATA_WIDTH - 1 downto 0);
     begin
 
         wait until rd_arst = '0';
 
         while True loop
             walk(rd_clk, 1);
-            -- if rd_en = '1' and 
-            if rd_empty = '0' then
-                if rd_dv = '1' then
-                    cmp_data := rd_data_gen.RandSlv(DATA_WIDTH);
-                    info(sformat("Got %r, expected %r", fo(rd_data), fo(cmp_data)));
-                    check_equal(rd_data, cmp_data);
-                end if;
+            if rd_dv = '1' then
+                check_equal(rd_data, rd_data_gen.RandSlv(DATA_WIDTH));
             end if;
         end loop;
 

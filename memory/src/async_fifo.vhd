@@ -18,13 +18,9 @@
 -- You should have received a copy of the GNU General Public License
 -- along with hdl_lib.  If not, see <http://www.gnu.org/licenses/>.
 
----------------------------------
--- Block name and description --
---------------------------------
-
----------------
--- Libraries --
----------------
+-- #####################################################################################
+-- ## Libraries ########################################################################
+-- #####################################################################################
 library	ieee;
     use ieee.std_logic_1164.all;
     use ieee.std_logic_arith.all;
@@ -35,45 +31,45 @@ library common_lib;
 
 library memory;
 
-------------------------
--- Entity declaration --
-------------------------
+-- #####################################################################################
+-- ## Entity declaration ###############################################################
+-- #####################################################################################
 entity async_fifo is
     generic (
         -- FIFO configuration
-        FIFO_LEN         : positive := 512;         -- FIFO length in number of positions
-        UPPER_TRESHOLD   : natural  := 510;         -- FIFO level to assert wr_upper
-        LOWER_TRESHOLD   : natural  := 10;          -- FIFO level to assert rd_lower
-        DATA_WIDTH       : natural  := 8;           -- Data width
+        FIFO_LEN         : positive := 512; -- FIFO length in number of positions
+        UPPER_TRESHOLD   : natural  := 510; -- FIFO level to assert wr_upper
+        LOWER_TRESHOLD   : natural  := 10;  -- FIFO level to assert rd_lower
+        DATA_WIDTH       : natural  := 8;   -- Data width
         -- FIFO config for error cases
         OVERFLOW_ACTION  : string   := "SATURATE";
         UNDERFLOW_ACTION : string   := "SATURATE");
     port (
         -- Write port
-        wr_clk      : in  std_logic;        -- Write clock
-        wr_clken    : in  std_logic := '1'; -- Write clock enable
-        wr_arst     : in  std_logic;        -- Write side asynchronous reset
-        wr_data     : in  std_logic_vector(DATA_WIDTH - 1 downto 0); -- Fifo write data
-        wr_en       : in  std_logic;        -- Fifo write enable
-        wr_full     : out std_logic;        -- Fifo write full status
-        wr_upper    : out std_logic;        -- Fifo write upper status
-
         -- Read port
-        rd_clk      : in  std_logic;        -- Read clock
-        rd_clken    : in  std_logic := '1'; -- Read clock enable
-        rd_arst     : in  std_logic;        -- Read side asynchronous reset
-        rd_data     : out std_logic_vector(DATA_WIDTH - 1 downto 0); -- Fifo read data
-        rd_en       : in  std_logic;        -- Read enable
-        rd_dv       : out std_logic;        -- Read data valid
-        rd_lower    : out std_logic;        -- Fifo lower threshold
-        rd_empty    : out std_logic);       -- Fifo empty status
+        wr_clk   : in  std_logic;        -- Write clock
+        wr_clken : in  std_logic := '1'; -- Write clock enable
+        wr_arst  : in  std_logic;        -- Write side asynchronous reset
+        wr_data  : in  std_logic_vector(DATA_WIDTH - 1 downto 0); -- Fifo write data
+        wr_en    : in  std_logic;        -- Fifo write enable
+        wr_full  : out std_logic;        -- Fifo write full status
+        wr_upper : out std_logic;        -- Fifo write upper status
+
+        rd_clk   : in  std_logic;        -- Read clock
+        rd_clken : in  std_logic := '1'; -- Read clock enable
+        rd_arst  : in  std_logic;        -- Read side asynchronous reset
+        rd_data  : out std_logic_vector(DATA_WIDTH - 1 downto 0); -- Fifo read data
+        rd_en    : in  std_logic;        -- Read enable
+        rd_dv    : out std_logic;        -- Read data valid
+        rd_lower : out std_logic;        -- Fifo lower threshold
+        rd_empty : out std_logic);       -- Fifo empty status
 end async_fifo;
 
 architecture async_fifo of async_fifo is
 
-    -------------
-    -- Signals --
-    -------------
+    -- #################################################################################
+    -- ## Signals ######################################################################
+    -- #################################################################################
     signal wclk_wr_ptr      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
     signal wclk_rd_ptr      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
     signal wclk_pdiff       : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
@@ -83,10 +79,8 @@ architecture async_fifo of async_fifo is
     signal rclk_pdiff       : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
 
     -- CRC pointers
-    signal wclk_wr_ptr_gray : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
     signal wclk_rd_ptr_gray : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
     signal rclk_wr_ptr_gray : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    signal rclk_rd_ptr_gray : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
 
     signal fifo_full_wr     : std_logic;
     signal fifo_empty_rd    : std_logic;
@@ -98,9 +92,9 @@ architecture async_fifo of async_fifo is
 
 begin
 
-    -------------------
-    -- Port mappings --
-    -------------------
+    -- #################################################################################
+    -- ## Port mappings ################################################################
+    -- #################################################################################
     mem : entity memory.ram_inference
         generic map (
             ADDR_WIDTH         => numbits(FIFO_LEN),
@@ -122,28 +116,102 @@ begin
             rddata_b  => rd_data);
 
 
-    wclk_rd_ptr_gray_sync_u : entity common_lib.sr_delay
-        generic map (
-            DELAY_CYCLES => 2,
-            DATA_WIDTH   => numbits(FIFO_LEN))
-        port map (
-            clk     => wr_clk,
-            clken   => wr_clken,
+    -- ---------------------------------------------------------------------------------
+    -- -- Write pointer cross clock domain block ---------------------------------------
+    -- ---------------------------------------------------------------------------------
+    wr_ptr_cdc_block : block
+        -- Put FFs next to each other to avoid issues
+        attribute RLOC : string;
+        attribute RLOC of wclk_wr_ptr_ff_u : label is "X0Y0";
+        attribute RLOC of rclk_wr_ptr_ff_u : label is "X1Y0";
 
-            din     => rclk_rd_ptr_gray,
-            dout    => wclk_rd_ptr_gray);
+        signal wclk_wr_ptr_gray         : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+        signal rclk_wr_ptr_gray_sampled : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
 
-    rclk_wr_ptr_gray_sync_u : entity common_lib.sr_delay
-        generic map (
-            DELAY_CYCLES => 2,
-            DATA_WIDTH   => numbits(FIFO_LEN))
-        port map (
-            clk     => rd_clk,
-            clken   => rd_clken,
+    begin
 
-            din     => wclk_wr_ptr_gray,
-            dout    => rclk_wr_ptr_gray);
+        -- Last FF holding the wr_ptr on the write clock domain
+        wclk_wr_ptr_ff_u : process(wr_clk, wr_arst)
+        begin
+            if wr_arst = '1' then
+                wclk_wr_ptr_gray <= (others => '0');
+            elsif wr_clk'event and wr_clk = '1' then
+                if wr_clken = '1' then
+                    wclk_wr_ptr_gray <= bin_to_gray(wclk_wr_ptr);
+                end if;
+            end if;
+        end process;
 
+        -- First FF holding the wr_ptr on the read clock domain
+        rclk_wr_ptr_ff_u : process(rd_clk)
+        begin
+            if rd_clk'event and rd_clk = '1' then
+                if rd_clken = '1' then
+                    rclk_wr_ptr_gray_sampled <= wclk_wr_ptr_gray;
+                end if;
+            end if;
+        end process;
+
+        -- Now we crossed clock domains, sample twice to remove meta stabilities
+        rclk_wr_ptr_sampling_u : entity common_lib.sr_delay
+            generic map (
+                DELAY_CYCLES => 2,
+                DATA_WIDTH   => numbits(FIFO_LEN))
+            port map (
+                clk     => rd_clk,
+                clken   => rd_clken,
+
+                din     => rclk_wr_ptr_gray_sampled,
+                dout    => rclk_wr_ptr_gray);
+
+    end block wr_ptr_cdc_block;
+
+    -- ---------------------------------------------------------------------------------
+    -- -- Read pointer cross clock domain block ----------------------------------------
+    -- ---------------------------------------------------------------------------------
+    rd_ptr_cdc_block : block
+        -- Put FFs next to each other to avoid issues
+        attribute RLOC : string;
+        attribute RLOC of rclk_rd_ptr_ff_u : label is "X0Y0";
+        attribute RLOC of wclk_rd_ptr_ff_u : label is "X1Y0";
+
+        signal rclk_rd_ptr_gray         : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+        signal wclk_rd_ptr_gray_sampled : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+    begin
+
+        rclk_rd_ptr_ff_u : process(rd_clk, rd_arst)
+        begin
+            if rd_arst = '1' then
+                rclk_rd_ptr_gray <= (others => '0');
+            elsif rd_clk'event and rd_clk = '1' then
+                if rd_clken = '1' then
+                    rclk_rd_ptr_gray <= bin_to_gray(rclk_rd_ptr);
+                end if;
+            end if;
+        end process;
+
+        wclk_rd_ptr_ff_u : process(wr_clk)
+        begin
+            if wr_clk'event and wr_clk = '1' then
+                if wr_clken = '1' then
+                    wclk_rd_ptr_gray_sampled <= rclk_rd_ptr_gray;
+                end if;
+            end if;
+        end process;
+
+        wclk_rd_ptr_gray_sync_u : entity common_lib.sr_delay
+            generic map (
+                DELAY_CYCLES => 2,
+                DATA_WIDTH   => numbits(FIFO_LEN))
+            port map (
+                clk     => wr_clk,
+                clken   => wr_clken,
+
+                din     => wclk_rd_ptr_gray_sampled,
+                dout    => wclk_rd_ptr_gray);
+    end block rd_ptr_cdc_block;
+
+    -- Synchronize error strobes
     wr_error_s : entity common_lib.pulse_sync
         generic map (
             EXTRA_DELAY_CYCLES => 0)
@@ -170,33 +238,34 @@ begin
             dst_clken   => wr_clken,
             dst_pulse   => error_rd_wr);
 
-    ------------------------------
-    -- Asynchronous assignments --
-    ------------------------------
-    wclk_pdiff      <= wclk_wr_ptr - wclk_rd_ptr;
-    rclk_pdiff      <= rclk_wr_ptr - rclk_rd_ptr;
+    -- #################################################################################
+    -- ## Asynchronous assignments #####################################################
+    -- #################################################################################
+    wclk_pdiff    <= wclk_wr_ptr - wclk_rd_ptr;
+    rclk_pdiff    <= rclk_wr_ptr - rclk_rd_ptr;
 
-    fifo_full_wr    <= '1' when wclk_pdiff = FIFO_LEN - 1 else '0';
-    fifo_empty_rd   <= '1' when rclk_pdiff = 0 else '0';
+    fifo_full_wr  <= '1' when wclk_pdiff = FIFO_LEN - 1 else '0';
+    fifo_empty_rd <= '1' when rclk_pdiff = 0 else '0';
 
-    wr_full         <= fifo_full_wr;
-    rd_empty        <= fifo_empty_rd;
+    wr_full       <= fifo_full_wr;
+    rd_empty      <= fifo_empty_rd;
 
-    ---------------
-    -- Processes --
-    ---------------
+    -- #################################################################################
+    -- ## Processes ####################################################################
+    -- #################################################################################
+    -- --------------------------------
+    -- -- Write side control process --
+    -- --------------------------------
     process(wr_clk, wr_arst)
     begin
         if wr_arst = '1' then
-            wclk_wr_ptr      <= (others => '0');
-            wclk_rd_ptr      <= (others => '0');
-            wclk_wr_ptr_gray <= (others => '0');
+            wclk_wr_ptr <= (others => '0');
+            wclk_rd_ptr <= (others => '0');
         elsif wr_clk'event and wr_clk = '1' then
             if wr_clken = '1' then
                 
                 -- Get the binary value of the read pointer inside the write clock
-                wclk_rd_ptr      <= gray_to_bin(wclk_rd_ptr_gray);
-                wclk_wr_ptr_gray <= bin_to_gray(wclk_wr_ptr);
+                wclk_rd_ptr <= gray_to_bin(wclk_rd_ptr_gray);
 
                 wr_upper <= '0';
                 if wclk_pdiff >= UPPER_TRESHOLD then
@@ -224,19 +293,19 @@ begin
         end if;
     end process;
 
+    -- -------------------------------
+    -- -- Read side control process --
+    -- -------------------------------
     process(rd_clk, rd_arst)
     begin
         if rd_arst = '1' then
-            rclk_rd_ptr      <= (others => '0');
-            rclk_wr_ptr      <= (others => '0');
-            rclk_rd_ptr_gray <= (others => '0');
+            rclk_rd_ptr <= (others => '0');
+            rclk_wr_ptr <= (others => '0');
         elsif rd_clk'event and rd_clk = '1' then
             if rd_clken = '1' then
                 -- Get the binary value of the write pointer inside the read clock
-                rclk_wr_ptr      <= gray_to_bin(rclk_wr_ptr_gray);
+                rclk_wr_ptr <= gray_to_bin(rclk_wr_ptr_gray);
 
-                rclk_rd_ptr_gray <= bin_to_gray(rclk_rd_ptr);
-                
                 rd_lower <= '0';
                 if rclk_pdiff <= LOWER_TRESHOLD then
                     rd_lower <= '1';
@@ -246,11 +315,11 @@ begin
                 error_rd <= '0';
                 if rd_en = '1' then
                     if UNDERFLOW_ACTION = "SATURATE" and fifo_empty_rd = '0' then
-                        rd_dv  <= '1';
+                        rd_dv       <= '1';
                         rclk_rd_ptr <= rclk_rd_ptr + 1;
                     elsif UNDERFLOW_ACTION = "RESET" then
                         if fifo_empty_rd = '0' then
-                            rd_dv  <= '1';
+                            rd_dv       <= '1';
                             rclk_rd_ptr <= rclk_rd_ptr + 1;
                         else
                             error_rd <= '1';
@@ -264,6 +333,7 @@ begin
             end if;
         end if;
     end process;
+
 end async_fifo;
 
 

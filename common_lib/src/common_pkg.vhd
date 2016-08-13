@@ -21,7 +21,6 @@
 library ieee;
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
-    use ieee.math_real.all;
 
 package common_pkg is
 
@@ -42,12 +41,13 @@ package body common_pkg is
         constant v      : integer) return integer is
         variable result : integer;
     begin
-        if v = 0 or v = 1 then
-            result := 1;
-        else
-            result := integer(ceil(log(real(v))/log(2.0)));
-        end if;
-        return result;
+        result := 1;
+        while True loop
+            if 2**(result + 1) > v then
+                return result;
+            end if;
+            result := result + 1;
+        end loop;
     end function numbits;
 
     -- Gray <-> Binary conversion
