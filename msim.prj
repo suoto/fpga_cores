@@ -1,19 +1,10 @@
-# Compiler selection
+# ModelSim version
 global_build_flags[vhdl] = -explicit -2008
 
 vhdl  str_format     hdl_string_format/src/str_format_pkg.vhd
-vhdl  common_lib     common_lib/src/common_pkg.vhd
-vhdl  common_lib     common_lib/src/synchronizer.vhd
-vhdl  common_lib     common_lib/src/sr_delay.vhd
-vhdl  common_lib     common_lib/src/edge_detector.vhd
-vhdl  common_lib     common_lib/src/pulse_sync.vhd
-vhdl  memory         memory/src/ram_inference.vhd
-vhdl  memory         memory/src/ram_inference_dport.vhd
-vhdl  memory         memory/src/async_fifo.vhd
-vhdl  exp_golomb     exponential_golomb/src/exp_golomb_encoder.vhd -93
-vhdl  exp_golomb     exponential_golomb/src/exp_golomb_pkg.vhd     -93
+vhdl  common_lib     common_lib/src/*.vhd
+vhdl  memory         memory/src/*.vhd
+vhdl  exp_golomb     exponential_golomb/src/*.vhd -93
+vhdl  memory_tb      memory/test/async_fifo_tb.*
 vhdl  exp_golomb_tb  exponential_golomb/test/file_dumper.vhd
-vhdl  memory_tb      memory/test/async_fifo_tb.vhd
-vhdl  memory_tb      memory/test/async_fifo_tb.sv
-vhdl  exp_golomb_tb  exponential_golomb/test/exp_golomb_encoder_tb.vhd
-vhdl  exp_golomb_tb  exponential_golomb/test/exp_golomb_encoder_no_vunit_tb.vhd
+vhdl  exp_golomb_tb  exponential_golomb/test/*.vhd
