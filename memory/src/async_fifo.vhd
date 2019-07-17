@@ -90,6 +90,8 @@ architecture async_fifo of async_fifo is
     signal error_rd         : std_logic;
     signal error_wr_rd      : std_logic;
 
+    attribute ASYNC_REG : boolean;
+
 begin
 
     -- #################################################################################
@@ -120,13 +122,12 @@ begin
     -- -- Write pointer cross clock domain block ---------------------------------------
     -- ---------------------------------------------------------------------------------
     wr_ptr_cdc_block : block
-        -- Put FFs next to each other to avoid issues
-        attribute RLOC : string;
-        attribute RLOC of wclk_wr_ptr_ff_u : label is "X0Y0";
-        attribute RLOC of rclk_wr_ptr_ff_u : label is "X1Y0";
-
         signal wclk_wr_ptr_gray         : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
         signal rclk_wr_ptr_gray_sampled : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+
+        -- Mark FF after CDC as async so (hopefully) the tool can infer the appropriate
+        -- primitive with a better recovery time
+        attribute ASYNC_REG of rclk_wr_ptr_gray_sampled : signal is True;
 
     begin
 
@@ -170,13 +171,12 @@ begin
     -- -- Read pointer cross clock domain block ----------------------------------------
     -- ---------------------------------------------------------------------------------
     rd_ptr_cdc_block : block
-        -- Put FFs next to each other to avoid issues
-        attribute RLOC : string;
-        attribute RLOC of rclk_rd_ptr_ff_u : label is "X0Y0";
-        attribute RLOC of wclk_rd_ptr_ff_u : label is "X1Y0";
-
         signal rclk_rd_ptr_gray         : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
         signal wclk_rd_ptr_gray_sampled : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+
+        -- Mark FF after CDC as async so (hopefully) the tool can infer the appropriate
+        -- primitive with a better recovery time
+        attribute ASYNC_REG of wclk_rd_ptr_gray_sampled : signal is True;
     begin
 
         rclk_rd_ptr_ff_u : process(rd_clk, rd_arst)
