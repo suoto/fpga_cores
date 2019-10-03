@@ -1,35 +1,10 @@
-# Use relaxed flags when building the whole project
-# batch_build_flags = -explicit -permissive
-# Use stricter flags for building the file we're working on
-# single_build_flags = -explicit -check_synthesis -lint -rangecheck
-# Compiler selection
-# builder = msim
-builder = ghdl
-global_build_flags = -fexplicit #-frelaxed-rules
-# Location of the built files
-target_dir = .build
+global_build_flags[vhdl] = --std=08 -fexplicit -frelaxed-rules
 
-vhdl  osvvm_lib          osvvm_lib/MessagePkg.vhd                                        --std=08
-vhdl  osvvm_lib          osvvm_lib/SortListPkg_int.vhd                                   --std=08
-vhdl  osvvm_lib          osvvm_lib/NamePkg.vhd                                           --std=08
-vhdl  osvvm_lib          osvvm_lib/RandomBasePkg.vhd                                     --std=08
-vhdl  osvvm_lib          osvvm_lib/RandomPkg.vhd                                         --std=08
-vhdl  osvvm_lib          osvvm_lib/CoveragePkg.vhd                                       --std=08
-vhdl  pck_fio_lib        pck_fio_lib/PCK_FIO_1993.vhd                                    --std=93c
-vhdl  pck_fio_lib        pck_fio_lib/PCK_FIO_1993_BODY.vhd                               --std=93c
-vhdl  common_lib         common_lib/common_pkg.vhd                                       --ieee=synopsys  --std=02
-vhdl  common_lib         common_lib/synchronizer.vhd                                     --ieee=synopsys  --std=02
-vhdl  common_lib         common_lib/sr_delay.vhd                                         --ieee=synopsys  --std=02
-vhdl  common_lib         common_lib/edge_detector.vhd                                    --ieee=synopsys  --std=02
-vhdl  common_lib         common_lib/pulse_sync.vhd                                       --ieee=synopsys  --std=02
-vhdl  memory             memory/ram_inference.vhd                                        --ieee=synopsys  --std=02
-vhdl  memory             memory/ram_inference_dport.vhd                                  --ieee=synopsys  --std=02
-vhdl  memory             memory/async_fifo.vhd                                           --ieee=synopsys  --std=02
-vhdl  exp_golomb_lib     exponential_golomb/src/exp_golomb_encoder.vhd                   --std=08
-vhdl  exp_golomb_lib     exponential_golomb/src/exp_golomb_pkg.vhd                       --std=08
-vhdl  exp_golomb_tb_lib  exponential_golomb/src/test/file_dumper.vhd                     --std=08
-vhdl  exp_golomb_tb_lib  exponential_golomb/src/test/exp_golomb_encoder_tb.vhd           --std=08
-vhdl  exp_golomb_tb_lib  exponential_golomb/src/test/exp_golomb_encoder_no_vunit_tb.vhd  --std=08
-vhdl  work               memory/testbench/ram_model_pkg.vhd                              --ieee=synopsys  --std=02
-vhdl  work               memory/testbench/fifo_bfm_pkg.vhd                               --ieee=synopsys  --std=02
-vhdl  work               memory/testbench/async_fifo_tb.vhd                              --ieee=synopsys  --std=02
+
+vhdl  common_lib         common_lib/*.vhd
+vhdl  exp_golomb_lib     exponential_golomb/src/*.vhd
+vhdl  exp_golomb_tb_lib  exponential_golomb/src/test/*.vhd
+vhdl  memory             memory/*.vhd
+vhdl  osvvm_lib          osvvm_lib/*.vhd
+vhdl  pck_fio_lib        pck_fio_lib/src/*.vhd
+vhdl  work               memory/testbench/*.vhd
