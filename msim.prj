@@ -1,12 +1,3 @@
-# Use relaxed flags when building the whole project
-batch_build_flags = -explicit -permissive
-# Use stricter flags for building the file we're working on
-single_build_flags = -explicit -check_synthesis -lint -rangecheck
-# Compiler selection
-builder = msim
-# Location of the built files
-target_dir = .build
-
 vhdl  osvvm_lib       osvvm_lib/MessagePkg.vhd                                        -2008
 vhdl  osvvm_lib       osvvm_lib/SortListPkg_int.vhd                                   -2008
 vhdl  osvvm_lib       osvvm_lib/NamePkg.vhd                                           -2008
