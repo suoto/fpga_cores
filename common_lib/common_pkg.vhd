@@ -1,7 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_arith.all;
-use ieee.std_logic_unsigned.all;
+use ieee.numeric_std.all;
 
 use ieee.math_real.all;
 
@@ -9,9 +8,9 @@ package common_pkg is
 
 
     function numbits (v : integer) return integer;
-    function bin_to_gray ( bin  : std_logic_vector) return std_logic_vector;
-    function gray_to_bin ( gray : std_logic_vector) return std_logic_vector;
-    function gray_inc    ( gray : std_logic_vector) return std_logic_vector;
+    function bin_to_gray ( bin  : unsigned) return unsigned;
+    function gray_to_bin ( gray : unsigned) return unsigned;
+    function gray_inc    ( gray : unsigned) return unsigned;
 
 end;
 
@@ -28,8 +27,8 @@ package body common_pkg is
             return result;
         end function numbits;
 
-    function bin_to_gray ( bin : std_logic_vector) return std_logic_vector is
-        variable gray : std_logic_vector(bin'range);
+    function bin_to_gray ( bin : unsigned) return unsigned is
+        variable gray : unsigned(bin'range);
     begin
         gray(gray'high) := bin(bin'high);
         for i in bin'high - 1 downto 0 loop
@@ -38,8 +37,8 @@ package body common_pkg is
         return gray;
     end function bin_to_gray;
 
-    function gray_to_bin ( gray : std_logic_vector) return std_logic_vector is
-        variable bin : std_logic_vector(gray'range);
+    function gray_to_bin ( gray : unsigned) return unsigned is
+        variable bin : unsigned(gray'range);
     begin
         bin(bin'high) := gray(gray'high);
         for i in gray'high - 1 downto 0 loop
@@ -48,8 +47,8 @@ package body common_pkg is
         return bin;
     end function gray_to_bin;
 
-    function gray_inc ( gray : std_logic_vector) return std_logic_vector is
-        variable bin : std_logic_vector(gray'range);
+    function gray_inc ( gray : unsigned) return unsigned is
+        variable bin : unsigned(gray'range);
     begin
         bin := gray_to_bin(gray);
         bin := bin + 1;

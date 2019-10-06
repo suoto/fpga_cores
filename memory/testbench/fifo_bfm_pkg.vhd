@@ -2,8 +2,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_arith.all;
-use ieee.std_logic_unsigned.all;
+use ieee.numeric_std.all;
 
 library pck_fio_lib;
     use pck_fio_lib.PCK_FIO.all;
@@ -38,7 +37,7 @@ package body fifo_bfm_pkg is
 
         procedure write (d : integer ) is
             begin
-                write(conv_std_logic_vector(d, DATA_WIDTH));
+                write(std_logic_vector(to_unsigned(d, DATA_WIDTH)));
                end procedure write;
 
         procedure write (d : std_logic_vector ) is

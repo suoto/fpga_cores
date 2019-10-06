@@ -5,9 +5,8 @@
 ---------------
 -- Libraries --
 ---------------
-library	ieee;
-    use ieee.std_logic_1164.all;  
-    use ieee.std_logic_arith.all;			   
+library ieee;
+    use ieee.std_logic_1164.all;
 
 library common_lib;
     use common_lib.common_pkg.all;
@@ -25,7 +24,7 @@ entity edge_detector is
         clk     : in  std_logic;
         clken   : in  std_logic;
 
-        -- 
+        --
         din     : in  std_logic;
         -- Edges detected
         rising  : out std_logic;
@@ -59,7 +58,7 @@ begin
             port map (
                 clk     => clk,
                 clken   => clken,
-        
+
                 din(0)  => din,
                 dout(0) => din_i
             );
@@ -73,7 +72,7 @@ begin
         port map (
             clk     => clk,
             clken   => clken,
-    
+
             din(0)  => rising_i,
             din(1)  => falling_i,
             din(2)  => toggle_i,

@@ -6,9 +6,8 @@
 -- Libraries --
 ---------------
 library	ieee;
-    use ieee.std_logic_1164.all;  
-    use ieee.std_logic_arith.all;			   
-    use ieee.std_logic_unsigned.all;			   
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
 
 library common_lib;
     use common_lib.common_pkg.all;
@@ -60,16 +59,16 @@ architecture async_fifo of async_fifo is
     -------------
     -- Signals --
     -------------
-    signal wr_ptr           : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    signal rd_ptr_at_wr_clk : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    signal ptr_diff_w       : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    
-    signal rd_ptr           : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    signal wr_ptr_at_rd_clk : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    signal ptr_diff_r       : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    
-    signal wr_ptr_gray      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
-    signal rd_ptr_gray      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+    signal wr_ptr           : unsigned(numbits(FIFO_LEN) - 1 downto 0);
+    signal rd_ptr_at_wr_clk : unsigned(numbits(FIFO_LEN) - 1 downto 0);
+    signal ptr_diff_w       : unsigned(numbits(FIFO_LEN) - 1 downto 0);
+
+    signal rd_ptr           : unsigned(numbits(FIFO_LEN) - 1 downto 0);
+    signal wr_ptr_at_rd_clk : unsigned(numbits(FIFO_LEN) - 1 downto 0);
+    signal ptr_diff_r       : unsigned(numbits(FIFO_LEN) - 1 downto 0);
+
+    signal wr_ptr_gray      : unsigned(numbits(FIFO_LEN) - 1 downto 0);
+    signal rd_ptr_gray      : unsigned(numbits(FIFO_LEN) - 1 downto 0);
 
     signal fifo_full_wr     : std_logic;
     signal fifo_empty_rd    : std_logic;
@@ -95,16 +94,16 @@ begin
             -- Port A
             clk_a     => wr_clk,
             clken_a   => wr_clken,
-            wren_a    => wr_en, 
-            addr_a    => wr_ptr, 
-            wrdata_a  => wr_data, 
+            wren_a    => wr_en,
+            addr_a    => std_logic_vector(wr_ptr),
+            wrdata_a  => wr_data,
             rddata_a  => open,
-    
+
             -- Port B
             clk_b     => rd_clk,
-            clken_b   => rd_clken, 
-            addr_b    => rd_ptr, 
-            rddata_b  => rd_data 
+            clken_b   => rd_clken,
+            addr_b    => std_logic_vector(rd_ptr),
+            rddata_b  => rd_data
         );
 
     wr_error_s : entity common_lib.pulse_sync
@@ -113,25 +112,25 @@ begin
             )
         port map (
             -- Usual ports
-            src_clk     => wr_clk, 
-            src_clken   => wr_clken, 
-            src_pulse   => error_wr, 
-    
+            src_clk     => wr_clk,
+            src_clken   => wr_clken,
+            src_pulse   => error_wr,
+
             dst_clk     => rd_clk,
             dst_clken   => rd_clken,
             dst_pulse   => error_wr_rd
         );
-    
+
     rd_error_s : entity common_lib.pulse_sync
         generic map (
             EXTRA_DELAY_CYCLES => 0
             )
         port map (
             -- Usual ports
-            src_clk     => rd_clk, 
-            src_clken   => rd_clken, 
-            src_pulse   => error_rd, 
-    
+            src_clk     => rd_clk,
+            src_clken   => rd_clken,
+            src_pulse   => error_rd,
+
             dst_clk     => wr_clk,
             dst_clken   => wr_clken,
             dst_pulse   => error_rd_wr
@@ -141,13 +140,13 @@ begin
     -----------------------------
     ptr_diff_w      <= wr_ptr - rd_ptr_at_wr_clk;
     ptr_diff_r      <= wr_ptr_at_rd_clk - rd_ptr;
-    
+
     fifo_full_wr    <= '1' when ptr_diff_w = FIFO_LEN - 1 else '0';
     fifo_empty_rd   <= '1' when ptr_diff_r = 0 else '0';
 
     wr_full         <= fifo_full_wr;
     rd_empty        <= fifo_empty_rd;
-    
+
     ---------------
     -- Processes --
     ---------------
@@ -155,7 +154,7 @@ begin
     begin
         if wr_clk'event and wr_clk = '1' then
             if wr_clken = '1' then
-                
+
                 -- Get the binary value of the read pointer inside the write clock
                 rd_ptr_at_wr_clk <= gray_to_bin(rd_ptr_gray);
                 wr_ptr_gray      <= bin_to_gray(wr_ptr);
@@ -192,9 +191,9 @@ begin
             if rd_clken = '1' then
                 -- Get the binary value of the write pointer inside the read clock
                 wr_ptr_at_rd_clk    <= gray_to_bin(wr_ptr_gray);
-                
+
                 rd_ptr_gray <= bin_to_gray(rd_ptr);
-                
+
                 rd_lower <= '0';
                 if ptr_diff_r <= LOWER_TRESHOLD then
                     rd_lower <= '1';

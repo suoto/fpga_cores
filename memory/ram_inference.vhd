@@ -7,8 +7,7 @@
 ---------------
 library	ieee;
     use ieee.std_logic_1164.all;  
-    use ieee.std_logic_arith.all;			   
-    use ieee.std_logic_unsigned.all;			   
+    use ieee.numeric_std.all;
 
 library common_lib;
     use common_lib.common_pkg.all;
@@ -53,6 +52,9 @@ architecture ram_inference of ram_inference is
     signal rddata_a_i   : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal rddata_b_i   : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
+    signal addr_a_unsigned : unsigned(ADDR_WIDTH - 1 downto 0);
+    signal addr_b_unsigned : unsigned(ADDR_WIDTH - 1 downto 0);
+
 begin
 
     -------------------
@@ -87,6 +89,8 @@ begin
     -----------------------------
     -- Asynchronous asignments --
     -----------------------------
+    addr_a_unsigned <= unsigned(addr_a);
+    addr_b_unsigned <= unsigned(addr_b);
 
     ---------------
     -- Processes --
@@ -96,9 +100,9 @@ begin
         if clk_a'event and clk_a = '1' then
             if clken_a = '1' then
                 if wren_a = '1' then
-                    ram(conv_integer(addr_a)) := wrdata_a;
+                    ram(to_integer(addr_a_unsigned)) := wrdata_a;
                 end if;
-                rddata_a_i <= ram(conv_integer(addr_a));
+                rddata_a_i <= ram(to_integer(addr_a_unsigned));
             end if;
         end if;
     end process;
@@ -107,7 +111,7 @@ begin
     begin
         if clk_b'event and clk_b = '1' then
             if clken_b = '1' then
-                rddata_b_i <= ram(conv_integer(addr_b));
+                rddata_b_i <= ram(to_integer(addr_b_unsigned));
             end if;
         end if;
     end process;
