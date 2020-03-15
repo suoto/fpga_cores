@@ -26,10 +26,9 @@
 -- Libraries --
 ---------------
 library ieee;
-    use ieee.std_logic_1164.all;  
+  use ieee.std_logic_1164.all;  
 
-library common_lib;
-    use common_lib.common_pkg.all;
+use work.common_pkg.all;
 
 ------------------------
 -- Entity declaration --
@@ -68,7 +67,7 @@ begin
     -- Port mappings --
     -------------------
     gsync_in : if SYNCHRONIZE_INPUT generate
-        sync_in : entity common_lib.synchronizer
+        sync_in : entity work.synchronizer
             generic map (
                 SYNC_STAGES => 1,
                 DATA_WIDTH  => 1)
@@ -80,7 +79,7 @@ begin
                 dout(0) => din_i);
     end generate gsync_in;
 
-    output_a : entity common_lib.sr_delay
+    output_a : entity work.sr_delay
         generic map (
             DELAY_CYCLES => OUTPUT_DELAY,
             DATA_WIDTH   => 3)

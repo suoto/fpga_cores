@@ -4,12 +4,12 @@
 -- Copyright 2014-2016 by Andre Souto (suoto)
 --
 -- This file is part of hdl_lib.
--- 
+--
 -- hdl_lib is free software: you can redistribute it and/or modify
 -- it under the terms of the GNU General Public License as published by
 -- the Free Software Foundation, either version 3 of the License, or
 -- (at your option) any later version.
--- 
+--
 -- hdl_lib is distributed in the hope that it will be useful,
 -- but WITHOUT ANY WARRANTY; without even the implied warranty of
 -- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -26,15 +26,13 @@
 -- Libraries --
 ---------------
 library ieee;
-    use ieee.std_logic_1164.all;  
+    use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
-
-library common_lib;
 
 ------------------------
 -- Entity declaration --
 ------------------------
-entity ram_inference_dport is
+entity ram_inference is
     generic (
         ADDR_WIDTH         : positive := 16;
         DATA_WIDTH         : positive := 16;
@@ -51,13 +49,11 @@ entity ram_inference_dport is
         -- Port B
         clk_b     : in  std_logic;
         clken_b   : in  std_logic;
-        wren_b    : in  std_logic;
         addr_b    : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);
-        wrdata_b  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
         rddata_b  : out std_logic_vector(DATA_WIDTH - 1 downto 0));
-end ram_inference_dport;
+end ram_inference;
 
-architecture ram_inference_dport of ram_inference_dport is
+architecture ram_inference of ram_inference is
 
     -----------
     -- Types --
@@ -67,20 +63,16 @@ architecture ram_inference_dport of ram_inference_dport is
     -------------
     -- Signals --
     -------------
-    shared variable ram : data_type(2**ADDR_WIDTH - 1 downto 0);
-    signal rddata_a_i   : std_logic_vector(DATA_WIDTH - 1 downto 0);
-    signal rddata_b_i   : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    signal ram        : data_type(2**ADDR_WIDTH - 1 downto 0);
+    signal rddata_a_i : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    signal rddata_b_i : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
 begin
 
     -------------------
     -- Port mappings --
     -------------------
-
-    ------------------------------
-    -- Asynchronous assignments --
-    ------------------------------
-    rddata_a_delay : entity common_lib.sr_delay
+    rddata_a_delay : entity work.sr_delay
         generic map (
             DELAY_CYCLES => EXTRA_OUTPUT_DELAY,
             DATA_WIDTH   => DATA_WIDTH)
@@ -91,9 +83,9 @@ begin
             din     => rddata_a_i,
             dout    => rddata_a);
 
-    rddata_b_delay : entity common_lib.sr_delay
+    rddata_b_delay : entity work.sr_delay
         generic map (
-            DELAY_CYCLES => EXTRA_OUTPUT_DELAY + 1,
+            DELAY_CYCLES => EXTRA_OUTPUT_DELAY,
             DATA_WIDTH   => DATA_WIDTH)
         port map (
             clk     => clk_b,
@@ -101,6 +93,10 @@ begin
 
             din     => rddata_b_i,
             dout    => rddata_b);
+
+    ------------------------------
+    -- Asynchronous assignments --
+    ------------------------------
 
     ---------------
     -- Processes --
@@ -110,7 +106,7 @@ begin
         if clk_a'event and clk_a = '1' then
             if clken_a = '1' then
                 if wren_a = '1' then
-                    ram(to_integer(unsigned(addr_a))) := wrdata_a;
+                    ram(to_integer(unsigned(addr_a))) <= wrdata_a;
                 end if;
                 rddata_a_i <= ram(to_integer(unsigned(addr_a)));
             end if;
@@ -121,13 +117,10 @@ begin
     begin
         if clk_b'event and clk_b = '1' then
             if clken_b = '1' then
-                if wren_b = '1' then
-                    ram(to_integer(unsigned(addr_b))) := wrdata_b;
-                end if;
                 rddata_b_i <= ram(to_integer(unsigned(addr_b)));
             end if;
         end if;
     end process;
 
-end ram_inference_dport;
+end ram_inference;
 

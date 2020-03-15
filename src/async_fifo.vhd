@@ -25,11 +25,8 @@ library ieee;
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
 
-library common_lib;
-    use common_lib.common_pkg.all;
+use work.common_pkg.all;
     
-library memory;
-
 -- #####################################################################################
 -- ## Entity declaration ###############################################################
 -- #####################################################################################
@@ -96,7 +93,7 @@ begin
     -- #################################################################################
     -- ## Port mappings ################################################################
     -- #################################################################################
-    mem : entity memory.ram_inference
+    mem : entity work.ram_inference
         generic map (
             ADDR_WIDTH         => numbits(FIFO_LEN),
             DATA_WIDTH         => DATA_WIDTH,
@@ -153,7 +150,7 @@ begin
         end process;
 
         -- Now we crossed clock domains, sample twice to remove meta stabilities
-        rclk_wr_ptr_sampling_u : entity common_lib.sr_delay
+        rclk_wr_ptr_sampling_u : entity work.sr_delay
             generic map (
                 DELAY_CYCLES => 2,
                 DATA_WIDTH   => numbits(FIFO_LEN))
@@ -198,7 +195,7 @@ begin
             end if;
         end process;
 
-        wclk_rd_ptr_gray_sync_u : entity common_lib.sr_delay
+        wclk_rd_ptr_gray_sync_u : entity work.sr_delay
             generic map (
                 DELAY_CYCLES => 2,
                 DATA_WIDTH   => numbits(FIFO_LEN))
@@ -211,7 +208,7 @@ begin
     end block rd_ptr_cdc_block;
 
     -- Synchronize error strobes
-    wr_error_s : entity common_lib.pulse_sync
+    wr_error_s : entity work.pulse_sync
         generic map (
             EXTRA_DELAY_CYCLES => 0)
         port map (
@@ -224,7 +221,7 @@ begin
             dst_clken   => rd_clken,
             dst_pulse   => error_wr_rd);
 
-    rd_error_s : entity common_lib.pulse_sync
+    rd_error_s : entity work.pulse_sync
         generic map (
             EXTRA_DELAY_CYCLES => 0)
         port map (

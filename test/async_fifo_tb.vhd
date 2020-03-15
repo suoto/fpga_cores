@@ -18,31 +18,31 @@
 -- You should have received a copy of the GNU General Public License
 -- along with hdl_lib.  If not, see <http://www.gnu.org/licenses/>.
 
-library	ieee;
-    use ieee.std_logic_1164.all;
-    use ieee.numeric_std.all;
+-- vunit: run_all_in_same_sim
 
-library common_lib;
-    use common_lib.common_pkg.all;
+library	ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 library vunit_lib;
-    context vunit_lib.vunit_context;
+context vunit_lib.vunit_context;
 
 library osvvm;
-    use osvvm.RandomPkg.all;
+use osvvm.RandomPkg.all;
 
-library memory;
+library rtl;
+use rtl.common_pkg.all;
 
 library str_format;
     use str_format.str_format_pkg.all;
 
 entity async_fifo_tb is
     generic (
-        runner_cfg    : string;
-        WR_CLK_PERIOD : time := 4 ns;
-        RD_CLK_PERIOD : time := 16 ns;
-        WR_EN_RANDOM  : integer := 10;
-        RD_EN_RANDOM  : integer := 10);
+        runner_cfg       : string;
+        wr_clk_period_ns : natural := 4;
+        rd_clk_period_ns : natural := 16;
+        WR_EN_RANDOM     : integer := 10;
+        RD_EN_RANDOM     : integer := 10);
 end async_fifo_tb;
 
 architecture async_fifo_tb of async_fifo_tb is
@@ -58,6 +58,9 @@ architecture async_fifo_tb of async_fifo_tb is
             end loop;
         end if;
     end procedure;
+
+    constant WR_CLK_PERIOD : time := WR_CLK_PERIOD_NS * 1 ns;
+    constant RD_CLK_PERIOD : time := RD_CLK_PERIOD_NS * 1 ns;
 
     constant DATA_WIDTH         : integer := 16;
     constant UPPER_TRESHOLD     : integer := 500;
@@ -86,7 +89,7 @@ begin
     -------------------
     -- Port mappings --
     -------------------
-    dut : entity memory.async_fifo
+    dut : entity rtl.async_fifo
         generic map (
             FIFO_LEN        => 512,
             DATA_WIDTH      => DATA_WIDTH,
@@ -142,7 +145,7 @@ begin
 
         --
         variable stat   : checker_stat_t;
-        variable filter : log_filter_t;
+        -- variable filter : log_filter_t;
     begin
 
         -- Start both wr and rd data random generators with the same seed so
@@ -150,14 +153,14 @@ begin
         wr_data_gen.InitSeed("some_seed");
         rd_data_gen.InitSeed("some_seed");
 
-        checker_init(display_format => verbose,
-                     file_name      => join(output_path(runner_cfg), "error.csv"),
-                     file_format    => verbose_csv);
+        -- checker_init(display_format => verbose,
+        --              file_name      => join(output_path(runner_cfg), "error.csv"),
+        --              file_format    => verbose_csv);
 
-        logger_init(display_format => verbose,
-                    file_name      => join(output_path(runner_cfg), "log.csv"),
-                    file_format    => verbose_csv);
-        stop_level((debug, verbose), display_handler, filter);
+        -- logger_init(display_format => verbose,
+        --             file_name      => join(output_path(runner_cfg), "log.csv"),
+        --             file_format    => verbose_csv);
+        -- stop_level((debug, verbose), display_handler, filter);
         test_runner_setup(runner, runner_cfg);
 
         wait until wr_arst = '0';

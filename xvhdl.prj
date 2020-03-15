@@ -1,9 +1,0 @@
-# XVHDL version
-
-vhdl  str_format     hdl_string_format/src/str_format_pkg.vhd
-vhdl  common_lib     common_lib/src/*.vhd
-vhdl  memory         memory/src/*.vhd
-vhdl  exp_golomb     exponential_golomb/src/*.vhd
-vhdl  memory_tb      memory/test/async_fifo_tb.*
-vhdl  exp_golomb_tb  exponential_golomb/test/file_dumper.vhd
-vhdl  exp_golomb_tb  exponential_golomb/test/*.vhd

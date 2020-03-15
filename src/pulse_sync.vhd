@@ -21,8 +21,6 @@
 library ieee;
     use ieee.std_logic_1164.all;  
 
-library common_lib;
-
 -- Synchronizes a pulse between different clock domains
 entity pulse_sync is
     generic (
@@ -50,7 +48,7 @@ begin
     -------------------
     -- Port mappings --
     -------------------
-    dst_pulse_t : entity common_lib.edge_detector
+    dst_pulse_t : entity work.edge_detector
         generic map (
             SYNCHRONIZE_INPUT => True,
             OUTPUT_DELAY      => EXTRA_DELAY_CYCLES)
