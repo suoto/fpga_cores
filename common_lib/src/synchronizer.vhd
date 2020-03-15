@@ -18,7 +18,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with hdl_lib.  If not, see <http://www.gnu.org/licenses/>.
 
-library	ieee;
+library ieee;
     use ieee.std_logic_1164.all;  
 
 -- Synchronizes a data bus between different clock domains
