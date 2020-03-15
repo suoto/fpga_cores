@@ -21,14 +21,13 @@
 -- #####################################################################################
 -- ## Libraries ########################################################################
 -- #####################################################################################
-library	ieee;
+library ieee;
     use ieee.std_logic_1164.all;
-    use ieee.std_logic_arith.all;
-    use ieee.std_logic_unsigned.all;
+    use ieee.numeric_std.all;
 
 library common_lib;
     use common_lib.common_pkg.all;
-
+    
 library memory;
 
 -- #####################################################################################
@@ -70,13 +69,13 @@ architecture async_fifo of async_fifo is
     -- #################################################################################
     -- ## Signals ######################################################################
     -- #################################################################################
-    signal wclk_wr_ptr      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
-    signal wclk_rd_ptr      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
-    signal wclk_pdiff       : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+    signal wclk_wr_ptr      : unsigned(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
+    signal wclk_rd_ptr      : unsigned(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
+    signal wclk_pdiff       : unsigned(numbits(FIFO_LEN) - 1 downto 0);
 
-    signal rclk_rd_ptr      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
-    signal rclk_wr_ptr      : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
-    signal rclk_pdiff       : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
+    signal rclk_rd_ptr      : unsigned(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
+    signal rclk_wr_ptr      : unsigned(numbits(FIFO_LEN) - 1 downto 0) := (others => '0');
+    signal rclk_pdiff       : unsigned(numbits(FIFO_LEN) - 1 downto 0);
 
     -- CRC pointers
     signal wclk_rd_ptr_gray : std_logic_vector(numbits(FIFO_LEN) - 1 downto 0);
@@ -107,14 +106,14 @@ begin
             clk_a     => wr_clk,
             clken_a   => wr_clken,
             wren_a    => wr_en,
-            addr_a    => wclk_wr_ptr,
+            addr_a    => std_logic_vector(wclk_wr_ptr),
             wrdata_a  => wr_data,
             rddata_a  => open,
 
             -- Port B
             clk_b     => rd_clk,
             clken_b   => rd_clken,
-            addr_b    => rclk_rd_ptr,
+            addr_b    => std_logic_vector(rclk_rd_ptr),
             rddata_b  => rd_data);
 
 
@@ -138,7 +137,7 @@ begin
                 wclk_wr_ptr_gray <= (others => '0');
             elsif wr_clk'event and wr_clk = '1' then
                 if wr_clken = '1' then
-                    wclk_wr_ptr_gray <= bin_to_gray(wclk_wr_ptr);
+                    wclk_wr_ptr_gray <= bin_to_gray(std_logic_vector(wclk_wr_ptr));
                 end if;
             end if;
         end process;
@@ -185,7 +184,7 @@ begin
                 rclk_rd_ptr_gray <= (others => '0');
             elsif rd_clk'event and rd_clk = '1' then
                 if rd_clken = '1' then
-                    rclk_rd_ptr_gray <= bin_to_gray(rclk_rd_ptr);
+                    rclk_rd_ptr_gray <= bin_to_gray(std_logic_vector(rclk_rd_ptr));
                 end if;
             end if;
         end process;
@@ -265,7 +264,7 @@ begin
             if wr_clken = '1' then
                 
                 -- Get the binary value of the read pointer inside the write clock
-                wclk_rd_ptr <= gray_to_bin(wclk_rd_ptr_gray);
+                wclk_rd_ptr <= unsigned(gray_to_bin(std_logic_vector(wclk_rd_ptr_gray)));
 
                 wr_upper <= '0';
                 if wclk_pdiff >= UPPER_TRESHOLD then
@@ -304,7 +303,7 @@ begin
         elsif rd_clk'event and rd_clk = '1' then
             if rd_clken = '1' then
                 -- Get the binary value of the write pointer inside the read clock
-                rclk_wr_ptr <= gray_to_bin(rclk_wr_ptr_gray);
+                rclk_wr_ptr <= unsigned(gray_to_bin(std_logic_vector(rclk_wr_ptr_gray)));
 
                 rd_lower <= '0';
                 if rclk_pdiff <= LOWER_TRESHOLD then
