@@ -97,19 +97,20 @@ begin
             axi_out_tvalid => axi_out_tvalid,
             axi_out_tready => axi_out_tready);
 
-    file_dump_u : entity exp_golomb_tb.file_dumper
-        generic map (
-            FILENAME   => "output.bin",
-            DATA_WIDTH => DATA_WIDTH)
-        port map (
-            clk     => clk,
-            clken   => '1',
-            rst     => rst,
+    -- file_dump_u : entity exp_golomb_tb.file_dumper
+    --     generic map (
+    --         FILENAME   => "output.bin",
+    --         DATA_WIDTH => DATA_WIDTH)
+    --     port map (
+    --         clk     => clk,
+    --         clken   => '1',
+    --         rst     => rst,
 
-            -- Data input
-            tdata   => axi_out_tdata,
-            tvalid  => axi_out_tvalid,
-            tready  => axi_out_tready);
+    --         -- Data input
+    --         tdata   => axi_out_tdata,
+    --         tvalid  => axi_out_tvalid,
+    --         tready  => axi_out_tready);
+
     -----------------------------
     -- Asynchronous assignments --
     -----------------------------
@@ -187,16 +188,8 @@ begin
         end procedure;
 
         variable stat   : checker_stat_t;
-        variable filter : log_filter_t;
 
     begin
-        checker_init(display_format => verbose,
-        file_name => join(output_path(runner_cfg), "error.csv"),
-        file_format => verbose_csv);
-        logger_init(display_format => verbose,
-        file_name => join(output_path(runner_cfg), "log.csv"),
-        file_format => verbose_csv);
-        stop_level((debug, verbose), display_handler, filter);
         test_runner_setup(runner, runner_cfg);
 
         -- -- Initialize to same seed to get same sequence

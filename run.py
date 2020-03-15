@@ -23,11 +23,11 @@ def main():
     cli.add_library("sim").add_source_files(p.join(root, "test", "*.vhd"))
 
     cli.add_library("exp_golomb").add_source_files(
-        p.join(root, "exponential_golomb", "src", "*.vhd")
+        p.join(root, "src", "exponential_golomb", "src", "*.vhd")
     )
 
-    #  cli.add_library('exp_golomb_tb').add_source_files(
-    #      p.join(root, 'exponential_golomb', 'test', '*.vhd'))
+    cli.add_library('exp_golomb_tb').add_source_files(
+        p.join(root, "src", 'exponential_golomb', 'test', '*.vhd'))
 
     add_async_fifo_tests(cli.library("sim").entity("async_fifo_tb"))
 
