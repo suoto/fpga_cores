@@ -66,30 +66,31 @@ end axi_stream_width_converter;
 
 architecture axi_stream_width_converter of axi_stream_width_converter is
 
+  constant logger            : logger_t := get_logger("dut");
+
   ------------------
   -- Sub programs --
   ------------------
-  function get_tkeep_bytes_table ( constant width : natural ) return work.common_pkg.integer_array_t is
-    variable result : work.common_pkg.integer_array_t(0 to 2**width - 1) := (others => 0);
+  -- When s_tlast is high, tkeep will flag how many bytes are actually valid
+  function count_ones ( constant v : std_logic_vector ) return natural is
+    variable cnt : natural := 0;
   begin
-    for i in result'range loop
-      exit when 2**i - 1 > result'length;
-      result(2**i - 1) := i;
+    for i in v'range loop
+      if v(i) = '1' then
+        cnt := cnt + 1;
+      end if;
     end loop;
-    return result;
+
+    return cnt;
   end;
 
   ---------------
   -- Constants --
   ---------------
-  constant logger            : logger_t := get_logger("dut");
   constant INPUT_BYTE_WIDTH  : natural := (INPUT_DATA_WIDTH + 7) / 8;
   constant OUTPUT_BYTE_WIDTH : natural := (OUTPUT_DATA_WIDTH + 7) / 8;
 
-  -- When s_tlast is high, tkeep will flag how many bytes are actually valid. We'll put
-  -- together a constant to mux
-  constant TKEEP_TO_BYTES_IN : work.common_pkg.integer_array_t := get_tkeep_bytes_table(INPUT_BYTE_WIDTH);
-  constant TKEEP_TO_BYTES_OUT : work.common_pkg.integer_array_t := get_tkeep_bytes_table(OUTPUT_BYTE_WIDTH);
+  -- constant TKEEP_TO_BYTES_IN : work.common_pkg.integer_array_t := get_tkeep_bytes_table(INPUT_BYTE_WIDTH);
 
   -----------
   -- Types --
@@ -133,11 +134,47 @@ begin
     signal dbg_bit_cnt      : natural range 0 to dbg_tmp'length - 1;
     signal dbg_flush_buffer : boolean := False;
   begin
+    -------------------
+    -- Port mappings --
+    -------------------
+    -- Need a small FIFO for the TID
+    tid_fifo_u : entity work.sync_fifo
+      generic map (
+        -- FIFO configuration
+        RAM_INFERENCE_STYLE => "distributed", -- : string   := "auto";
+        DEPTH               => 4, -- : positive := 512; -- FIFO length in number of positions
+        DATA_WIDTH          => AXI_TID_WIDTH, -- : natural  := 8;  -- Data width
+        UPPER_TRESHOLD      => 3, -- : natural  := 510; -- FIFO level to assert upper
+        LOWER_TRESHOLD      => 1) -- : natural  := 10);  -- FIFO level to assert lower
+      port map (
+        -- Write port
+        clk     => clk,
+        clken   => '1',
+        rst     => rst,
 
+        -- Status
+        full    => open, --full ,
+        upper   => open, --upper,
+        lower   => open, --lower,
+        empty   => open, --empty,
+
+        wr_en   => s_first_word and s_data_valid,
+        wr_data => s_tid,
+
+        -- Read port
+        rd_en   => m_tlast_i and m_tvalid_i and m_tready, --'0',
+        rd_data => m_tid,
+        rd_dv   => open);
+
+
+    ---------------
+    -- Processes --
+    ---------------
     process(clk)
       variable tmp          : std_logic_vector(2*(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH) - 1 downto 0);
       variable bit_cnt      : natural range 0 to tmp'length - 1;
       variable flush_buffer : boolean := False;
+
     begin
       if rising_edge(clk) then
 
@@ -165,11 +202,7 @@ begin
             bit_cnt := bit_cnt + INPUT_DATA_WIDTH;
           else
             -- Last word, add the appropriate number of bits
-            bit_cnt := bit_cnt + 8*TKEEP_TO_BYTES_IN(to_integer(unsigned(s_tkeep)));
-          end if;
-
-          if s_first_word = '1' then
-            m_tid <= s_tid;
+            bit_cnt := bit_cnt + 8*count_ones(s_tkeep);
           end if;
 
           -- Upon receiving the last input word, mark 
@@ -200,8 +233,12 @@ begin
             elsif bit_cnt < OUTPUT_DATA_WIDTH then
               m_tlast_i <= '1';
               -- Fill in the bit mask appropriately
-              m_tkeep   <= (m_tkeep'length - 1 downto (bit_cnt + 7)/8 => '0')
-                           & ((bit_cnt + 7) / 8 - 1 downto 0 => '1');
+              if OUTPUT_DATA_WIDTH < 8 then
+                m_tkeep   <= (others => '1');
+              else
+                m_tkeep   <= (m_tkeep'length - 1 downto (bit_cnt + 7)/8 => '0')
+                             & ((bit_cnt + 7) / 8 - 1 downto 0 => '1');
+              end if;
 
               bit_cnt   := 0;
 
@@ -215,13 +252,12 @@ begin
 
           debug(logger, sformat("bit_cnt=%d || tmp=%r || %r", fo(bit_cnt), fo(tmp), fo(flush_buffer)));
 
-          -- flush_buffer := False;
-          -- debug(logger, sformat("bit_cnt=%d, tmp=%r", fo(bit_cnt), fo(tmp)));
-
         end if;
 
-        -- Input should always be ready if there's room for data to be received
-        if tmp'length - bit_cnt > INPUT_DATA_WIDTH then
+        -- Input should always be ready if there's room for data to be received, unless
+        -- we're flushing the buffer. In this case, accepting more data will mess up with
+        -- the tracking of how much data we still have to write
+        if (tmp'length - bit_cnt > INPUT_DATA_WIDTH) and not flush_buffer then
           s_tready_i <= '1';
         end if;
 

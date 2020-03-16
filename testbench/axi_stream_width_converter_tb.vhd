@@ -135,7 +135,7 @@ begin
   ------------------------------
   clk <= not clk after CLK_PERIOD/2;
 
-  test_runner_watchdog(runner, 200 us);
+  test_runner_watchdog(runner, 2 ms);
 
   m_data_valid <= m_tvalid = '1' and m_tready = '1';
   s_data_valid <= s_tvalid = '1' and s_tready = '1';
@@ -182,7 +182,7 @@ begin
         data        => data,
         id          => id,
         probability => tvalid_probability,
-        blocking    => True);
+        blocking    => False);
 
     end;
 
@@ -195,6 +195,7 @@ begin
           data => random(rand.RandInt(INPUT_BYTE_WIDTH*OUTPUT_BYTE_WIDTH) + 1)
         );
       end loop;
+
     end;
     ------------------------------------------------------------------------------------
 
@@ -247,6 +248,8 @@ begin
 
       end if;
 
+      join(net, master);
+
       walk(32);
 
     end loop;
@@ -264,11 +267,11 @@ begin
 
     ------------------------------------------------------------------------------------
     procedure check_frame ( constant frame : axi_stream_frame_t ) is
-      variable exp_tdata : std_logic_vector(OUTPUT_DATA_WIDTH - 1 downto 0);
-      variable exp_tkeep : std_logic_vector(OUTPUT_BYTE_WIDTH - 1 downto 0);
-      variable byte      : natural;
-      variable word_cnt  : natural := 0;
-      variable failed    : boolean := False;
+      constant resized_data : std_logic_vector_2d_t := reinterpret(frame.data, OUTPUT_DATA_WIDTH);
+      variable exp_tdata    : std_logic_vector(OUTPUT_DATA_WIDTH - 1 downto 0);
+      variable exp_tkeep    : std_logic_vector(OUTPUT_BYTE_WIDTH - 1 downto 0);
+      variable word_cnt     : natural := 0;
+      variable failed       : boolean := False;
 
       ------------------------------------------------------------------------------------
       procedure check_word (
@@ -335,37 +338,37 @@ begin
             failed := True;
           end if;
 
+          word_cnt  := word_cnt + 1;
+
       end;
 
     begin
 
-      info(sformat("Checking frame: id=%r, data=%s" & cr, fo(frame.id), to_string(frame.data)));
+      info(sformat("Checking frame: id=%r, data'lengh=%d, data=%s" & cr, fo(frame.id), fo(resized_data'length), to_string(resized_data)));
 
-      for i in 0 to frame.data'length - 1 loop
-        byte := i mod OUTPUT_BYTE_WIDTH;
+      for i in 0 to resized_data'length - 1 loop
 
-        exp_tdata(8*(byte + 1) - 1 downto 8*byte) := frame.data(i);
+        if i = resized_data'length - 1 then
+          exp_tkeep := (others => '0');
+          exp_tkeep((8*frame.data'length mod OUTPUT_DATA_WIDTH)/8 - 1 downto 0) := (others => '1');
 
-        if ((i + 1) mod OUTPUT_BYTE_WIDTH) = 0 then
-          if i /= frame.data'length - 1 then
-            check_word(exp_tdata, (others => '0'), frame.id, False);
-          else
-            check_word(exp_tdata, (others => '1'), frame.id, True);
+          -- If data has an integer number of output data width, then all bytes are
+          -- valid on the last word
+          if exp_tkeep = (exp_tkeep'range => '0') then
+            exp_tkeep := (others => '1');
           end if;
 
-          exp_tdata := (others => 'U');
-          word_cnt  := word_cnt + 1;
+          debug(logger, sformat("[%d] %r || %d bytes, remainder=%d, exp tkeep=%b", fo(i), fo(resized_data(i)), fo(8*frame.data'length), fo(8*frame.data'length mod OUTPUT_DATA_WIDTH), fo(exp_tkeep)));
+          check_word(resized_data(i), exp_tkeep, frame.id, True);
+        else
+          check_word(resized_data(i), (others => '0'), frame.id, False);
         end if;
       end loop;
 
-      if byte = 1 then
-        return;
+      if failed then
+        error(logger, "Some tests failed!");
       end if;
 
-      exp_tkeep                := (others => '0');
-      exp_tkeep(byte downto 0) := (others => '1');
-
-      check_word(exp_tdata, exp_tkeep, frame.id, True);
     end;
 
   begin
