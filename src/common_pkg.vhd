@@ -25,23 +25,13 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
 
-library str_format;
-use str_format.str_format_pkg.all;
-
 package common_pkg is
-
-  type std_logic_vector_2d_t is array (natural range <>) of std_logic_vector;
-  subtype byte_array_t is std_logic_vector_2d_t(open)(7 downto 0);
 
   type integer_array_t is array (natural range <>) of integer;
   type integer_2d_array_t is array (natural range <>) of integer_array_t;
 
   -- Calculates the number of bits required to represent a given value
   function numbits (constant v : natural) return natural;
-
-  impure function to_string (
-    constant source : std_logic_vector_2d_t;
-    constant width  : integer := 16) return string;
 
   -- Add double quotes around a string
   function quote ( constant s : string ) return string;
@@ -218,36 +208,5 @@ package body common_pkg is
   begin
     return '"' & s & '"';
   end function quote;
-
-  --------------------------------------------------------------------------------------
-  impure function to_string (
-    constant source      : std_logic_vector_2d_t;
-    constant width       : integer := 16) return string is
-    variable result      : line;
-    constant num_lines   : integer := (source'length + width - 1) / width;
-    constant items_width : integer := 3 + (source(0)'length + 3) / 4;
-    constant col_0_width : integer := integer'image(source'length)'length;
-    variable item_cnt    : integer := 0;
-    begin
-      write(result, cr & string'(1 to col_0_width + 3 => ' '));
-
-      for i in 0 to width - 1 loop
-        write(result, sformat("%" & integer'image(items_width) & "d  ", fo(i)));
-      end loop;
-
-      while item_cnt < source'length loop
-        write(result, cr & sformat("%" & integer'image(col_0_width) & "d   ", fo(item_cnt)));
-        for i in 0 to width - 1 loop
-          if item_cnt < source'length then
-            write(result, sformat("%" & integer'image(items_width) & "r  ", fo(source(item_cnt))));
-          else
-            exit;
-          end if;
-          item_cnt := item_cnt + 1;
-        end loop;
-      end loop;
-
-      return result.all;
-    end function to_string;
 
 end package body;

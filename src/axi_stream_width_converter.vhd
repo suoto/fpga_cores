@@ -18,23 +18,12 @@
 -- You should have received a copy of the GNU General Public License
 -- along with DVB IP.  If not, see <http://www.gnu.org/licenses/>.
 
----------------------------------
--- Block name and description --
---------------------------------
-
 ---------------
 -- Libraries --
 ---------------
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-
-library vunit_lib;
-context vunit_lib.vunit_context;
-context vunit_lib.com_context;
-
-library str_format;
-use str_format.str_format_pkg.all;
 
 ------------------------
 -- Entity declaration --
@@ -66,7 +55,7 @@ end axi_stream_width_converter;
 
 architecture axi_stream_width_converter of axi_stream_width_converter is
 
-  constant logger            : logger_t := get_logger("dut");
+  -- constant logger            : logger_t := get_logger("dut");
 
   ------------------
   -- Sub programs --
@@ -186,14 +175,10 @@ begin
           end if;
           m_tvalid_i <= '0';
           m_tlast_i  <= '0';
-        elsif m_tvalid_i = '1' then
-          debug(logger, sformat("bit_cnt=%d, tmp=%r, not de asserting", fo(bit_cnt), fo(tmp)));
         end if;
 
         -- Handling incoming data
         if s_data_valid = '1' then
-          debug(logger, sformat("bit_cnt=%d, tmp=%r", fo(bit_cnt), fo(tmp)));
-
           s_tready_i <= '0'; -- Each incoming word will generate at least 1 output word
 
           -- Need to assign data before bit_cnt (it's a variable)
@@ -209,8 +194,6 @@ begin
           if s_tlast = '1' then
             flush_buffer := True;
           end if;
-
-          debug(logger, sformat("bit_cnt=%d || tmp=%r || %r", fo(bit_cnt), fo(tmp), fo(flush_buffer)));
 
         end if;
 
@@ -249,8 +232,6 @@ begin
           else
             bit_cnt    := bit_cnt - OUTPUT_DATA_WIDTH;
           end if;
-
-          debug(logger, sformat("bit_cnt=%d || tmp=%r || %r", fo(bit_cnt), fo(tmp), fo(flush_buffer)));
 
         end if;
 

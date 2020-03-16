@@ -39,6 +39,9 @@ use fpga_cores.common_pkg.all;
 
 package testbench_utils_pkg is
 
+  type std_logic_vector_2d_t is array (natural range <>) of std_logic_vector;
+  subtype byte_array_t is std_logic_vector_2d_t(open)(7 downto 0);
+
   shared variable rand   : RandomPType;
 
   impure function counter ( constant length : integer ) return byte_array_t;
@@ -48,6 +51,10 @@ package testbench_utils_pkg is
   impure function pop(msg : msg_t) return std_logic_vector_2d_t;
 
   impure function reinterpret ( constant v : std_logic_vector_2d_t; constant width : natural ) return std_logic_vector_2d_t;
+
+  impure function to_string (
+    constant source : std_logic_vector_2d_t;
+    constant width  : integer := 16) return string;
 
 end testbench_utils_pkg;
 
@@ -132,6 +139,37 @@ package body testbench_utils_pkg is
 
     return result;
   end;
+
+  --------------------------------------------------------------------------------------
+  impure function to_string (
+    constant source      : std_logic_vector_2d_t;
+    constant width       : integer := 16) return string is
+    variable result      : line;
+    constant num_lines   : integer := (source'length + width - 1) / width;
+    constant items_width : integer := 3 + (source(0)'length + 3) / 4;
+    constant col_0_width : integer := integer'image(source'length)'length;
+    variable item_cnt    : integer := 0;
+    begin
+      write(result, cr & string'(1 to col_0_width + 3 => ' '));
+
+      for i in 0 to width - 1 loop
+        write(result, sformat("%" & integer'image(items_width) & "d  ", fo(i)));
+      end loop;
+
+      while item_cnt < source'length loop
+        write(result, cr & sformat("%" & integer'image(col_0_width) & "d   ", fo(item_cnt)));
+        for i in 0 to width - 1 loop
+          if item_cnt < source'length then
+            write(result, sformat("%" & integer'image(items_width) & "r  ", fo(source(item_cnt))));
+          else
+            exit;
+          end if;
+          item_cnt := item_cnt + 1;
+        end loop;
+      end loop;
+
+      return result.all;
+    end function to_string;
 
 
 end package body;
