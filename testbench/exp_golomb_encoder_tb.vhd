@@ -39,8 +39,6 @@ library ieee;
 library vunit_lib;
     context vunit_lib.vunit_context;
 
-library exp_golomb_tb;
-
 library exp_golomb;
     use exp_golomb.exp_golomb_pkg;
 

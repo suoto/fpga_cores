@@ -33,11 +33,7 @@ def main():
     cli.library("fpga_cores_sim").add_source_files(p.join(ROOT, "sim", "*.vhd"))
 
     cli.add_library("exp_golomb").add_source_files(
-        p.join(ROOT, "src", "exponential_golomb", "src", "*.vhd")
-    )
-
-    cli.add_library("exp_golomb_tb").add_source_files(
-        p.join(ROOT, "src", "exponential_golomb", "test", "*.vhd")
+        p.join(ROOT, "src", "exponential_golomb", "*.vhd")
     )
 
     addTests(cli)
