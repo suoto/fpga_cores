@@ -1,0 +1,42 @@
+
+ghdl --std=08                                                             \
+  --work=str_format dependencies/hdl_string_format/src/str_format_pkg.vhd \
+  --work=fpga_cores src/synchronizer.vhd                                  \
+                    src/sr_delay.vhd                                      \
+                    src/skidbuffer.vhd                                    \
+                    src/ram_inference_dport.vhd                           \
+                    src/ram_inference.vhd                                 \
+                    src/pipeline_context_ram.vhd                          \
+                    src/edge_detector.vhd                                 \
+                    src/pulse_sync.vhd                                    \
+                    src/axi_stream_delay.vhd                              \
+                    src/common_pkg.vhd                                    \
+                    src/sync_fifo.vhd                                     \
+                    src/axi_stream_master_adapter.vhd                     \
+                    src/axi_stream_fifo.vhd                               \
+                    src/async_fifo.vhd                                    \
+                    src/axi_stream_width_converter.vhd                    \
+  -e axi_stream_width_converter
+
+# read design
+hierarchy -top axi_stream_width_converter_16_16_8
+
+# # the high-level stuff
+# proc; fsm; opt; memory; opt
+
+# # mapping to internal cell library
+# techmap; opt
+
+# # mapping flip-flops to mycells.lib
+# dfflibmap -liberty mycells.lib
+
+# # mapping logic to mycells.lib
+# abc -liberty mycells.lib
+
+synth_xilinx                                    \
+  -flatten                                      \
+  -edif axi_stream_width_converter_16_16_8.edif \
+  -blif axi_stream_width_converter_16_16_8.blif
+
+# cleanup
+clean
