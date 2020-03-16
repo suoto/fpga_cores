@@ -1,22 +1,22 @@
 --
--- hdl_lib -- A(nother) HDL library
+-- FPGA Cores -- A(nother) HDL library
 --
 -- Copyright 2016 by Andre Souto (suoto)
 --
--- This file is part of hdl_lib.
+-- This file is part of FPGA Cores.
 --
--- hdl_lib is free software: you can redistribute it and/or modify
+-- FPGA Cores is free software: you can redistribute it and/or modify
 -- it under the terms of the GNU General Public License as published by
 -- the Free Software Foundation, either version 3 of the License, or
 -- (at your option) any later version.
 
--- hdl_lib is distributed in the hope that it will be useful,
+-- FPGA Cores is distributed in the hope that it will be useful,
 -- but WITHOUT ANY WARRANTY; without even the implied warranty of
 -- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 -- GNU General Public License for more details.
 --
 -- You should have received a copy of the GNU General Public License
--- along with hdl_lib.  If not, see <http://www.gnu.org/licenses/>.
+-- along with FPGA Cores.  If not, see <http://www.gnu.org/licenses/>.
 
 -- #####################################################################################
 -- ## Libraries ########################################################################

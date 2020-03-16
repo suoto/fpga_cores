@@ -19,7 +19,7 @@ ghdl --std=08                                                             \
   -e axi_stream_width_converter
 
 # read design
-hierarchy -top axi_stream_width_converter_16_16_8
+hierarchy -top axi_stream_width_converter
 
 # # the high-level stuff
 # proc; fsm; opt; memory; opt
@@ -35,8 +35,8 @@ hierarchy -top axi_stream_width_converter_16_16_8
 
 synth_xilinx                                    \
   -flatten                                      \
-  -edif axi_stream_width_converter_16_16_8.edif \
-  -blif axi_stream_width_converter_16_16_8.blif
+  -edif axi_stream_width_converter.edif \
+  -blif axi_stream_width_converter.blif
 
 # cleanup
 clean
