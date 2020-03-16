@@ -19,68 +19,175 @@
 -- along with hdl_lib.  If not, see <http://www.gnu.org/licenses/>.
 
 library ieee;
-    use ieee.std_logic_1164.all;
-    use ieee.numeric_std.all;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use ieee.math_real.all;
 
 package common_pkg is
 
-    -- Calculates the number of bits required to represent a given value
-    function numbits (constant v : integer) return integer;
-    -- Gray <-> Binary conversion
-    function bin_to_gray (bin  : std_logic_vector) return std_logic_vector;
-    function bin_to_gray (bin  : unsigned) return unsigned;
-    function gray_to_bin (gray : std_logic_vector) return std_logic_vector;
-    function gray_to_bin (gray : unsigned) return unsigned;
+  type std_logic_vector_2d_t is array (natural range <>) of std_logic_vector;
+  subtype byte_array_t is std_logic_vector_2d_t(open)(7 downto 0);
+
+  type integer_array_t is array (natural range <>) of integer;
+  type integer_2d_array_t is array (natural range <>) of integer_array_t;
+
+  -- Calculates the number of bits required to represent a given value
+  function numbits (constant v : natural) return natural;
+
+  -- Gray <-> Binary conversion
+  function bin_to_gray (bin  : std_logic_vector) return std_logic_vector;
+  function bin_to_gray (bin  : unsigned) return unsigned;
+  function gray_to_bin (gray : std_logic_vector) return std_logic_vector;
+  function gray_to_bin (gray : unsigned) return unsigned;
+
+  function mirror_bytes (constant v : std_logic_vector) return std_logic_vector;
+  function mirror_bits (constant v : std_logic_vector) return std_logic_vector;
+
+  function minimum(constant a, b : integer) return integer;
+  function minimum(constant values : integer_array_t) return integer;
+  function to_boolean( v : std_ulogic) return boolean;
+
+  function max (constant a, b : integer) return integer;
+  function max (constant v : integer_array_t) return integer;
+
+  function sum (constant v : integer_array_t) return integer;
 
 end common_pkg;
 
 package body common_pkg is
 
+    ------------------------------------------------------------------------------------
     -- Calculates the number of bits required to represent a given value
-    function numbits (
-        constant v      : integer) return integer is
-        variable result : integer;
+    function numbits ( constant v : natural ) return natural is
     begin
-        result := 1;
-        while True loop
-            if 2**(result + 1) > v then
-                return result;
-            end if;
-            result := result + 1;
-        end loop;
+      if v <= 1 then
+        return 1;
+      end if;
+
+      return integer(ceil(log2(real(v))));
     end function numbits;
 
-    -- Gray <-> Binary conversion
-    function bin_to_gray (
-                 bin  : std_logic_vector) return std_logic_vector is
-        variable gray : std_logic_vector(bin'range);
+    ------------------------------------------------------------------------------------
+    function mirror_bytes (
+        constant v           : std_logic_vector)
+    return std_logic_vector is
+        constant byte_number : natural := v'length / 8;
+        variable result      : std_logic_vector(v'range);
     begin
-        gray(gray'high) := bin(bin'high);
-        for i in bin'high - 1 downto 0 loop
-            gray(i) := bin(i + 1) xor bin(i);
+        assert byte_number * 8 = v'length
+            report "Can't swap bytes with a non-integer number of bytes. " &
+                   "Argument has " & integer'image(v'length)
+            severity Failure;
+
+        for byte in 0 to byte_number - 1 loop
+            result((byte_number - byte) * 8 - 1 downto (byte_number - byte - 1) * 8) := v((byte + 1) * 8 - 1 downto byte * 8);
         end loop;
-        return gray;
-    end function bin_to_gray;
+        return result;
+    end function mirror_bytes;
 
-    function gray_to_bin (
-                 gray : std_logic_vector) return std_logic_vector is
-        variable bin  : std_logic_vector(gray'range);
+    ------------------------------------------------------------------------------------
+    function mirror_bits (constant v : std_logic_vector) return std_logic_vector is
+      variable result : std_logic_vector(v'length - 1 downto 0);
     begin
-        bin(bin'high) := gray(gray'high);
-        for i in gray'high - 1 downto 0 loop
-            bin(i) := bin(i + 1) xor gray(i);
-        end loop;
-        return bin;
-    end function gray_to_bin;
 
-    function bin_to_gray (bin  : unsigned) return unsigned is
-    begin
-        return unsigned(bin_to_gray(std_logic_vector(bin)));
-    end bin_to_gray;
+      for i in 0 to v'length - 1 loop
+        result(v'length - i - 1) := v(i + v'low);
+      end loop;
 
-    function gray_to_bin (gray : unsigned) return unsigned is
+      return result;
+    end;
+
+    ------------------------------------------------------------------------------------
+    function minimum(constant a, b : integer) return integer is
     begin
-        return unsigned(gray_to_bin(std_logic_vector(gray)));
-    end gray_to_bin;
+      return minimum(integer_array_t'(a, b));
+    end;
+
+    ------------------------------------------------------------------------------------
+    function minimum(constant values : integer_array_t) return integer is
+      variable result : integer;
+    begin
+      for index in values'range loop
+
+        if values(index) < result then
+          result := values(index);
+        end if;
+
+      end loop;
+
+      return result;
+
+    end;
+
+  --------------------------------------------------------------------------------------
+  function to_boolean( v : std_ulogic) return boolean is begin
+    case v is
+      when '0' | 'L'   => return (false);
+      when '1' | 'H'   => return (true);
+      when others      => return (false);
+    end case;
+  end to_boolean;
+
+  --------------------------------------------------------------------------------------
+  function max (constant a, b : integer) return integer is
+  begin
+    return max((a, b));
+  end;
+
+  --------------------------------------------------------------------------------------
+  function max (constant v : integer_array_t) return integer is
+    variable result : integer := 0;
+  begin
+    for i in v'range loop
+      if v(i) > result then
+        result := v(i);
+      end if;
+    end loop;
+    return result;
+  end;
+
+  --------------------------------------------------------------------------------------
+  function sum (constant v : integer_array_t) return integer is
+    variable sum : natural;
+  begin
+    for i in v'range loop
+      sum := sum + v(i);
+    end loop;
+
+    return sum;
+  end;
+
+  -- Gray <-> Binary conversion
+  function bin_to_gray (
+               bin  : std_logic_vector) return std_logic_vector is
+      variable gray : std_logic_vector(bin'range);
+  begin
+      gray(gray'high) := bin(bin'high);
+      for i in bin'high - 1 downto 0 loop
+          gray(i) := bin(i + 1) xor bin(i);
+      end loop;
+      return gray;
+  end function bin_to_gray;
+
+  function gray_to_bin (
+               gray : std_logic_vector) return std_logic_vector is
+      variable bin  : std_logic_vector(gray'range);
+  begin
+      bin(bin'high) := gray(gray'high);
+      for i in gray'high - 1 downto 0 loop
+          bin(i) := bin(i + 1) xor gray(i);
+      end loop;
+      return bin;
+  end function gray_to_bin;
+
+  function bin_to_gray (bin  : unsigned) return unsigned is
+  begin
+      return unsigned(bin_to_gray(std_logic_vector(bin)));
+  end bin_to_gray;
+
+  function gray_to_bin (gray : unsigned) return unsigned is
+  begin
+      return unsigned(gray_to_bin(std_logic_vector(gray)));
+  end gray_to_bin;
 
 end package body;
