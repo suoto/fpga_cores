@@ -34,7 +34,7 @@ entity rom_inference is
   generic (
     DATA                : std_logic_vector_2d_t;
     RAM_INFERENCE_STYLE : string  := "auto";
-    OUTPUT_DELAY  : natural := 0
+    OUTPUT_DELAY        : natural := 1
   );
   port (
     -- Usual ports

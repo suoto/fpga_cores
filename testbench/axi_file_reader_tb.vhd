@@ -39,8 +39,9 @@ use osvvm.RandomPkg.all;
 library str_format;
 use str_format.str_format_pkg.all;
 
-use work.file_utils_pkg.all;
-use work.testbench_utils_pkg.all;
+library fpga_cores_sim;
+use fpga_cores_sim.file_utils_pkg.all;
+use fpga_cores_sim.testbench_utils_pkg.all;
 
 ------------------------
 -- Entity declaration --
@@ -118,7 +119,7 @@ begin
   -------------------
   -- Port mappings --
   -------------------
-  dut : entity work.axi_file_reader
+  dut : entity fpga_cores_sim.axi_file_reader
     generic map (
       READER_NAME    => READER_NAME,
       DATA_WIDTH     => DATA_WIDTH)

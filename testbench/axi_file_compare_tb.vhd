@@ -39,7 +39,8 @@ library osvvm;
 library str_format;
   use str_format.str_format_pkg.all;
 
-use work.file_utils_pkg.all;
+library fpga_cores_sim;
+use fpga_cores_sim.file_utils_pkg.all;
 
 ------------------------
 -- Entity declaration --
@@ -96,7 +97,7 @@ begin
   -------------------
   -- Port mappings --
   -------------------
-  dut : entity work.axi_file_compare
+  dut : entity fpga_cores_sim.axi_file_compare
   generic map (
     READER_NAME     => READER_NAME,
     ERROR_CNT_WIDTH => ERROR_CNT_WIDTH,

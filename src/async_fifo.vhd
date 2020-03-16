@@ -95,9 +95,9 @@ begin
     -- #################################################################################
     mem : entity work.ram_inference
         generic map (
-            ADDR_WIDTH         => numbits(FIFO_LEN),
-            DATA_WIDTH         => DATA_WIDTH,
-            EXTRA_OUTPUT_DELAY => 0)
+            ADDR_WIDTH   => numbits(FIFO_LEN),
+            DATA_WIDTH   => DATA_WIDTH,
+            OUTPUT_DELAY => 1)
         port map (
             -- Port A
             clk_a     => wr_clk,

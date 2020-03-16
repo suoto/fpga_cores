@@ -31,7 +31,9 @@ context vunit_lib.com_context;
 library str_format;
 use str_format.str_format_pkg.all;
 
-use work.common_pkg.all;
+library fpga_cores;
+use fpga_cores.common_pkg.all;
+
 use work.testbench_utils_pkg.all;
 
 package file_utils_pkg is

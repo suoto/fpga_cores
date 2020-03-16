@@ -38,8 +38,8 @@ use str_format.str_format_pkg.all;
 library vunit_lib;
 context vunit_lib.vunit_context;
 
-
-use work.common_pkg.all;
+library fpga_cores;
+use fpga_cores.common_pkg.all;
 
 ------------------------
 -- Entity declaration --

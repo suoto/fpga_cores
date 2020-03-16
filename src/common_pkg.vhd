@@ -18,10 +18,15 @@
 -- You should have received a copy of the GNU General Public License
 -- along with hdl_lib.  If not, see <http://www.gnu.org/licenses/>.
 
+use std.textio.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
+
+library str_format;
+use str_format.str_format_pkg.all;
 
 package common_pkg is
 
@@ -33,6 +38,14 @@ package common_pkg is
 
   -- Calculates the number of bits required to represent a given value
   function numbits (constant v : natural) return natural;
+
+  impure function to_string (
+    constant source : std_logic_vector_2d_t;
+    constant width  : integer := 16) return string;
+
+  -- Add double quotes around a string
+  function quote ( constant s : string ) return string;
+  function quote ( constant s : character ) return string;
 
   -- Gray <-> Binary conversion
   function bin_to_gray (bin  : std_logic_vector) return std_logic_vector;
@@ -56,68 +69,67 @@ end common_pkg;
 
 package body common_pkg is
 
-    ------------------------------------------------------------------------------------
-    -- Calculates the number of bits required to represent a given value
-    function numbits ( constant v : natural ) return natural is
-    begin
-      if v <= 1 then
-        return 1;
+  ------------------------------------------------------------------------------------
+  -- Calculates the number of bits required to represent a given value
+  function numbits ( constant v : natural ) return natural is
+  begin
+    if v <= 1 then
+      return 1;
+    end if;
+
+    return integer(ceil(log2(real(v))));
+  end function numbits;
+
+  ------------------------------------------------------------------------------------
+  function mirror_bytes (
+      constant v           : std_logic_vector)
+  return std_logic_vector is
+      constant byte_number : natural := v'length / 8;
+      variable result      : std_logic_vector(v'range);
+  begin
+      assert byte_number * 8 = v'length
+          report "Can't swap bytes with a non-integer number of bytes. " &
+                 "Argument has " & integer'image(v'length)
+          severity Failure;
+
+      for byte in 0 to byte_number - 1 loop
+          result((byte_number - byte) * 8 - 1 downto (byte_number - byte - 1) * 8) := v((byte + 1) * 8 - 1 downto byte * 8);
+      end loop;
+      return result;
+  end function mirror_bytes;
+
+  ------------------------------------------------------------------------------------
+  function mirror_bits (constant v : std_logic_vector) return std_logic_vector is
+    variable result : std_logic_vector(v'length - 1 downto 0);
+  begin
+
+    for i in 0 to v'length - 1 loop
+      result(v'length - i - 1) := v(i + v'low);
+    end loop;
+
+    return result;
+  end;
+
+  ------------------------------------------------------------------------------------
+  function minimum(constant a, b : integer) return integer is
+  begin
+    return minimum(integer_array_t'(a, b));
+  end;
+
+  ------------------------------------------------------------------------------------
+  function minimum(constant values : integer_array_t) return integer is
+    variable result : integer;
+  begin
+    for index in values'range loop
+
+      if values(index) < result then
+        result := values(index);
       end if;
 
-      return integer(ceil(log2(real(v))));
-    end function numbits;
+    end loop;
 
-    ------------------------------------------------------------------------------------
-    function mirror_bytes (
-        constant v           : std_logic_vector)
-    return std_logic_vector is
-        constant byte_number : natural := v'length / 8;
-        variable result      : std_logic_vector(v'range);
-    begin
-        assert byte_number * 8 = v'length
-            report "Can't swap bytes with a non-integer number of bytes. " &
-                   "Argument has " & integer'image(v'length)
-            severity Failure;
-
-        for byte in 0 to byte_number - 1 loop
-            result((byte_number - byte) * 8 - 1 downto (byte_number - byte - 1) * 8) := v((byte + 1) * 8 - 1 downto byte * 8);
-        end loop;
-        return result;
-    end function mirror_bytes;
-
-    ------------------------------------------------------------------------------------
-    function mirror_bits (constant v : std_logic_vector) return std_logic_vector is
-      variable result : std_logic_vector(v'length - 1 downto 0);
-    begin
-
-      for i in 0 to v'length - 1 loop
-        result(v'length - i - 1) := v(i + v'low);
-      end loop;
-
-      return result;
-    end;
-
-    ------------------------------------------------------------------------------------
-    function minimum(constant a, b : integer) return integer is
-    begin
-      return minimum(integer_array_t'(a, b));
-    end;
-
-    ------------------------------------------------------------------------------------
-    function minimum(constant values : integer_array_t) return integer is
-      variable result : integer;
-    begin
-      for index in values'range loop
-
-        if values(index) < result then
-          result := values(index);
-        end if;
-
-      end loop;
-
-      return result;
-
-    end;
+    return result;
+  end;
 
   --------------------------------------------------------------------------------------
   function to_boolean( v : std_ulogic) return boolean is begin
@@ -157,6 +169,7 @@ package body common_pkg is
     return sum;
   end;
 
+  --------------------------------------------------------------------------------------
   -- Gray <-> Binary conversion
   function bin_to_gray (
                bin  : std_logic_vector) return std_logic_vector is
@@ -169,6 +182,7 @@ package body common_pkg is
       return gray;
   end function bin_to_gray;
 
+  --------------------------------------------------------------------------------------
   function gray_to_bin (
                gray : std_logic_vector) return std_logic_vector is
       variable bin  : std_logic_vector(gray'range);
@@ -180,14 +194,60 @@ package body common_pkg is
       return bin;
   end function gray_to_bin;
 
+  --------------------------------------------------------------------------------------
   function bin_to_gray (bin  : unsigned) return unsigned is
   begin
       return unsigned(bin_to_gray(std_logic_vector(bin)));
   end bin_to_gray;
 
+  --------------------------------------------------------------------------------------
   function gray_to_bin (gray : unsigned) return unsigned is
   begin
       return unsigned(gray_to_bin(std_logic_vector(gray)));
   end gray_to_bin;
+
+  --------------------------------------------------------------------------------------
+  -- Add double quotes around a string
+  function quote ( constant s : character ) return string is
+  begin
+    return '"' & s & '"';
+  end;
+
+  --------------------------------------------------------------------------------------
+  function quote ( constant s : string ) return string is
+  begin
+    return '"' & s & '"';
+  end function quote;
+
+  --------------------------------------------------------------------------------------
+  impure function to_string (
+    constant source      : std_logic_vector_2d_t;
+    constant width       : integer := 16) return string is
+    variable result      : line;
+    constant num_lines   : integer := (source'length + width - 1) / width;
+    constant items_width : integer := 3 + (source(0)'length + 3) / 4;
+    constant col_0_width : integer := integer'image(source'length)'length;
+    variable item_cnt    : integer := 0;
+    begin
+      write(result, cr & string'(1 to col_0_width + 3 => ' '));
+
+      for i in 0 to width - 1 loop
+        write(result, sformat("%" & integer'image(items_width) & "d  ", fo(i)));
+      end loop;
+
+      while item_cnt < source'length loop
+        write(result, cr & sformat("%" & integer'image(col_0_width) & "d   ", fo(item_cnt)));
+        for i in 0 to width - 1 loop
+          if item_cnt < source'length then
+            write(result, sformat("%" & integer'image(items_width) & "r  ", fo(source(item_cnt))));
+          else
+            exit;
+          end if;
+          item_cnt := item_cnt + 1;
+        end loop;
+      end loop;
+
+      return result.all;
+    end function to_string;
 
 end package body;

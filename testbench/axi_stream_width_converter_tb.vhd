@@ -34,9 +34,12 @@ use osvvm.RandomPkg.all;
 library str_format;
 use str_format.str_format_pkg.all;
 
-use work.common_pkg.all;
-use work.testbench_utils_pkg.all;
-use work.axi_stream_bfm_pkg.all;
+library fpga_cores;
+use fpga_cores.common_pkg.all;
+
+library fpga_cores_sim;
+use fpga_cores_sim.testbench_utils_pkg.all;
+use fpga_cores_sim.axi_stream_bfm_pkg.all;
 
 entity axi_stream_width_converter_tb is
   generic (
@@ -83,27 +86,6 @@ architecture axi_stream_width_converter_tb of axi_stream_width_converter_tb is
   constant OUTPUT_BYTE_WIDTH : natural := (OUTPUT_DATA_WIDTH + 7) / 8;
   constant AXI_TID_WIDTH     : natural := 8;
 
-  type frame_t is record
-    id   : std_logic_vector(AXI_TID_WIDTH - 1 downto 0);
-    data : std_logic_vector_2d_t;
-  end record;
-
-  procedure push(msg : msg_t; frame : frame_t ) is
-  begin
-    info(sformat("Pushing ID %r, data is %d x %d", fo(frame.id), fo(frame.data'length), fo(frame.data(0)'length)));
-    push(msg, frame.id);
-    push(msg, frame.data);
-  end;
-
-  impure function pop(msg : msg_t) return frame_t is
-    constant id   : std_logic_vector      := pop(msg);
-    -- constant data : std_logic_vector_2d_t := pop(msg);
-  begin
-    info(sformat("Popped ID %r", fo(id)));
-    return frame_t'(id => id, data => pop(msg));
-    -- data);
-  end;
-
   -------------
   -- Signals --
   -------------
@@ -136,7 +118,7 @@ begin
   -------------------
   -- Port mappings --
   -------------------
-  dut : entity work.axi_stream_width_converter
+  dut : entity fpga_cores.axi_stream_width_converter
     generic map (
       INPUT_DATA_WIDTH  => INPUT_DATA_WIDTH,
       OUTPUT_DATA_WIDTH => OUTPUT_DATA_WIDTH)
@@ -159,7 +141,7 @@ begin
       m_tvalid => s_tvalid,
       m_tlast  => s_tlast);
 
-  axi_stream_write : entity work.axi_stream_bfm
+  axi_stream_write : entity fpga_cores_sim.axi_stream_bfm
     generic map (
       DATA_WIDTH => INPUT_DATA_WIDTH,
       ID_WIDTH   => AXI_TID_WIDTH)
@@ -204,27 +186,7 @@ begin
     end procedure walk;
 
     ------------------------------------------------------------------------------------
-    impure function random ( constant length : natural ) return byte_array_t is
-      variable result : std_logic_vector_2d_t(0 to length - 1)(7 downto 0);
-    begin
-      for i in 0 to length - 1 loop
-        result(i) := rand.RandSlv(8);
-      end loop;
-      return result;
-    end;
-
-    ------------------------------------------------------------------------------------
-    impure function counter ( constant length : natural ) return std_logic_vector_2d_t is
-      variable result : std_logic_vector_2d_t(0 to length - 1)(7 downto 0);
-    begin
-      for i in 0 to length - 1 loop
-        result(i) := std_logic_vector(to_unsigned(i, 8));
-      end loop;
-      return result;
-    end;
-
-    ------------------------------------------------------------------------------------
-    procedure send_frame ( constant frame : frame_t ) is
+    procedure send_frame ( constant frame : axi_stream_frame_t ) is
       variable msg : msg_t := new_msg(sender => self);
     begin
       info("Sending frame");
@@ -236,10 +198,11 @@ begin
     procedure test_frame ( constant id   : std_logic_vector(AXI_TID_WIDTH - 1 downto 0);
                            constant data : byte_array_t ) is
 
+      constant frame : axi_stream_frame_t := (data, id, tready_probability);
     begin
       info(sformat("Writing frame: id=%r, data=%s" & cr, fo(id), to_string(data)));
 
-      send_frame((id, data));
+      send_frame(frame);
 
       bfm_write(net,
         bfm         => master,
@@ -299,7 +262,7 @@ begin
         run_test(256);
 
       elsif run("test_partial_words") then
-        
+
         for i in 0 to 255 loop
           for base_width in 0 to max(INPUT_BYTE_WIDTH, OUTPUT_BYTE_WIDTH) - 1 loop
             test_frame(
@@ -308,7 +271,7 @@ begin
             );
           end loop;
         end loop;
-        
+
       end if;
 
       walk(32);
@@ -327,7 +290,7 @@ begin
     variable frame_cnt : natural := 0;
 
     ------------------------------------------------------------------------------------
-    procedure check_frame ( constant frame : frame_t ) is
+    procedure check_frame ( constant frame : axi_stream_frame_t ) is
       variable exp_tdata : std_logic_vector(OUTPUT_DATA_WIDTH - 1 downto 0);
       variable exp_tkeep : std_logic_vector(OUTPUT_BYTE_WIDTH - 1 downto 0);
       variable byte      : natural;
@@ -453,7 +416,6 @@ begin
       end if;
     end if;
   end process;
-
 
 end axi_stream_width_converter_tb;
 

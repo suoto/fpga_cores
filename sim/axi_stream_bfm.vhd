@@ -27,7 +27,7 @@
 ---------------
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_arith.all;
+use ieee.numeric_std.all;
 
 library vunit_lib;
 context vunit_lib.vunit_context;
@@ -39,8 +39,10 @@ use osvvm.RandomPkg.all;
 library str_format;
 use str_format.str_format_pkg.all;
 
-use work.common_pkg.all;
-use work.testbench_utils_pkg.all;
+library fpga_cores;
+use fpga_cores.common_pkg.all;
+
+-- use work.testbench_utils_pkg.all;
 use work.axi_stream_bfm_pkg.all;
 
 ------------------------

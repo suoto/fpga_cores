@@ -30,8 +30,8 @@ context vunit_lib.vunit_context;
 library osvvm;
 use osvvm.RandomPkg.all;
 
-library rtl;
-use rtl.common_pkg.all;
+library fpga_cores;
+use fpga_cores.common_pkg.all;
 
 library str_format;
     use str_format.str_format_pkg.all;
@@ -89,7 +89,7 @@ begin
     -------------------
     -- Port mappings --
     -------------------
-    dut : entity rtl.async_fifo
+    dut : entity fpga_cores.async_fifo
         generic map (
             FIFO_LEN        => 512,
             DATA_WIDTH      => DATA_WIDTH,

@@ -28,7 +28,9 @@ context vunit_lib.com_context;
 library str_format;
 use str_format.str_format_pkg.all;
 
-use work.common_pkg.all;
+library fpga_cores;
+use fpga_cores.common_pkg.all;
+
 use work.testbench_utils_pkg.all;
 
 package axi_stream_bfm_pkg is
@@ -85,7 +87,6 @@ package body axi_stream_bfm_pkg is
 
   procedure push(msg : msg_t; frame : axi_stream_frame_t ) is
   begin
-    info(sformat("Pushing ID %r, data is %d x %d", fo(frame.id), fo(frame.data'length), fo(frame.data(0)'length)));
     push(msg, frame.probability);
     push(msg, frame.id);
     push(msg, frame.data);
@@ -93,14 +94,11 @@ package body axi_stream_bfm_pkg is
 
   impure function pop(msg : msg_t) return axi_stream_frame_t is
     constant probability : real             := pop(msg);
-    constant id         : std_logic_vector := pop(msg);
+    constant id          : std_logic_vector := pop(msg);
+    constant data        : std_logic_vector_2d_t := pop(msg);
+    constant frame       : axi_stream_frame_t := (data => data, id => id, probability => probability);
   begin
-    info(sformat("Popped ID %r", fo(id)));
-    return axi_stream_frame_t'(
-      id          => id,
-      data        => pop(msg),
-      probability => probability
-    );
+    return frame;
   end;
 
   procedure wait_reply (

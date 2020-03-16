@@ -34,9 +34,9 @@ library ieee;
 ------------------------
 entity ram_inference_dport is
     generic (
-        ADDR_WIDTH         : positive := 16;
-        DATA_WIDTH         : positive := 16;
-        EXTRA_OUTPUT_DELAY : natural  := 0);
+        ADDR_WIDTH   : positive := 16;
+        DATA_WIDTH   : positive := 16;
+        OUTPUT_DELAY : natural  := 1);
     port (
         -- Port A
         clk_a     : in  std_logic;
@@ -80,7 +80,7 @@ begin
     ------------------------------
     rddata_a_delay : entity work.sr_delay
         generic map (
-            DELAY_CYCLES => EXTRA_OUTPUT_DELAY,
+            DELAY_CYCLES => OUTPUT_DELAY,
             DATA_WIDTH   => DATA_WIDTH)
         port map (
             clk     => clk_a,
@@ -91,7 +91,7 @@ begin
 
     rddata_b_delay : entity work.sr_delay
         generic map (
-            DELAY_CYCLES => EXTRA_OUTPUT_DELAY + 1,
+            DELAY_CYCLES => OUTPUT_DELAY,
             DATA_WIDTH   => DATA_WIDTH)
         port map (
             clk     => clk_b,
