@@ -42,7 +42,6 @@ entity async_fifo is
         UNDERFLOW_ACTION : string   := "SATURATE");
     port (
         -- Write port
-        -- Read port
         wr_clk   : in  std_logic;        -- Write clock
         wr_clken : in  std_logic := '1'; -- Write clock enable
         wr_arst  : in  std_logic;        -- Write side asynchronous reset
@@ -51,6 +50,7 @@ entity async_fifo is
         wr_full  : out std_logic;        -- Fifo write full status
         wr_upper : out std_logic;        -- Fifo write upper status
 
+        -- Read port
         rd_clk   : in  std_logic;        -- Read clock
         rd_clken : in  std_logic := '1'; -- Read clock enable
         rd_arst  : in  std_logic;        -- Read side asynchronous reset

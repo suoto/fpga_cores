@@ -66,7 +66,7 @@ package axi_stream_bfm_pkg is
     constant probability : real := 1.0;
     constant blocking    : boolean := True);
 
-  procedure wait_outstanding (
+  procedure join (
     signal   net : inout std_logic;
     variable bfm : inout axi_stream_bfm_t );
 
@@ -109,15 +109,35 @@ package body axi_stream_bfm_pkg is
     receive(net, bfm.sender, msg);
     assert pop(msg);
     bfm.outstanding := bfm.outstanding - 1;
+
+    debug(
+      bfm.logger,
+      sformat(
+        "Received reply, current outstanding transfers=%d",
+        fo(bfm.outstanding)
+      )
+    );
+
   end;
 
-  procedure wait_outstanding (
+  procedure join (
     signal   net : inout std_logic;
     variable bfm : inout axi_stream_bfm_t ) is
   begin
+
+    info(
+      bfm.logger,
+      sformat(
+        "Waiting for %d remaing transfers to complete",
+        fo(bfm.outstanding)
+      )
+    );
+
     while bfm.outstanding /= 0 loop
       wait_reply(net, bfm);
     end loop;
+
+    info(bfm.logger, "All transfers finished");
   end;
 
   procedure bfm_write (

@@ -47,6 +47,8 @@ package testbench_utils_pkg is
   procedure push(msg : msg_t; value : std_logic_vector_2d_t);
   impure function pop(msg : msg_t) return std_logic_vector_2d_t;
 
+  impure function reinterpret ( constant v : std_logic_vector_2d_t; constant width : natural ) return std_logic_vector_2d_t;
+
 end testbench_utils_pkg;
 
 package body testbench_utils_pkg is
@@ -97,6 +99,37 @@ package body testbench_utils_pkg is
     for i in 0 to length - 1 loop
       result(i) := rand.RandSlv(8);
     end loop;
+    return result;
+  end;
+
+  impure function reinterpret ( constant v : std_logic_vector_2d_t; constant width : natural ) return std_logic_vector_2d_t is
+    constant in_length  : natural := v'length;
+    constant in_width   : natural := v(v'low)'length;
+    constant out_length : natural := (in_length * in_width + width - 1) / width;
+    variable result     : std_logic_vector_2d_t(0 to out_length - 1)(width - 1 downto 0);
+    variable bit_cnt    : natural := 0;
+    variable ptr        : natural := 0;
+    variable tmp        : std_logic_vector(in_width + width - 1 downto 0);
+  begin
+    -- info(sformat("Converting %d x %d => %d x %d", fo(in_length), fo(in_width), fo(out_length), fo(width)));
+
+    for i in v'range loop
+      tmp(in_width + bit_cnt - 1 downto bit_cnt) := v(i);
+      bit_cnt                                    := bit_cnt + in_width;
+
+      while bit_cnt >= width loop
+        result(ptr) := tmp(width - 1 downto 0);
+        tmp         := (width - 1 downto 0 => 'U') & tmp(tmp'length - 1 downto width);
+        bit_cnt     := bit_cnt - width;
+        ptr         := ptr + 1;
+
+      end loop;
+    end loop;
+
+    if bit_cnt /= 0 then
+      result(ptr) := tmp(width - 1 downto 0);
+    end if;
+
     return result;
   end;
 
