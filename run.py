@@ -25,7 +25,6 @@ def main():
         p.join(ROOT, "dependencies", "hdl_string_format", "src", "*.vhd")
     )
 
-
     cli.add_library("tb")
     cli.library("tb").add_source_files(p.join(ROOT, "testbench", "*.vhd"))
 
@@ -61,9 +60,7 @@ def addTests(cli):
     addAxiStreamDelayTests(cli.library("tb").entity("axi_stream_delay_tb"))
     addAxiFileReaderTests(cli.library("tb").entity("axi_file_reader_tb"))
     addAxiFileCompareTests(cli.library("tb").entity("axi_file_compare_tb"))
-    addAxiWidthConverterTests(
-        cli.library("tb").entity("axi_stream_width_converter_tb")
-    )
+    addAxiWidthConverterTests(cli.library("tb").entity("axi_stream_width_converter_tb"))
 
 
 def addAsyncFifoTests(entity):

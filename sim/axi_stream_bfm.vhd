@@ -130,14 +130,23 @@ begin
 
     ------------------------------------------------------------------------------------
     procedure write_frame ( constant frame : axi_stream_frame_t ) is
-      variable word       : std_logic_vector(DATA_WIDTH - 1 downto 0);
-      variable mask       : std_logic_vector(DATA_BYTE_WIDTH - 1 downto 0);
-      variable byte       : natural;
-      variable id         : std_logic_vector(ID_WIDTH - 1 downto 0);
-      constant percentage : natural := natural(100.0*frame.probability);
+      variable word : std_logic_vector(DATA_WIDTH - 1 downto 0);
+      variable mask : std_logic_vector(DATA_BYTE_WIDTH - 1 downto 0);
+      variable byte : natural;
+      variable id   : std_logic_vector(ID_WIDTH - 1 downto 0);
     begin
-      info(logger, sformat("Setting duty cycle to %d\%", fo(percentage)));
-      probability <= frame.probability;
+      if probability /= frame.probability then
+        info(
+          logger,
+          sformat(
+            "Updating probability: %d\% to %d\%",
+            fo(integer(100.0*probability)),
+            fo(integer(100.0*frame.probability))
+          )
+        );
+
+        probability <= frame.probability;
+      end if;
 
       id := frame.id;
 

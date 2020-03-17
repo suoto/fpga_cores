@@ -268,7 +268,6 @@ begin
     ------------------------------------------------------------------------------------
     procedure check_frame ( constant frame : axi_stream_frame_t ) is
       constant resized_data : std_logic_vector_2d_t := reinterpret(frame.data, OUTPUT_DATA_WIDTH);
-      variable exp_tdata    : std_logic_vector(OUTPUT_DATA_WIDTH - 1 downto 0);
       variable exp_tkeep    : std_logic_vector(OUTPUT_BYTE_WIDTH - 1 downto 0);
       variable word_cnt     : natural := 0;
       variable failed       : boolean := False;
