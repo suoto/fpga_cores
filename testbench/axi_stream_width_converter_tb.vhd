@@ -28,11 +28,11 @@ library vunit_lib;
 context vunit_lib.vunit_context;
 context vunit_lib.com_context;
 
-library osvvm;
-use osvvm.RandomPkg.all;
-
 library str_format;
 use str_format.str_format_pkg.all;
+
+library osvvm;
+use osvvm.RandomPkg.all;
 
 library fpga_cores;
 use fpga_cores.common_pkg.all;
@@ -58,6 +58,8 @@ architecture axi_stream_width_converter_tb of axi_stream_width_converter_tb is
   constant INPUT_BYTE_WIDTH  : natural := (INPUT_DATA_WIDTH + 7) / 8;
   constant OUTPUT_BYTE_WIDTH : natural := (OUTPUT_DATA_WIDTH + 7) / 8;
   constant AXI_TID_WIDTH     : natural := 8;
+
+  constant TEST_FRAMES : positive := 16;
 
   -------------
   -- Signals --
@@ -182,14 +184,14 @@ begin
         data        => data,
         id          => id,
         probability => tvalid_probability,
-        blocking    => False);
+        blocking    => True);
 
     end;
 
     ------------------------------------------------------------------------------------
     procedure run_test ( constant frames : positive ) is
     begin
-      for i in 0 to 255 loop
+      for i in 0 to frames - 1 loop
         test_frame(
           id => rand.RandSlv(AXI_TID_WIDTH),
           data => random(rand.RandInt(INPUT_BYTE_WIDTH*OUTPUT_BYTE_WIDTH) + 1)
@@ -218,26 +220,26 @@ begin
       if run("back_to_back") then
         tvalid_probability <= 1.0;
         tready_probability <= 1.0;
-        run_test(256);
+        run_test(TEST_FRAMES);
 
       elsif run("slow_master") then
         tvalid_probability <= 0.5;
         tready_probability <= 1.0;
-        run_test(256);
+        run_test(TEST_FRAMES);
 
       elsif run("slow_slave") then
         tvalid_probability <= 1.0;
         tready_probability <= 0.5;
-        run_test(256);
+        run_test(TEST_FRAMES);
 
       elsif run("slow_master_and_slave") then
         tvalid_probability <= 0.75;
         tready_probability <= 0.75;
-        run_test(256);
+        run_test(TEST_FRAMES);
 
       elsif run("test_partial_words") then
 
-        for i in 0 to 255 loop
+        for i in 0 to TEST_FRAMES loop
           for base_width in 0 to max(INPUT_BYTE_WIDTH, OUTPUT_BYTE_WIDTH) - 1 loop
             test_frame(
               id => rand.RandSlv(AXI_TID_WIDTH),
@@ -343,8 +345,6 @@ begin
 
     begin
 
-      info(sformat("Checking frame: id=%r, data'lengh=%d, data=%s" & cr, fo(frame.id), fo(resized_data'length), to_string(resized_data)));
-
       for i in 0 to resized_data'length - 1 loop
 
         if i = resized_data'length - 1 then
@@ -357,7 +357,17 @@ begin
             exp_tkeep := (others => '1');
           end if;
 
-          debug(logger, sformat("[%d] %r || %d bytes, remainder=%d, exp tkeep=%b", fo(i), fo(resized_data(i)), fo(8*frame.data'length), fo(8*frame.data'length mod OUTPUT_DATA_WIDTH), fo(exp_tkeep)));
+          debug(
+            logger,
+            sformat(
+              "[%d] %r || %d bytes, remainder=%d, exp tkeep=%b",
+              fo(i),
+              fo(resized_data(i)),
+              fo(8*frame.data'length),
+              fo(8*frame.data'length mod OUTPUT_DATA_WIDTH),
+              fo(exp_tkeep)
+            )
+          );
           check_word(resized_data(i), exp_tkeep, frame.id, True);
         else
           check_word(resized_data(i), (others => '0'), frame.id, False);
@@ -365,7 +375,16 @@ begin
       end loop;
 
       if failed then
-        error(logger, "Some tests failed!");
+        error(
+          logger,
+          sformat(
+          "Some tests failed while checking frame: id=%r, data'lengh=%d. Original data was: %s Resized data: %s",
+            fo(frame.id),
+            fo(resized_data'length),
+            to_string(frame.data) & cr & cr,
+            to_string(resized_data)
+          )
+        );
       end if;
 
     end;

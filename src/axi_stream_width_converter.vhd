@@ -101,6 +101,7 @@ architecture axi_stream_width_converter of axi_stream_width_converter is
   -------------
   signal s_first_word : std_logic;
   signal s_data_valid : std_logic;
+  signal m_data_valid : std_logic;
   signal s_tready_i   : std_logic;
   signal m_tvalid_i   : std_logic;
   signal m_tlast_i    : std_logic;
@@ -130,9 +131,9 @@ begin
   end generate g_pass_through; -- }}
 
   g_downsize : if INPUT_DATA_WIDTH > OUTPUT_DATA_WIDTH generate -- {{
-    signal dbg_tmp          : std_logic_vector(2*(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH) - 1 downto 0);
-    signal dbg_bit_cnt      : natural range 0 to dbg_tmp'length - 1;
-    signal dbg_flush_buffer : boolean := False;
+    signal dbg_tmp       : std_logic_vector(2*(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH) - 1 downto 0);
+    signal dbg_bit_cnt   : natural range 0 to dbg_tmp'length - 1;
+    signal dbg_flush_req : boolean := False;
   begin
     -------------------
     -- Port mappings --
@@ -171,18 +172,18 @@ begin
     -- Processes --
     ---------------
     process(clk)
-      variable tmp          : std_logic_vector(2*(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH) - 1 downto 0);
-      variable bit_cnt      : natural range 0 to tmp'length - 1;
-      variable flush_buffer : boolean := False;
+      variable tmp       : std_logic_vector(2*(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH) - 1 downto 0);
+      variable bit_cnt   : natural range 0 to tmp'length - 1;
+      variable flush_req : boolean := False;
 
     begin
       if rising_edge(clk) then
 
         -- De-assert tvalid when data in being sent and no more data, except when we're
         -- flushing the output buffer
-        if m_tready = '1' and (bit_cnt >= OUTPUT_DATA_WIDTH or flush_buffer) then
+        if m_tready = '1' and (bit_cnt >= OUTPUT_DATA_WIDTH or flush_req) then
           if m_tlast_i = '1' then
-            flush_buffer := False;
+            flush_req := False;
           end if;
           m_tvalid_i <= '0';
           m_tlast_i  <= '0';
@@ -201,60 +202,55 @@ begin
             bit_cnt := bit_cnt + 8*count_ones(s_tkeep);
           end if;
 
-          -- Upon receiving the last input word, mark 
+          -- Upon receiving the last input word, clear the flush request
           if s_tlast = '1' then
-            flush_buffer := True;
+            flush_req := True;
           end if;
 
         end if;
 
-        if bit_cnt >= OUTPUT_DATA_WIDTH or flush_buffer then
-          m_tvalid_i <= '1';
-          m_tdata    <= tmp(OUTPUT_DATA_WIDTH - 1 downto 0);
+        if m_data_valid = '1' then
+          -- Consume the data we wrote
+          tmp     := (OUTPUT_DATA_WIDTH - 1 downto 0 => 'U') & tmp(tmp'length - 1 downto OUTPUT_DATA_WIDTH);
+          m_tkeep <= (others => '0');
 
-          -- Consume the data we're writing
-          tmp        := (OUTPUT_DATA_WIDTH - 1 downto 0 => 'U') & tmp(tmp'length - 1 downto OUTPUT_DATA_WIDTH);
-
-          -- Work out if the next word will be the last
-          if flush_buffer then
-            -- 
-            if bit_cnt = OUTPUT_DATA_WIDTH then
-              m_tlast_i <= '1';
-              m_tkeep   <= (others => '1');
-
-              bit_cnt   := 0;
-
-            elsif bit_cnt < OUTPUT_DATA_WIDTH then
-              m_tlast_i <= '1';
-              -- Fill in the bit mask appropriately
-              if OUTPUT_DATA_WIDTH < 8 then
-                m_tkeep <= (others => '1');
-              else
-                m_tkeep <= get_tkeep((bit_cnt + 7) / 8, OUTPUT_BYTE_WIDTH);
-              end if;
-
-              bit_cnt   := 0;
-
-            else
-              bit_cnt    := bit_cnt - OUTPUT_DATA_WIDTH;
-            end if;
-
+          -- Clear up for the next frame
+          if m_tlast_i = '1' then
+            bit_cnt   := 0;
+            flush_req := False;
           else
-            bit_cnt    := bit_cnt - OUTPUT_DATA_WIDTH;
+            bit_cnt := bit_cnt - OUTPUT_DATA_WIDTH;
           end if;
 
+        end if;
+
+        if bit_cnt >= OUTPUT_DATA_WIDTH or flush_req then
+          m_tvalid_i <= '1';
+          m_tdata    <= tmp(OUTPUT_DATA_WIDTH - 1 downto 0);
+          m_tkeep    <= (others => '0');
+
+          -- Work out if the next word will be the last and fill in the bit mask
+          -- appropriately
+          if bit_cnt <= OUTPUT_DATA_WIDTH and flush_req then
+            m_tlast_i <= '1';
+            if OUTPUT_DATA_WIDTH < 8 then
+              m_tkeep <= (others => '1');
+            else
+              m_tkeep <= get_tkeep((bit_cnt + 7) / 8, OUTPUT_BYTE_WIDTH);
+            end if;
+          end if;
         end if;
 
         -- Input should always be ready if there's room for data to be received, unless
         -- we're flushing the buffer. In this case, accepting more data will mess up with
         -- the tracking of how much data we still have to write
-        if (tmp'length - bit_cnt > INPUT_DATA_WIDTH) and not flush_buffer then
+        if (tmp'length - bit_cnt > INPUT_DATA_WIDTH) and not flush_req then
           s_tready_i <= '1';
         end if;
 
-        dbg_tmp          <= tmp;
-        dbg_bit_cnt      <= bit_cnt;
-        dbg_flush_buffer <= flush_buffer;
+        dbg_tmp       <= tmp;
+        dbg_bit_cnt   <= bit_cnt;
+        dbg_flush_req <= flush_req;
 
         if rst = '1' then
           s_tready_i <= '1';
@@ -273,6 +269,7 @@ begin
   -- Asynchronous assignments --
   ------------------------------
   s_data_valid     <= s_tready_i and s_tvalid and not rst;
+  m_data_valid     <= m_tready and m_tvalid_i and not rst;
 
   s_tready <= s_tready_i;
   m_tvalid <= m_tvalid_i;
