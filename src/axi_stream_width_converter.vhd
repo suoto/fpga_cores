@@ -30,7 +30,7 @@ use ieee.numeric_std.all;
 ------------------------
 entity axi_stream_width_converter is
   generic (
-    INPUT_DATA_WIDTH  : natural := 16;
+    INPUT_DATA_WIDTH  : natural := 24;
     OUTPUT_DATA_WIDTH : natural := 16;
     AXI_TID_WIDTH     : natural := 8);
   port (
@@ -55,7 +55,11 @@ end axi_stream_width_converter;
 
 architecture axi_stream_width_converter of axi_stream_width_converter is
 
-  -- constant logger            : logger_t := get_logger("dut");
+  ---------------
+  -- Constants --
+  ---------------
+  constant INPUT_BYTE_WIDTH  : natural := (INPUT_DATA_WIDTH + 7) / 8;
+  constant OUTPUT_BYTE_WIDTH : natural := (OUTPUT_DATA_WIDTH + 7) / 8;
 
   ------------------
   -- Sub programs --
@@ -73,13 +77,20 @@ architecture axi_stream_width_converter of axi_stream_width_converter is
     return cnt;
   end;
 
-  ---------------
-  -- Constants --
-  ---------------
-  constant INPUT_BYTE_WIDTH  : natural := (INPUT_DATA_WIDTH + 7) / 8;
-  constant OUTPUT_BYTE_WIDTH : natural := (OUTPUT_DATA_WIDTH + 7) / 8;
-
-  -- constant TKEEP_TO_BYTES_IN : work.common_pkg.integer_array_t := get_tkeep_bytes_table(INPUT_BYTE_WIDTH);
+  -- Sets the appropriate tkeep bits so that it representes the specified number of bytes,
+  -- where bytes are in the LSB of tdata
+  function get_tkeep ( constant valid_bytes : natural; constant width : natural ) return std_logic_vector is
+    variable result : std_logic_vector(width - 1 downto 0) := (others => '0');
+  begin
+    for i in 0 to result'length - 1 loop
+      if i < valid_bytes then
+        result(i) := '1';
+      else
+        result(i) := '0';
+      end if;
+    end loop;
+    return result;
+  end;
 
   -----------
   -- Types --
@@ -217,10 +228,9 @@ begin
               m_tlast_i <= '1';
               -- Fill in the bit mask appropriately
               if OUTPUT_DATA_WIDTH < 8 then
-                m_tkeep   <= (others => '1');
+                m_tkeep <= (others => '1');
               else
-                m_tkeep   <= (m_tkeep'length - 1 downto (bit_cnt + 7)/8 => '0')
-                             & ((bit_cnt + 7) / 8 - 1 downto 0 => '1');
+                m_tkeep <= get_tkeep((bit_cnt + 7) / 8, OUTPUT_BYTE_WIDTH);
               end if;
 
               bit_cnt   := 0;
