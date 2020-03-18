@@ -33,13 +33,13 @@ use work.common_pkg.all;
 entity async_fifo is
     generic (
         -- FIFO configuration
-        FIFO_LEN         : positive := 512; -- FIFO length in number of positions
-        UPPER_TRESHOLD   : natural  := 510; -- FIFO level to assert wr_upper
-        LOWER_TRESHOLD   : natural  := 10;  -- FIFO level to assert rd_lower
-        DATA_WIDTH       : natural  := 8;   -- Data width
+        FIFO_LEN         : natural := 512; -- FIFO length in number of positions
+        UPPER_TRESHOLD   : natural := 510; -- FIFO level to assert wr_upper
+        LOWER_TRESHOLD   : natural := 10;  -- FIFO level to assert rd_lower
+        DATA_WIDTH       : natural := 8;   -- Data width
         -- FIFO config for error cases
-        OVERFLOW_ACTION  : string   := "SATURATE";
-        UNDERFLOW_ACTION : string   := "SATURATE");
+        OVERFLOW_ACTION  : string  := "SATURATE";
+        UNDERFLOW_ACTION : string  := "SATURATE");
     port (
         -- Write port
         wr_clk   : in  std_logic;        -- Write clock

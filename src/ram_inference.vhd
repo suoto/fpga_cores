@@ -34,10 +34,10 @@ use ieee.numeric_std.all;
 ------------------------
 entity ram_inference is
   generic (
-    ADDR_WIDTH          : positive := 16;
-    DATA_WIDTH          : positive := 16;
-    RAM_INFERENCE_STYLE : string   := "auto";
-    OUTPUT_DELAY        : natural  := 1);
+    ADDR_WIDTH          : natural := 16;
+    DATA_WIDTH          : natural := 16;
+    RAM_INFERENCE_STYLE : string  := "auto";
+    OUTPUT_DELAY        : natural := 1);
   port (
     -- Port A
     clk_a     : in  std_logic;

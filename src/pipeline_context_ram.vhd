@@ -30,9 +30,9 @@ use ieee.numeric_std.all;
 ------------------------
 entity pipeline_context_ram is
   generic (
-    ADDR_WIDTH          : positive := 16;
-    DATA_WIDTH          : positive := 16;
-    RAM_INFERENCE_STYLE : string   := "auto");
+    ADDR_WIDTH          : natural := 16;
+    DATA_WIDTH          : natural := 16;
+    RAM_INFERENCE_STYLE : string  := "auto");
   port (
     clk         : in  std_logic;
     -- Checkout request interface

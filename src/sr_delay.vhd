@@ -24,9 +24,9 @@ library ieee;
 -- Shift register based delay --
 entity sr_delay is
   generic (
-    DELAY_CYCLES  : natural  := 1;
-    DATA_WIDTH    : positive := 1;
-    EXTRACT_SHREG : boolean  := True);
+    DELAY_CYCLES  : natural := 1;
+    DATA_WIDTH    : natural := 1;
+    EXTRACT_SHREG : boolean := True);
   port (
     clk     : in  std_logic;
     clken   : in  std_logic;

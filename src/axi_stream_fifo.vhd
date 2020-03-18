@@ -33,9 +33,9 @@ use work.common_pkg.all;
 ------------------------
 entity axi_stream_fifo is
   generic (
-    FIFO_DEPTH          : positive := 1;
-    DATA_WIDTH          : natural  := 1;
-    RAM_INFERENCE_STYLE : string   := "auto");
+    FIFO_DEPTH          : natural := 1;
+    DATA_WIDTH          : natural := 1;
+    RAM_INFERENCE_STYLE : string  := "auto");
   port (
     -- Usual ports
     clk     : in  std_logic;

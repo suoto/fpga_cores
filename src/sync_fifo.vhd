@@ -33,11 +33,11 @@ use work.common_pkg.all;
 entity sync_fifo is
   generic (
     -- FIFO configuration
-    RAM_INFERENCE_STYLE : string   := "auto";
-    DEPTH               : positive := 512; -- FIFO length in number of positions
-    DATA_WIDTH          : natural  := 8;  -- Data width
-    UPPER_TRESHOLD      : natural  := 510; -- FIFO level to assert upper
-    LOWER_TRESHOLD      : natural  := 10);  -- FIFO level to assert lower
+    RAM_INFERENCE_STYLE : string  := "auto";
+    DEPTH               : natural := 512; -- FIFO length in number of positions
+    DATA_WIDTH          : natural := 8;  -- Data width
+    UPPER_TRESHOLD      : natural := 510; -- FIFO level to assert upper
+    LOWER_TRESHOLD      : natural := 10);  -- FIFO level to assert lower
   port (
     -- Write port
     clk     : in  std_logic;        -- Write clock

@@ -24,8 +24,8 @@ library ieee;
 -- Synchronizes a data bus between different clock domains
 entity synchronizer is
     generic (
-        SYNC_STAGES  : positive := 2;
-        DATA_WIDTH   : integer  := 1);
+        SYNC_STAGES  : natural := 2;
+        DATA_WIDTH   : integer := 1);
     port (
         -- Usual ports
         clk     : in  std_logic;
