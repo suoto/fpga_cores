@@ -29,6 +29,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use work.common_pkg.all;
+
 ------------------------
 -- Entity declaration --
 ------------------------
@@ -76,7 +78,7 @@ begin
   assert RAM_TYPE = "auto"
       or RAM_TYPE = "block"
       or RAM_TYPE = "distributed"
-    report "Invalid RAM_STYLE: " & work.common_pkg.quote(RAM_TYPE)
+    report "Invalid RAM_STYLE: " & quote(RAM_TYPE)
     severity Warning;
 
   -------------------
