@@ -54,12 +54,11 @@ architecture axi_stream_width_converter_tb of axi_stream_width_converter_tb is
   -- Constants --
   ---------------
   constant CLK_PERIOD        : time := 5 ns;
-  constant ERROR_CNT_WIDTH   : natural := 8;
   constant INPUT_BYTE_WIDTH  : natural := (INPUT_DATA_WIDTH + 7) / 8;
   constant OUTPUT_BYTE_WIDTH : natural := (OUTPUT_DATA_WIDTH + 7) / 8;
   constant AXI_TID_WIDTH     : natural := 8;
 
-  constant TEST_FRAMES : positive := 16;
+  constant TEST_FRAMES : positive := 64;
 
   -------------
   -- Signals --
