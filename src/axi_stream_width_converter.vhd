@@ -142,11 +142,11 @@ begin
     tid_fifo_u : entity work.sync_fifo
       generic map (
         -- FIFO configuration
-        RAM_INFERENCE_STYLE => "distributed", -- : string   := "auto";
-        DEPTH               => 4, -- : positive := 512; -- FIFO length in number of positions
-        DATA_WIDTH          => AXI_TID_WIDTH, -- : natural  := 8;  -- Data width
-        UPPER_TRESHOLD      => 3, -- : natural  := 510; -- FIFO level to assert upper
-        LOWER_TRESHOLD      => 1) -- : natural  := 10);  -- FIFO level to assert lower
+        RAM_TYPE       => "distributed",
+        DEPTH          => 4,
+        DATA_WIDTH     => AXI_TID_WIDTH,
+        UPPER_TRESHOLD => 3,
+        LOWER_TRESHOLD => 1)
       port map (
         -- Write port
         clk     => clk,

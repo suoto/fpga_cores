@@ -33,9 +33,9 @@ use work.common_pkg.all;
 ------------------------
 entity axi_stream_fifo is
   generic (
-    FIFO_DEPTH          : natural := 1;
-    DATA_WIDTH          : natural := 1;
-    RAM_INFERENCE_STYLE : string  := "auto");
+    FIFO_DEPTH : natural := 1;
+    DATA_WIDTH : natural := 1;
+    RAM_TYPE   : string  := "auto");
   port (
     -- Usual ports
     clk     : in  std_logic;
@@ -90,10 +90,10 @@ begin
   -------------------
   ram_u : entity work.ram_inference
     generic map (
-      ADDR_WIDTH          => numbits(FIFO_DEPTH),
-      DATA_WIDTH          => DATA_WIDTH + 1,
-      RAM_INFERENCE_STYLE => RAM_INFERENCE_STYLE,
-      OUTPUT_DELAY        => 1)
+      ADDR_WIDTH   => numbits(FIFO_DEPTH),
+      DATA_WIDTH   => DATA_WIDTH + 1,
+      RAM_TYPE     => RAM_TYPE,
+      OUTPUT_DELAY => 1)
     port map (
       -- Port A
       clk_a     => clk,

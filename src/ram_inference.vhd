@@ -34,10 +34,10 @@ use ieee.numeric_std.all;
 ------------------------
 entity ram_inference is
   generic (
-    ADDR_WIDTH          : natural := 16;
-    DATA_WIDTH          : natural := 16;
-    RAM_INFERENCE_STYLE : string  := "auto";
-    OUTPUT_DELAY        : natural := 1);
+    ADDR_WIDTH   : natural := 16;
+    DATA_WIDTH   : natural := 16;
+    RAM_TYPE     : string  := "auto";
+    OUTPUT_DELAY : natural := 1);
   port (
     -- Port A
     clk_a     : in  std_logic;
@@ -69,14 +69,14 @@ architecture ram_inference of ram_inference is
   signal rddata_b_i : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
   attribute RAM_STYLE        : string;
-  attribute RAM_STYLE of ram : signal  is RAM_INFERENCE_STYLE;
+  attribute RAM_STYLE of ram : signal is RAM_TYPE;
 
 begin
 
-  assert RAM_INFERENCE_STYLE = "auto"
-      or RAM_INFERENCE_STYLE = "block"
-      or RAM_INFERENCE_STYLE = "distributed"
-    report "Invalid RAM_STYLE: '" & RAM_INFERENCE_STYLE & "'"
+  assert RAM_TYPE = "auto"
+      or RAM_TYPE = "block"
+      or RAM_TYPE = "distributed"
+    report "Invalid RAM_STYLE: " & work.common_pkg.quote(RAM_TYPE)
     severity Warning;
 
   -------------------
