@@ -94,7 +94,7 @@ begin
   -- Assert the full flag whenever we run out of space to store more data. At this
   -- point, if the write interface doesn't respect MAX_SKEW_CYCLES *and* m_tready is
   -- deasserted, there will loss of data
-  wr_full_i    <= '1' when ptr_diff >= BUFFER_DEPTH - MAX_SKEW_CYCLES else '0';
+  wr_full_i  <= '1' when ptr_diff >= BUFFER_DEPTH - MAX_SKEW_CYCLES else '0';
 
   -- Assign internals
   m_tvalid <= axi_tvalid;
@@ -107,11 +107,11 @@ begin
   -- reset
   mem_write : process(clk)
   begin
-      if rising_edge(clk) then
-          if wr_en = '1' then
-              data_buffer(to_integer(wr_ptr)) <= wr_last & wr_data;
-          end if;
+    if rising_edge(clk) then
+      if wr_en = '1' then
+        data_buffer(to_integer(wr_ptr)) <= wr_last & wr_data;
       end if;
+    end if;
   end process;
 
   -- Update pointers
@@ -141,7 +141,6 @@ begin
         else
           wr_ptr <= wr_ptr + 1;
         end if;
-
       end if;
 
       if axi_dv = '1' then
@@ -152,7 +151,6 @@ begin
           rd_ptr <= rd_ptr + 1;
         end if;
       end if;
-
     end if;
   end process;
 
