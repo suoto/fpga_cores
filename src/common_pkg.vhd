@@ -27,8 +27,7 @@ use ieee.math_real.all;
 
 package common_pkg is
 
-  type integer_array_t is array (natural range <>) of integer;
-  type integer_2d_array_t is array (natural range <>) of integer_array_t;
+  type integer_2d_array_t is array (natural range <>) of integer_vector;
 
   -- Calculates the number of bits required to represent a given value
   function numbits (constant v : natural) return natural;
@@ -47,13 +46,25 @@ package common_pkg is
   function mirror_bits (constant v : std_logic_vector) return std_logic_vector;
 
   function minimum(constant a, b : integer) return integer;
-  function minimum(constant values : integer_array_t) return integer;
+  function minimum(constant values : integer_vector) return integer;
   function to_boolean( v : std_ulogic) return boolean;
 
   function max (constant a, b : integer) return integer;
-  function max (constant v : integer_array_t) return integer;
+  function max (constant v : integer_vector) return integer;
 
-  function sum (constant v : integer_array_t) return integer;
+  function sum (constant v : integer_vector) return integer;
+
+  function extract (
+    constant v      : in std_logic_vector;
+    constant index  : in natural;
+    constant widths : in integer_vector
+  ) return            std_logic;
+
+  function extract (
+    constant v      : in std_logic_vector;
+    constant index  : in natural;
+    constant widths : in integer_vector
+  ) return            std_logic_vector;
 
 end common_pkg;
 
@@ -103,11 +114,11 @@ package body common_pkg is
   ------------------------------------------------------------------------------------
   function minimum(constant a, b : integer) return integer is
   begin
-    return minimum(integer_array_t'(a, b));
+    return minimum(integer_vector'(a, b));
   end;
 
   ------------------------------------------------------------------------------------
-  function minimum(constant values : integer_array_t) return integer is
+  function minimum(constant values : integer_vector) return integer is
     variable result : integer;
   begin
     for index in values'range loop
@@ -137,7 +148,7 @@ package body common_pkg is
   end;
 
   --------------------------------------------------------------------------------------
-  function max (constant v : integer_array_t) return integer is
+  function max (constant v : integer_vector) return integer is
     variable result : integer := 0;
   begin
     for i in v'range loop
@@ -149,7 +160,7 @@ package body common_pkg is
   end;
 
   --------------------------------------------------------------------------------------
-  function sum (constant v : integer_array_t) return integer is
+  function sum (constant v : integer_vector) return integer is
     variable sum : natural;
   begin
     for i in v'range loop
