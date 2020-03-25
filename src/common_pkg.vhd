@@ -220,4 +220,58 @@ package body common_pkg is
     return '"' & s & '"';
   end function quote;
 
+  -- 
+  function to_string(
+    constant v : integer_vector) return string is
+    variable L : line;
+  begin
+    for i in v'range loop
+      write(L, integer'image(i) & " => " & integer'image(v(i)));
+      if i /= v'length - 1 then
+        write(L, string'(", "));
+      end if;
+    end loop;
+
+    return "(" & L.all & ")";
+  end;
+
+  -- Extracts a field from a std_logic_vector composed of multiple concatenated fields
+  function extract (
+    constant v      : in std_logic_vector;
+    constant index  : in natural;
+    constant widths : in integer_vector
+  ) return            std_logic_vector is
+    variable start  : natural;
+  begin
+
+    if widths'ascending then
+      start := sum(widths(0 to index - 1));
+    else
+      start := sum(widths(widths'length - 1 downto widths'length - index));
+    end if;
+
+    assert widths(index) + start <= v'length
+      report "Width vector " & to_string(widths) & " can't address a vector whose width is " & integer'image(v'length)
+      severity Failure;
+
+    return v(start + widths(index) - 1 downto start);
+  end;
+
+  -- Extracts a field from a std_logic_vector composed of multiple concatenated fields
+  function extract (
+    constant v      : in std_logic_vector;
+    constant index  : in natural;
+    constant widths : in integer_vector
+  ) return            std_logic is
+    constant result : std_logic_vector := extract(v => v, index => index, widths => widths);
+  begin
+
+    assert widths(index) = 1
+      report "Associated width when extracting std_logic must be 1 but got " & to_string(widths(index))
+      severity Error;
+
+    return result(result'low);
+
+  end;
+
 end package body;
