@@ -109,8 +109,9 @@ begin
   process(clk)
   begin
     if rising_edge(clk) then
-      addr_sr <= addr_sr(addr_sr'length - 2 downto 0) & addr_in;
-      en_sr   <= en_sr(en_sr'length - 2 downto 0) & en_in;
+      context_in_reg <= context_in;
+      addr_sr        <= addr_sr(addr_sr'length - 2 downto 0) & addr_in;
+      en_sr          <= en_sr(en_sr'length - 2 downto 0) & en_in;
     end if;
   end process;
 
