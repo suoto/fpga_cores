@@ -194,12 +194,18 @@ begin
           s_tready_i <= '0'; -- Each incoming word will generate at least 1 output word
 
           -- Need to assign data before bit_cnt (it's a variable)
-          tmp(INPUT_DATA_WIDTH + bit_cnt - 1 downto bit_cnt) := s_tdata;
           if s_tlast = '0' then
-            bit_cnt := bit_cnt + INPUT_DATA_WIDTH;
+            tmp(INPUT_DATA_WIDTH + bit_cnt - 1 downto bit_cnt) := s_tdata;
+            bit_cnt                                            := bit_cnt + INPUT_DATA_WIDTH;
           else
+            -- FIXME: This does not look very synth friendly, check how this gets mapped and refactor if needed
             -- Last word, add the appropriate number of bits
-            bit_cnt := bit_cnt + 8*count_ones(s_tkeep);
+            for i in 0 to s_tkeep'length - 1 loop
+              if s_tkeep(i) = '1' then
+                tmp(8 + bit_cnt - 1 downto bit_cnt) := s_tdata(8*(i + 1) - 1 downto 8*i);
+                bit_cnt                             := bit_cnt + 8;
+              end if;
+            end loop;
           end if;
 
           -- Upon receiving the last input word, clear the flush request
