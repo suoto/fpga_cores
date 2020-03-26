@@ -93,7 +93,7 @@ begin
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
-  -- Loop data until
+  -- Return data from the SRs if we have it in our internal pipelines
   context_out <= context_in when addr_out = addr_in and en_in = '1' else
                  context_in_reg when addr_out = addr_sr(2) and en_sr(2) = '1' else
                  ram_rddata;
