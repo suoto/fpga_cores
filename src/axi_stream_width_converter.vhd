@@ -30,9 +30,9 @@ use ieee.numeric_std.all;
 ------------------------
 entity axi_stream_width_converter is
   generic (
-    INPUT_DATA_WIDTH  : natural := 24;
+    INPUT_DATA_WIDTH  : natural := 32;
     OUTPUT_DATA_WIDTH : natural := 16;
-    AXI_TID_WIDTH     : natural := 8);
+    AXI_TID_WIDTH     : natural := 0);
   port (
     -- Usual ports
     clk      : in  std_logic;
