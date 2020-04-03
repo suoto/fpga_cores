@@ -124,4 +124,3 @@ begin
   end process;
 
 end ram_inference;
-

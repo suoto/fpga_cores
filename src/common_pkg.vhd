@@ -27,6 +27,16 @@ use ieee.math_real.all;
 
 package common_pkg is
 
+  -- This should work for ModelSim, GHDL, Xilinx and Altera
+  constant IS_SIMULATION : boolean :=
+      False
+      -- pragma translate_off
+      -- synthesis translate_off
+      or True
+      -- synthesis translate_on
+      -- pragma translate_on
+      ;
+
   type integer_2d_array_t is array (natural range <>) of integer_vector;
 
   -- Calculates the number of bits required to represent a given value
@@ -48,6 +58,7 @@ package common_pkg is
   function minimum(constant a, b : integer) return integer;
   function minimum(constant values : integer_vector) return integer;
   function to_boolean( v : std_ulogic) return boolean;
+  function from_boolean( v : boolean ) return std_ulogic;
 
   function max (constant a, b : integer) return integer;
   function max (constant v : integer_vector) return integer;
@@ -140,6 +151,14 @@ package body common_pkg is
       when others      => return (false);
     end case;
   end to_boolean;
+
+  --------------------------------------------------------------------------------------
+  function from_boolean( v : boolean) return std_ulogic is begin
+    if v then
+      return '1';
+    end if;
+    return '0';
+  end from_boolean;
 
   --------------------------------------------------------------------------------------
   function max (constant a, b : integer) return integer is
@@ -235,6 +254,15 @@ package body common_pkg is
     return "(" & L.all & ")";
   end;
 
+  -- Replace v'ascending to work around GHDL limitation
+  function ascending ( constant v : integer_vector ) return boolean is
+  begin
+    if v'right > v'left then
+      return True;
+    end if;
+    return False;
+  end;
+
   -- Extracts a field from a std_logic_vector composed of multiple concatenated fields
   function extract (
     constant v      : in std_logic_vector;
@@ -244,7 +272,7 @@ package body common_pkg is
     variable start  : natural;
   begin
 
-    if widths'ascending then
+    if ascending(widths) then
       start := sum(widths(0 to index - 1));
     else
       start := sum(widths(widths'length - 1 downto widths'length - index));

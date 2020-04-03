@@ -169,4 +169,28 @@ begin
     end if;
   end process;
 
+  g_check : if IS_SIMULATION generate
+      signal rst_prev : std_logic;
+  begin
+    check_rst_p : process(clk)
+    begin
+      if rising_edge(clk) then
+
+        rst_prev <= rst;
+
+        if rst_prev = '0' and rst = '1' then
+          assert to_01(empty_i) = '1'
+            report "Empty should be '1' upon reset, but it's '" & to_string(empty_i) & "'"
+            severity Error;
+
+          assert to_01(full_i) = '0'
+            report "Full should be '0' upon reset, but it's '" & to_string(full_i) & "'"
+            severity Error;
+        end if;
+
+      end if;
+    end process;
+
+  end generate;
+
 end sync_fifo;
