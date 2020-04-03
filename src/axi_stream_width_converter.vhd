@@ -138,35 +138,40 @@ begin
     -------------------
     -- Port mappings --
     -------------------
-    -- Need a small FIFO for the TID
-    tid_fifo_u : entity work.sync_fifo
-      generic map (
-        -- FIFO configuration
-        RAM_TYPE       => "distributed",
-        DEPTH          => 4,
-        DATA_WIDTH     => AXI_TID_WIDTH,
-        UPPER_TRESHOLD => 3,
-        LOWER_TRESHOLD => 1)
-      port map (
-        -- Write port
-        clk     => clk,
-        clken   => '1',
-        rst     => rst,
+    g_tid_fifo : if AXI_TID_WIDTH > 0 generate
+      -- Need a small FIFO for the TID
+      tid_fifo_u : entity work.sync_fifo
+        generic map (
+          -- FIFO configuration
+          RAM_TYPE       => "distributed",
+          DEPTH          => 4,
+          DATA_WIDTH     => AXI_TID_WIDTH,
+          UPPER_TRESHOLD => 3,
+          LOWER_TRESHOLD => 1)
+        port map (
+          -- Write port
+          clk     => clk,
+          clken   => '1',
+          rst     => rst,
 
-        -- Status
-        full    => open, --full ,
-        upper   => open, --upper,
-        lower   => open, --lower,
-        empty   => open, --empty,
+          -- Status
+          full    => open, --full ,
+          upper   => open, --upper,
+          lower   => open, --lower,
+          empty   => open, --empty,
 
-        wr_en   => s_first_word and s_data_valid,
-        wr_data => s_tid,
+          wr_en   => s_first_word and s_data_valid,
+          wr_data => s_tid,
 
-        -- Read port
-        rd_en   => m_tlast_i and m_tvalid_i and m_tready, --'0',
-        rd_data => m_tid,
-        rd_dv   => open);
+          -- Read port
+          rd_en   => m_tlast_i and m_tvalid_i and m_tready, --'0',
+          rd_data => m_tid,
+          rd_dv   => open);
+    end generate;
 
+    g_no_tid_fifo : if AXI_TID_WIDTH = 0 generate
+      m_tid <= (others => 'U');
+    end generate;
 
     ---------------
     -- Processes --
@@ -266,6 +271,12 @@ begin
       end if;
     end process;
   end generate g_downsize; -- }}
+
+  g_upsize : if INPUT_DATA_WIDTH < OUTPUT_DATA_WIDTH generate -- {{
+    assert False
+      report "Conversion from " & to_string(INPUT_DATA_WIDTH) & " to " & to_string(OUTPUT_DATA_WIDTH) & " is not currently supported"
+      severity Failure;
+  end generate g_upsize; -- }}
 
   -------------------
   -- Port mappings --
