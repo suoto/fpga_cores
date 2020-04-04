@@ -141,8 +141,8 @@ begin
 
   axi_stream_write : entity fpga_cores_sim.axi_stream_bfm
     generic map (
-      DATA_WIDTH => INPUT_DATA_WIDTH,
-      ID_WIDTH   => AXI_TID_WIDTH)
+      TDATA_WIDTH => INPUT_DATA_WIDTH,
+      TID_WIDTH   => AXI_TID_WIDTH)
     port map (
       -- Usual ports
       clk      => clk,
@@ -205,7 +205,7 @@ begin
       bfm_write(net,
         bfm         => master,
         data        => reinterpret(data, INPUT_DATA_WIDTH),
-        id          => id,
+        tid         => id,
         probability => tvalid_probability,
         blocking    => True);
 

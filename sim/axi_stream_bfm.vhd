@@ -50,20 +50,20 @@ use work.axi_stream_bfm_pkg.all;
 ------------------------
 entity axi_stream_bfm is
   generic (
-    NAME       : string := AXI_STREAM_MASTER_DEFAULT_NAME;
-    DATA_WIDTH : natural := 16;
-    USER_WIDTH : natural := 0;
-    ID_WIDTH   : natural := 0);
+    NAME        : string := AXI_STREAM_MASTER_DEFAULT_NAME;
+    TDATA_WIDTH : natural := 16;
+    TUSER_WIDTH : natural := 0;
+    TID_WIDTH   : natural := 0);
   port (
     -- Usual ports
     clk      : in  std_logic;
     rst      : in  std_logic;
     -- AXI stream output
     m_tready : in  std_logic;
-    m_tdata  : out std_logic_vector(DATA_WIDTH - 1 downto 0);
-    m_tuser  : out std_logic_vector(USER_WIDTH - 1 downto 0);
-    m_tkeep  : out std_logic_vector((DATA_WIDTH + 7) / 8 - 1 downto 0) := (others => '0');
-    m_tid    : out std_logic_vector(ID_WIDTH - 1 downto 0) := (others => '0');
+    m_tdata  : out std_logic_vector(TDATA_WIDTH - 1 downto 0);
+    m_tuser  : out std_logic_vector(TUSER_WIDTH - 1 downto 0);
+    m_tkeep  : out std_logic_vector((TDATA_WIDTH + 7) / 8 - 1 downto 0) := (others => '0');
+    m_tid    : out std_logic_vector(TID_WIDTH - 1 downto 0) := (others => '0');
     m_tvalid : out std_logic;
     m_tlast  : out std_logic);
 end axi_stream_bfm;
@@ -91,7 +91,7 @@ architecture axi_stream_bfm of axi_stream_bfm is
     return result;
   end;
 
-  subtype user_array_t is std_logic_vector_2d_t(open)(USER_WIDTH - 1 downto 0);
+  subtype tuser_array_t is std_logic_vector_2d_t(open)(TUSER_WIDTH - 1 downto 0);
 
   ---------------
   -- Constants --
@@ -99,7 +99,7 @@ architecture axi_stream_bfm of axi_stream_bfm is
   constant self            : actor_t  := new_actor(NAME);
   constant logger          : logger_t := get_logger(NAME);
 
-  constant DATA_BYTE_WIDTH : natural := (DATA_WIDTH + 7) / 8;
+  constant DATA_BYTE_WIDTH : natural := (TDATA_WIDTH + 7) / 8;
 
   -------------
   -- Signals --
@@ -125,10 +125,10 @@ begin
 
     ------------------------------------------------------------------
     procedure write (
-      constant data : std_logic_vector(DATA_WIDTH - 1 downto 0);
-      constant user : std_logic_vector(USER_WIDTH - 1 downto 0);
+      constant data : std_logic_vector(TDATA_WIDTH - 1 downto 0);
+      constant user : std_logic_vector(TUSER_WIDTH - 1 downto 0);
       constant mask : std_logic_vector(DATA_BYTE_WIDTH - 1 downto 0);
-      variable id   : std_logic_vector(ID_WIDTH - 1 downto 0);
+      variable id   : std_logic_vector(TID_WIDTH - 1 downto 0);
       constant last : boolean := False) is
     begin
       debug(sformat("Writing: %r %r %s", fo(data), fo(mask), fo(last)));
@@ -158,14 +158,14 @@ begin
 
     ------------------------------------------------------------------------------------
     procedure write_data (
-      constant data        : byte_array_t;
-      constant user        : user_array_t;
+      constant tdata       : byte_array_t;
+      constant tuser       : tuser_array_t;
       constant probability : real range 0.0 to 1.0 := 1.0;
-      constant tid         : std_logic_vector(ID_WIDTH - 1 downto 0)
+      constant tid         : std_logic_vector(TID_WIDTH - 1 downto 0)
    ) is
-      variable write_user  : std_logic_vector(USER_WIDTH - 1 downto 0);
-      variable write_id    : std_logic_vector(ID_WIDTH - 1 downto 0);
-      variable word        : std_logic_vector(DATA_WIDTH - 1 downto 0);
+      variable write_user  : std_logic_vector(TUSER_WIDTH - 1 downto 0);
+      variable write_id    : std_logic_vector(TID_WIDTH - 1 downto 0);
+      variable word        : std_logic_vector(TDATA_WIDTH - 1 downto 0);
       variable word_index  : natural := 0;
       variable byte        : natural;
 
@@ -186,20 +186,20 @@ begin
 
       write_id := tid;
 
-      for i in 0 to data'length - 1 loop
+      for i in 0 to tdata'length - 1 loop
         byte  := i mod DATA_BYTE_WIDTH;
 
-        word(8*(byte + 1) - 1 downto 8*byte) := data(i);
+        word(8*(byte + 1) - 1 downto 8*byte) := tdata(i);
 
         if ((i + 1) mod DATA_BYTE_WIDTH) = 0 then
-          -- Only try to get user if there's such port in the first place. Also allow
-          -- user to have less entries than data.
-          if USER_WIDTH > 0 and word_index < user'length then
-            write_user := user(word_index);
+          -- Only try to get tuser if there's such port in the first place. Also allow
+          -- tuser to have less entries than tdata.
+          if TUSER_WIDTH > 0 and word_index < tuser'length then
+            write_user := tuser(word_index);
             word_index := word_index + 1;
           end if;
 
-          if i /= data'length - 1 then
+          if i /= tdata'length - 1 then
             write(word, write_user, (others => '0'), write_id, False);
           else
             write(word, write_user, infer_mask(word), write_id, True);
@@ -219,38 +219,33 @@ begin
 
     ------------------------------------------------------------------------------------
     procedure handle_frame_user ( constant frame : axi_stream_tuser_frame_t ) is
-      variable data : byte_array_t(frame.data'range);
-      variable user : user_array_t(frame.data'range);
+      variable tdata : byte_array_t(frame.data'range);
+      variable tuser : tuser_array_t(frame.data'range);
     begin
       -- Convert a list of tuples into two lists
       for i in frame.data'range loop
-        data(i) := frame.data(i).data;
-        user(i) := frame.data(i).user;
+        tdata(i) := frame.data(i).tdata;
+        tuser(i) := frame.data(i).tuser;
       end loop;
 
       write_data(
-        data        => data,
-        user        => user,
+        tdata       => tdata,
+        tuser       => tuser,
         probability => frame.probability,
-        tid         => frame.id
+        tid         => frame.tid
       );
 
     end;
 
     ------------------------------------------------------------------------------------
     procedure handle_frame ( constant frame : axi_stream_frame_t ) is
-      variable word : std_logic_vector(DATA_WIDTH - 1 downto 0);
-      variable id   : std_logic_vector(ID_WIDTH - 1 downto 0);
-      variable byte : natural;
     begin
 
-      info(logger, "Handling frame with data only");
-
       write_data(
-        data        => reinterpret(frame.data, 8),
-        user        => (0 to 0 => (USER_WIDTH - 1 downto 0 => 'U')),
+        tdata       => reinterpret(frame.data, 8),
+        tuser       => (0 to 0 => (TUSER_WIDTH - 1 downto 0 => 'U')),
         probability => frame.probability,
-        tid         => frame.id
+        tid         => frame.tid
       );
 
     end;
@@ -262,7 +257,7 @@ begin
     m_tlast <= '0';
 
     receive(net, self, msg);
-    if USER_WIDTH = 0 then
+    if TUSER_WIDTH = 0 then
       handle_frame(pop(msg));
     else
       handle_frame_user(pop(msg));

@@ -38,8 +38,8 @@ package axi_stream_bfm_pkg is
   constant AXI_STREAM_MASTER_DEFAULT_NAME : string := "axi_stream_master_bfm";
 
   type data_tuple_t is record
-    data : std_logic_vector;
-    user : std_logic_vector;
+    tdata : std_logic_vector;
+    tuser : std_logic_vector;
   end record;
 
   type data_tuple_array_t is array (natural range <>) of data_tuple_t;
@@ -47,13 +47,13 @@ package axi_stream_bfm_pkg is
   -- This is the user content
   type axi_stream_frame_t is record
     data        : std_logic_vector_2d_t;
-    id          : std_logic_vector;
+    tid         : std_logic_vector;
     probability : real range 0.0 to 1.0;
   end record;
 
   type axi_stream_tuser_frame_t is record
     data        : data_tuple_array_t;
-    id          : std_logic_vector;
+    tid         : std_logic_vector;
     probability : real range 0.0 to 1.0;
   end record;
 
@@ -76,7 +76,7 @@ package axi_stream_bfm_pkg is
     signal   net         : inout std_logic;
     variable bfm         : inout axi_stream_bfm_t;
     constant data        : std_logic_vector_2d_t;
-    constant id          : std_logic_vector;
+    constant tid         : std_logic_vector;
     constant probability : real := 1.0;
     constant blocking    : boolean := True);
 
@@ -102,21 +102,21 @@ package body axi_stream_bfm_pkg is
   procedure push(msg : msg_t; frame : axi_stream_frame_t ) is
   begin
     push(msg, frame.probability);
-    push(msg, frame.id);
+    push(msg, frame.tid);
     push(msg, frame.data);
   end;
 
   procedure push(msg : msg_t; frame : data_tuple_t ) is
   begin
-    push(msg, frame.data);
-    push(msg, frame.user);
+    push(msg, frame.tdata);
+    push(msg, frame.tuser);
   end;
 
   impure function pop(msg : msg_t) return data_tuple_t  is
-    constant data : std_logic_vector := pop(msg);
-    constant user : std_logic_vector := pop(msg);
+    constant tdata : std_logic_vector := pop(msg);
+    constant tuser : std_logic_vector := pop(msg);
   begin
-    return data_tuple_t'(data => data, user => user);
+    return data_tuple_t'(tdata => tdata, tuser => tuser);
   end;
 
 
@@ -124,10 +124,10 @@ package body axi_stream_bfm_pkg is
   begin
     push(msg, v'low);
     push(msg, v'high);
-    push(msg, v(v'low).data'low);
-    push(msg, v(v'low).data'high);
-    push(msg, v(v'low).user'low);
-    push(msg, v(v'low).user'high);
+    push(msg, v(v'low).tdata'low);
+    push(msg, v(v'low).tdata'high);
+    push(msg, v(v'low).tuser'low);
+    push(msg, v(v'low).tuser'high);
     for i in v'range loop
       push(msg, v(i));
     end loop;
@@ -136,15 +136,15 @@ package body axi_stream_bfm_pkg is
   procedure push(msg : msg_t; frame : axi_stream_tuser_frame_t ) is
   begin
     push(msg, frame.probability);
-    push(msg, frame.id);
+    push(msg, frame.tid);
     push(msg, frame.data);
   end;
 
   impure function pop(msg : msg_t) return axi_stream_frame_t is
     constant probability : real                  := pop(msg);
-    constant id          : std_logic_vector      := pop(msg);
+    constant tid         : std_logic_vector      := pop(msg);
     constant data        : std_logic_vector_2d_t := pop(msg);
-    constant frame       : axi_stream_frame_t    := (data => data, id => id, probability => probability);
+    constant frame       : axi_stream_frame_t    := (data => data, tid => tid, probability => probability);
   begin
     return frame;
   end;
@@ -158,8 +158,8 @@ package body axi_stream_bfm_pkg is
     constant user_high : natural := pop(msg);
     subtype element_array_t is
       data_tuple_array_t(low to high)(
-        data(data_high downto data_low),
-        user(user_high downto user_low)
+        tdata(data_high downto data_low),
+        tuser(user_high downto user_low)
       );
 
     variable result : element_array_t;
@@ -174,9 +174,9 @@ package body axi_stream_bfm_pkg is
 
   impure function pop(msg : msg_t) return axi_stream_tuser_frame_t is
     constant probability : real                     := pop(msg);
-    constant id          : std_logic_vector         := pop(msg);
+    constant tid         : std_logic_vector         := pop(msg);
     constant data        : data_tuple_array_t       := pop(msg);
-    constant frame       : axi_stream_tuser_frame_t := (data => data, id => id, probability => probability);
+    constant frame       : axi_stream_tuser_frame_t := (data => data, tid => tid, probability => probability);
   begin
     return frame;
   end;
@@ -224,7 +224,7 @@ package body axi_stream_bfm_pkg is
     signal   net         : inout std_logic;
     variable bfm         : inout axi_stream_bfm_t;
     constant data        : std_logic_vector_2d_t;
-    constant id          : std_logic_vector;
+    constant tid         : std_logic_vector;
     constant probability : real := 1.0;
     constant blocking    : boolean := True) is
     variable msg         : msg_t := new_msg(sender => bfm.sender);
@@ -234,7 +234,7 @@ package body axi_stream_bfm_pkg is
       msg,
       axi_stream_frame_t'(
         data        => data,
-        id          => id,
+        tid         => tid,
         probability => probability
       )
     );
@@ -254,7 +254,7 @@ package body axi_stream_bfm_pkg is
     signal   net         : inout std_logic;
     variable bfm         : inout axi_stream_bfm_t;
     constant data        : data_tuple_array_t;
-    constant id          : std_logic_vector;
+    constant tid         : std_logic_vector;
     constant probability : real := 1.0;
     constant blocking    : boolean := True) is
     variable msg         : msg_t := new_msg(sender => bfm.sender);
@@ -264,7 +264,7 @@ package body axi_stream_bfm_pkg is
       msg,
       axi_stream_tuser_frame_t'(
         data        => data,
-        id          => id,
+        tid         => tid,
         probability => probability
       )
     );
