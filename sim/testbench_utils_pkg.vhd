@@ -149,16 +149,17 @@ package body testbench_utils_pkg is
     constant items_width : integer := 3 + (source(0)'length + 3) / 4;
     constant col_0_width : integer := integer'image(source'length)'length;
     variable item_cnt    : integer := 0;
-    begin
+    constant columns     : integer := minimum(width, source'length + 1);
+  begin
       write(result, cr & string'(1 to col_0_width + 3 => ' '));
 
-      for i in 0 to width - 1 loop
+      for i in 0 to columns - 1 loop
         write(result, sformat("%" & integer'image(items_width) & "d  ", fo(i)));
       end loop;
 
       while item_cnt < source'length loop
         write(result, cr & sformat("%" & integer'image(col_0_width) & "d   ", fo(item_cnt)));
-        for i in 0 to width - 1 loop
+        for i in 0 to columns - 1 loop
           if item_cnt < source'length then
             write(result, sformat("%" & integer'image(items_width) & "r  ", fo(source(item_cnt))));
           else
