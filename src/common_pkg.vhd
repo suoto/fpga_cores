@@ -39,6 +39,8 @@ package common_pkg is
 
   type integer_2d_array_t is array (natural range <>) of integer_vector;
 
+  function to_string( constant v : integer_vector ) return string;
+
   -- Calculates the number of bits required to represent a given value
   function numbits (constant v : natural) return natural;
 
@@ -130,8 +132,12 @@ package body common_pkg is
 
   ------------------------------------------------------------------------------------
   function minimum(constant values : integer_vector) return integer is
-    variable result : integer;
+    variable result : integer := integer'high;
   begin
+    assert values'length /= 0
+      report "Can't get minimum from an empty sequence"
+      severity Error;
+
     for index in values'range loop
 
       if values(index) < result then
@@ -168,8 +174,12 @@ package body common_pkg is
 
   --------------------------------------------------------------------------------------
   function max (constant v : integer_vector) return integer is
-    variable result : integer := 0;
+    variable result : integer := integer'low;
   begin
+    assert v'length /= 0
+      report "Can't get minimum from an empty sequence"
+      severity Error;
+
     for i in v'range loop
       if v(i) > result then
         result := v(i);
