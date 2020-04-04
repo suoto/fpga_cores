@@ -37,9 +37,22 @@ package axi_stream_bfm_pkg is
 
   constant AXI_STREAM_MASTER_DEFAULT_NAME : string := "axi_stream_master_bfm";
 
+  type data_tuple_t is record
+    data : std_logic_vector;
+    user : std_logic_vector;
+  end record;
+
+  type data_tuple_array_t is array (natural range <>) of data_tuple_t;
+
   -- This is the user content
   type axi_stream_frame_t is record
     data        : std_logic_vector_2d_t;
+    id          : std_logic_vector;
+    probability : real range 0.0 to 1.0;
+  end record;
+
+  type axi_stream_tuser_frame_t is record
+    data        : data_tuple_array_t;
     id          : std_logic_vector;
     probability : real range 0.0 to 1.0;
   end record;
@@ -53,6 +66,7 @@ package axi_stream_bfm_pkg is
 
   procedure push(msg : msg_t; frame : axi_stream_frame_t);
   impure function pop(msg : msg_t) return axi_stream_frame_t;
+  impure function pop(msg : msg_t) return axi_stream_tuser_frame_t;
 
   impure function create_bfm (
     constant reader_name : in string := AXI_STREAM_MASTER_DEFAULT_NAME )
@@ -92,11 +106,77 @@ package body axi_stream_bfm_pkg is
     push(msg, frame.data);
   end;
 
+  procedure push(msg : msg_t; frame : data_tuple_t ) is
+  begin
+    push(msg, frame.data);
+    push(msg, frame.user);
+  end;
+
+  impure function pop(msg : msg_t) return data_tuple_t  is
+    constant data : std_logic_vector := pop(msg);
+    constant user : std_logic_vector := pop(msg);
+  begin
+    return data_tuple_t'(data => data, user => user);
+  end;
+
+
+  procedure push(msg : msg_t; v : data_tuple_array_t ) is
+  begin
+    push(msg, v'low);
+    push(msg, v'high);
+    push(msg, v(v'low).data'low);
+    push(msg, v(v'low).data'high);
+    push(msg, v(v'low).user'low);
+    push(msg, v(v'low).user'high);
+    for i in v'range loop
+      push(msg, v(i));
+    end loop;
+  end;
+
+  procedure push(msg : msg_t; frame : axi_stream_tuser_frame_t ) is
+  begin
+    push(msg, frame.probability);
+    push(msg, frame.id);
+    push(msg, frame.data);
+  end;
+
   impure function pop(msg : msg_t) return axi_stream_frame_t is
     constant probability : real                  := pop(msg);
     constant id          : std_logic_vector      := pop(msg);
     constant data        : std_logic_vector_2d_t := pop(msg);
     constant frame       : axi_stream_frame_t    := (data => data, id => id, probability => probability);
+  begin
+    return frame;
+  end;
+
+  impure function pop(msg : msg_t) return data_tuple_array_t is
+    constant low       : integer := pop(msg);
+    constant high      : integer := pop(msg);
+    constant data_low  : natural := pop(msg);
+    constant data_high : natural := pop(msg);
+    constant user_low  : natural := pop(msg);
+    constant user_high : natural := pop(msg);
+    subtype element_array_t is
+      data_tuple_array_t(low to high)(
+        data(data_high downto data_low),
+        user(user_high downto user_low)
+      );
+
+    variable result : element_array_t;
+  begin
+
+    for i in result'range loop
+      result(i) := data_tuple_t'(pop(msg));
+    end loop;
+
+    return result;
+  end;
+
+  impure function pop(msg : msg_t) return axi_stream_tuser_frame_t is
+    constant probability : real                     := pop(msg);
+    constant id          : std_logic_vector         := pop(msg);
+    constant data        : data_tuple_array_t       := pop(msg);
+    constant frame       : axi_stream_tuser_frame_t := (data => data, id => id, probability => probability);
   begin
     return frame;
   end;
@@ -153,6 +233,36 @@ package body axi_stream_bfm_pkg is
     push(
       msg,
       axi_stream_frame_t'(
+        data        => data,
+        id          => id,
+        probability => probability
+      )
+    );
+
+    bfm.outstanding := bfm.outstanding + 1;
+
+    send(net, bfm.dest, msg);
+
+    if not blocking then
+      return;
+    end if;
+
+    wait_reply(net, bfm);
+  end;
+
+  procedure bfm_write (
+    signal   net         : inout std_logic;
+    variable bfm         : inout axi_stream_bfm_t;
+    constant data        : data_tuple_array_t;
+    constant id          : std_logic_vector;
+    constant probability : real := 1.0;
+    constant blocking    : boolean := True) is
+    variable msg         : msg_t := new_msg(sender => bfm.sender);
+  begin
+    msg := new_msg(sender => bfm.sender);
+    push(
+      msg,
+      axi_stream_tuser_frame_t'(
         data        => data,
         id          => id,
         probability => probability

@@ -52,7 +52,8 @@ entity axi_stream_bfm is
   generic (
     NAME       : string := AXI_STREAM_MASTER_DEFAULT_NAME;
     DATA_WIDTH : natural := 16;
-    ID_WIDTH   : natural := 8);
+    USER_WIDTH : natural := 0;
+    ID_WIDTH   : natural := 0);
   port (
     -- Usual ports
     clk      : in  std_logic;
@@ -60,6 +61,7 @@ entity axi_stream_bfm is
     -- AXI stream output
     m_tready : in  std_logic;
     m_tdata  : out std_logic_vector(DATA_WIDTH - 1 downto 0);
+    m_tuser  : out std_logic_vector(USER_WIDTH - 1 downto 0);
     m_tkeep  : out std_logic_vector((DATA_WIDTH + 7) / 8 - 1 downto 0) := (others => '0');
     m_tid    : out std_logic_vector(ID_WIDTH - 1 downto 0) := (others => '0');
     m_tvalid : out std_logic;
@@ -67,6 +69,29 @@ entity axi_stream_bfm is
 end axi_stream_bfm;
 
 architecture axi_stream_bfm of axi_stream_bfm is
+
+  function infer_mask ( constant v : std_logic_vector ) return std_logic_vector is
+    constant bytes  : natural := (v'length + 7) / 8;
+    variable result : std_logic_vector(bytes - 1 downto 0) := (others => '0');
+  begin
+    for byte in 0 to bytes - 1 loop
+      -- Mark as valid bytes whose value is anything other than a full undefined byte
+      if v(8*(byte + 1) - 1 downto 8*byte) = (8*(byte + 1) - 1 downto 8*byte => 'U') then
+        exit;
+      else
+        result(byte) := '1';
+      end if;
+    end loop;
+
+    -- If all bytes were valid, force all ones
+    if result = (result'range => '0') then
+      return (result'range => '1');
+    end if;
+
+    return result;
+  end;
+
+  subtype user_array_t is std_logic_vector_2d_t(open)(USER_WIDTH - 1 downto 0);
 
   ---------------
   -- Constants --
@@ -79,8 +104,8 @@ architecture axi_stream_bfm of axi_stream_bfm is
   -------------
   -- Signals --
   -------------
-  signal wr_en       : boolean := True;
-  signal probability : real range 0.0 to 1.0 := 1.0;
+  signal wr_en           : boolean := True;
+  signal cfg_probability : real range 0.0 to 1.0 := 1.0;
 
 begin
 
@@ -101,6 +126,7 @@ begin
     ------------------------------------------------------------------
     procedure write (
       constant data : std_logic_vector(DATA_WIDTH - 1 downto 0);
+      constant user : std_logic_vector(USER_WIDTH - 1 downto 0);
       constant mask : std_logic_vector(DATA_BYTE_WIDTH - 1 downto 0);
       variable id   : std_logic_vector(ID_WIDTH - 1 downto 0);
       constant last : boolean := False) is
@@ -112,6 +138,7 @@ begin
       end if;
 
       m_tdata   <= data;
+      m_tuser   <= user;
       m_tkeep   <= mask;
       m_tid     <= id;
       m_tvalid  <= '1';
@@ -122,6 +149,7 @@ begin
       wait until m_tvalid = '1' and m_tready = '1' and rising_edge(clk);
 
       m_tdata  <= (others => 'U');
+      m_tuser  <= (others => 'U');
       m_tkeep  <= (others => 'U');
       m_tid    <= (others => 'U');
       m_tvalid <= '0';
@@ -129,65 +157,57 @@ begin
     end;
 
     ------------------------------------------------------------------------------------
-    procedure write_frame ( constant frame : axi_stream_frame_t ) is
-      constant data_bytes : byte_array_t := reinterpret(frame.data, 8);
-      variable word       : std_logic_vector(DATA_WIDTH - 1 downto 0);
-      variable mask       : std_logic_vector(DATA_BYTE_WIDTH - 1 downto 0) := (others => '0');
-      variable byte       : natural;
-      variable id         : std_logic_vector(ID_WIDTH - 1 downto 0);
-
-      function infer_mask ( constant v : std_logic_vector ) return std_logic_vector is
-        constant bytes  : natural := (v'length + 7) / 8;
-        variable result : std_logic_vector(bytes - 1 downto 0) := (others => '0');
-      begin
-        for byte in 0 to bytes - 1 loop
-          -- Mark as valid bytes whose value is anything other than a full undefined byte
-          if v(8*(byte + 1) - 1 downto 8*byte) = (8*(byte + 1) - 1 downto 8*byte => 'U') then
-            exit;
-          else
-            result(byte) := '1';
-          end if;
-        end loop;
-
-        -- If all bytes were valid, force all ones
-        if result = (result'range => '0') then
-          return (result'range => '1');
-        end if;
-
-        return result;
-      end;
+    procedure write_data (
+      constant data        : byte_array_t;
+      constant user        : user_array_t;
+      constant probability : real range 0.0 to 1.0 := 1.0;
+      constant tid         : std_logic_vector(ID_WIDTH - 1 downto 0)
+   ) is
+      variable write_user  : std_logic_vector(USER_WIDTH - 1 downto 0);
+      variable write_id    : std_logic_vector(ID_WIDTH - 1 downto 0);
+      variable word        : std_logic_vector(DATA_WIDTH - 1 downto 0);
+      variable word_index  : natural := 0;
+      variable byte        : natural;
 
     begin
 
-      if probability /= frame.probability then
+      if cfg_probability /= probability then
         info(
           logger,
           sformat(
             "Updating probability: %d\% to %d\%",
-            fo(integer(100.0*probability)),
-            fo(integer(100.0*frame.probability))
+            fo(integer(100.0*cfg_probability)),
+            fo(integer(100.0*probability))
           )
         );
 
-        probability <= frame.probability;
+        cfg_probability <= probability;
       end if;
 
-      id := frame.id;
+      write_id := tid;
 
-      for i in 0 to data_bytes'length - 1 loop
+      for i in 0 to data'length - 1 loop
         byte  := i mod DATA_BYTE_WIDTH;
 
-        word(8*(byte + 1) - 1 downto 8*byte) := data_bytes(i);
+        word(8*(byte + 1) - 1 downto 8*byte) := data(i);
 
         if ((i + 1) mod DATA_BYTE_WIDTH) = 0 then
-          if i /= data_bytes'length - 1 then
-            write(word, (others => 'U'), (others => '0'), id, False);
-          else
-            write(word, (others => 'U'), infer_mask(word), id, True);
+          -- Only try to get user if there's such port in the first place. Also allow
+          -- user to have less entries than data.
+          if USER_WIDTH > 0 and word_index < user'length then
+            write_user := user(word_index);
+            word_index := word_index + 1;
           end if;
 
-          word := (others => 'U');
-          id   := (others => 'U');
+          if i /= data'length - 1 then
+            write(word, write_user, (others => '0'), write_id, False);
+          else
+            write(word, write_user, infer_mask(word), write_id, True);
+          end if;
+
+          word       := (others => 'U');
+          write_user := (others => 'U');
+          write_id   := (others => 'U');
         end if;
       end loop;
 
@@ -198,13 +218,55 @@ begin
     end;
 
     ------------------------------------------------------------------------------------
+    procedure handle_frame_user ( constant frame : axi_stream_tuser_frame_t ) is
+      variable data : byte_array_t(frame.data'range);
+      variable user : user_array_t(frame.data'range);
+    begin
+      -- Convert a list of tuples into two lists
+      for i in frame.data'range loop
+        data(i) := frame.data(i).data;
+        user(i) := frame.data(i).user;
+      end loop;
+
+      write_data(
+        data        => data,
+        user        => user,
+        probability => frame.probability,
+        tid         => frame.id
+      );
+
+    end;
+
+    ------------------------------------------------------------------------------------
+    procedure handle_frame ( constant frame : axi_stream_frame_t ) is
+      variable word : std_logic_vector(DATA_WIDTH - 1 downto 0);
+      variable id   : std_logic_vector(ID_WIDTH - 1 downto 0);
+      variable byte : natural;
+    begin
+
+      info(logger, "Handling frame with data only");
+
+      write_data(
+        data        => reinterpret(frame.data, 8),
+        user        => (0 to 0 => (USER_WIDTH - 1 downto 0 => 'U')),
+        probability => frame.probability,
+        tid         => frame.id
+      );
+
+    end;
+
+    ------------------------------------------------------------------------------------
 
   begin
     m_tvalid <= '0';
     m_tlast <= '0';
 
     receive(net, self, msg);
-    write_frame(pop(msg));
+    if USER_WIDTH = 0 then
+      handle_frame(pop(msg));
+    else
+      handle_frame_user(pop(msg));
+    end if;
     acknowledge(net, msg);
 
   end process;
@@ -216,7 +278,7 @@ begin
       rand.InitSeed(name);
       wr_en <= False;
     elsif rising_edge(clk) then
-      wr_en <= rand.RandReal(1.0) < probability;
+      wr_en <= rand.RandReal(1.0) < cfg_probability;
     end if;
   end process;
 
