@@ -42,7 +42,7 @@ use str_format.str_format_pkg.all;
 library fpga_cores;
 use fpga_cores.common_pkg.all;
 
--- use work.testbench_utils_pkg.all;
+use work.testbench_utils_pkg.all;
 use work.axi_stream_bfm_pkg.all;
 
 ------------------------
@@ -130,11 +130,35 @@ begin
 
     ------------------------------------------------------------------------------------
     procedure write_frame ( constant frame : axi_stream_frame_t ) is
-      variable word : std_logic_vector(DATA_WIDTH - 1 downto 0);
-      variable mask : std_logic_vector(DATA_BYTE_WIDTH - 1 downto 0);
-      variable byte : natural;
-      variable id   : std_logic_vector(ID_WIDTH - 1 downto 0);
+      constant data_bytes : byte_array_t := reinterpret(frame.data, 8);
+      variable word       : std_logic_vector(DATA_WIDTH - 1 downto 0);
+      variable mask       : std_logic_vector(DATA_BYTE_WIDTH - 1 downto 0) := (others => '0');
+      variable byte       : natural;
+      variable id         : std_logic_vector(ID_WIDTH - 1 downto 0);
+
+      function infer_mask ( constant v : std_logic_vector ) return std_logic_vector is
+        constant bytes  : natural := (v'length + 7) / 8;
+        variable result : std_logic_vector(bytes - 1 downto 0) := (others => '0');
+      begin
+        for byte in 0 to bytes - 1 loop
+          -- Mark as valid bytes whose value is anything other than a full undefined byte
+          if v(8*(byte + 1) - 1 downto 8*byte) = (8*(byte + 1) - 1 downto 8*byte => 'U') then
+            exit;
+          else
+            result(byte) := '1';
+          end if;
+        end loop;
+
+        -- If all bytes were valid, force all ones
+        if result = (result'range => '0') then
+          return (result'range => '1');
+        end if;
+
+        return result;
+      end;
+
     begin
+
       if probability /= frame.probability then
         info(
           logger,
@@ -150,16 +174,16 @@ begin
 
       id := frame.id;
 
-      for i in 0 to frame.data'length - 1 loop
-        byte := i mod DATA_BYTE_WIDTH;
+      for i in 0 to data_bytes'length - 1 loop
+        byte  := i mod DATA_BYTE_WIDTH;
 
-        word(8*(byte + 1) - 1 downto 8*byte) := frame.data(i);
+        word(8*(byte + 1) - 1 downto 8*byte) := data_bytes(i);
 
         if ((i + 1) mod DATA_BYTE_WIDTH) = 0 then
-          if i /= frame.data'length - 1 then
-            write(word, (others => '0'), id, False);
+          if i /= data_bytes'length - 1 then
+            write(word, (others => 'U'), (others => '0'), id, False);
           else
-            write(word, (others => '1'), id, True);
+            write(word, (others => 'U'), infer_mask(word), id, True);
           end if;
 
           word := (others => 'U');
@@ -167,14 +191,9 @@ begin
         end if;
       end loop;
 
-      if word = (word'range => 'U') then
-        return;
-      end if;
-
-      mask                := (others => '0');
-      mask(byte downto 0) := (others => '1');
-
-      write(word, mask, id, True);
+      assert word = (word'range => 'U')
+        report "This shouldn't really happen should it"
+        severity Failure;
 
     end;
 

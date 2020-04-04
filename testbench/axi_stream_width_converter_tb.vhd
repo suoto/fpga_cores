@@ -60,6 +60,29 @@ architecture axi_stream_width_converter_tb of axi_stream_width_converter_tb is
 
   constant TEST_FRAMES : positive := 64;
 
+  type test_frame_t is record
+    data        : byte_array_t;
+    id          : std_logic_vector;
+    probability : real range 0.0 to 1.0;
+  end record;
+
+  procedure push(msg : msg_t; frame : test_frame_t ) is
+  begin
+    push(msg, frame.probability);
+    push(msg, frame.id);
+    push(msg, frame.data);
+  end;
+
+  impure function pop(msg : msg_t) return test_frame_t is
+    constant probability : real             := pop(msg);
+    constant id          : std_logic_vector := pop(msg);
+    constant data        : byte_array_t     := pop(msg);
+    constant frame       : test_frame_t     := (data => data, id => id, probability => probability);
+  begin
+    return frame;
+  end;
+
+
   -------------
   -- Signals --
   -------------
@@ -161,7 +184,7 @@ begin
     end procedure walk;
 
     ------------------------------------------------------------------------------------
-    procedure send_frame ( constant frame : axi_stream_frame_t ) is
+    procedure send_frame ( constant frame : test_frame_t ) is
       variable msg : msg_t := new_msg(sender => self);
     begin
       info("Sending frame");
@@ -171,9 +194,9 @@ begin
 
     ------------------------------------------------------------------------------------
     procedure test_frame ( constant id   : std_logic_vector(AXI_TID_WIDTH - 1 downto 0);
-                           constant data : byte_array_t ) is
+                           constant data : std_logic_vector_2d_t ) is
 
-      constant frame : axi_stream_frame_t := (data, id, tready_probability);
+      constant frame : test_frame_t := (data => data, id => id, probability => tready_probability);
     begin
       info(sformat("Writing frame: id=%r, data=%s" & cr, fo(id), to_string(data)));
 
@@ -181,7 +204,7 @@ begin
 
       bfm_write(net,
         bfm         => master,
-        data        => data,
+        data        => reinterpret(data, INPUT_DATA_WIDTH),
         id          => id,
         probability => tvalid_probability,
         blocking    => True);
@@ -268,7 +291,7 @@ begin
     variable frame_cnt : natural := 0;
 
     ------------------------------------------------------------------------------------
-    procedure check_frame ( constant frame : axi_stream_frame_t ) is
+    procedure check_frame ( constant frame : test_frame_t ) is
       constant resized_data : std_logic_vector_2d_t := reinterpret(frame.data, OUTPUT_DATA_WIDTH);
       variable exp_tkeep    : std_logic_vector(OUTPUT_BYTE_WIDTH - 1 downto 0);
       variable word_cnt     : natural := 0;

@@ -39,7 +39,7 @@ package axi_stream_bfm_pkg is
 
   -- This is the user content
   type axi_stream_frame_t is record
-    data        : byte_array_t;
+    data        : std_logic_vector_2d_t;
     id          : std_logic_vector;
     probability : real range 0.0 to 1.0;
   end record;
@@ -61,7 +61,7 @@ package axi_stream_bfm_pkg is
   procedure bfm_write (
     signal   net         : inout std_logic;
     variable bfm         : inout axi_stream_bfm_t;
-    constant data        : byte_array_t;
+    constant data        : std_logic_vector_2d_t;
     constant id          : std_logic_vector;
     constant probability : real := 1.0;
     constant blocking    : boolean := True);
@@ -79,7 +79,7 @@ package body axi_stream_bfm_pkg is
     variable bfm         : axi_stream_bfm_t;
     constant sender_name : string := "axi_stream_bfm_t(" & reader_name & ")";
   begin
-    return (dest      => find(reader_name),
+    return (dest        => find(reader_name),
             sender      => new_actor(sender_name),
             outstanding => 0,
             logger      => get_logger(sender_name));
@@ -93,10 +93,10 @@ package body axi_stream_bfm_pkg is
   end;
 
   impure function pop(msg : msg_t) return axi_stream_frame_t is
-    constant probability : real               := pop(msg);
-    constant id          : std_logic_vector   := pop(msg);
-    constant data        : byte_array_t       := pop(msg);
-    constant frame       : axi_stream_frame_t := (data => data, id => id, probability => probability);
+    constant probability : real                  := pop(msg);
+    constant id          : std_logic_vector      := pop(msg);
+    constant data        : std_logic_vector_2d_t := pop(msg);
+    constant frame       : axi_stream_frame_t    := (data => data, id => id, probability => probability);
   begin
     return frame;
   end;
@@ -143,7 +143,7 @@ package body axi_stream_bfm_pkg is
   procedure bfm_write (
     signal   net         : inout std_logic;
     variable bfm         : inout axi_stream_bfm_t;
-    constant data        : byte_array_t;
+    constant data        : std_logic_vector_2d_t;
     constant id          : std_logic_vector;
     constant probability : real := 1.0;
     constant blocking    : boolean := True) is
