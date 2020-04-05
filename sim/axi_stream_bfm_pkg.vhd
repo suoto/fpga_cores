@@ -72,11 +72,19 @@ package axi_stream_bfm_pkg is
     constant reader_name : in string := AXI_STREAM_MASTER_DEFAULT_NAME )
   return axi_stream_bfm_t;
 
-  procedure bfm_write (
+  procedure axi_bfm_write (
     signal   net         : inout std_logic;
     variable bfm         : inout axi_stream_bfm_t;
     constant data        : std_logic_vector_2d_t;
-    constant tid         : std_logic_vector;
+    constant tid         : std_logic_vector := (-1 downto 0 => 'U');
+    constant probability : real := 1.0;
+    constant blocking    : boolean := True);
+
+  procedure axi_bfm_write (
+    signal   net         : inout std_logic;
+    variable bfm         : inout axi_stream_bfm_t;
+    constant data        : data_tuple_array_t;
+    constant tid         : std_logic_vector := (-1 downto 0 => 'U');
     constant probability : real := 1.0;
     constant blocking    : boolean := True);
 
@@ -220,11 +228,11 @@ package body axi_stream_bfm_pkg is
     info(bfm.logger, "All transfers finished");
   end;
 
-  procedure bfm_write (
+  procedure axi_bfm_write (
     signal   net         : inout std_logic;
     variable bfm         : inout axi_stream_bfm_t;
     constant data        : std_logic_vector_2d_t;
-    constant tid         : std_logic_vector;
+    constant tid         : std_logic_vector := (-1 downto 0 => 'U');
     constant probability : real := 1.0;
     constant blocking    : boolean := True) is
     variable msg         : msg_t := new_msg(sender => bfm.sender);
@@ -250,11 +258,11 @@ package body axi_stream_bfm_pkg is
     wait_reply(net, bfm);
   end;
 
-  procedure bfm_write (
+  procedure axi_bfm_write (
     signal   net         : inout std_logic;
     variable bfm         : inout axi_stream_bfm_t;
     constant data        : data_tuple_array_t;
-    constant tid         : std_logic_vector;
+    constant tid         : std_logic_vector := (-1 downto 0 => 'U');
     constant probability : real := 1.0;
     constant blocking    : boolean := True) is
     variable msg         : msg_t := new_msg(sender => bfm.sender);

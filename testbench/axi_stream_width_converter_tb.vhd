@@ -202,7 +202,7 @@ begin
 
       send_frame(frame);
 
-      bfm_write(net,
+      axi_bfm_write(net,
         bfm         => master,
         data        => reinterpret(data, INPUT_DATA_WIDTH),
         tid         => id,
@@ -215,6 +215,7 @@ begin
     procedure run_test ( constant frames : positive ) is
     begin
       for i in 0 to frames - 1 loop
+        info(sformat("Writing frame %d", fo(i)));
         test_frame(
           id => rand.RandSlv(AXI_TID_WIDTH),
           data => random(rand.RandInt(INPUT_BYTE_WIDTH*OUTPUT_BYTE_WIDTH) + 1)

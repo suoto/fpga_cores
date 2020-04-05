@@ -1,3 +1,4 @@
+-- vim: set foldmethod=marker foldmarker=--\ {{,--\ }} :
 --
 -- FPGA Cores -- A(nother) HDL library
 --
@@ -91,6 +92,7 @@ architecture axi_stream_bfm of axi_stream_bfm is
     return result;
   end;
 
+  subtype tdata_array_t is std_logic_vector_2d_t(open)(TDATA_WIDTH - 1 downto 0);
   subtype tuser_array_t is std_logic_vector_2d_t(open)(TUSER_WIDTH - 1 downto 0);
 
   ---------------
@@ -120,19 +122,16 @@ begin
   ---------------
   -- Processes --
   ---------------
-  main_p : process
+  main_p : process -- {{ ---------------------------------------------------------------
     variable msg : msg_t;
 
-    ------------------------------------------------------------------
-    procedure write (
+    procedure write ( -- {{ ------------------------------------------------------------
       constant data : std_logic_vector(TDATA_WIDTH - 1 downto 0);
       constant user : std_logic_vector(TUSER_WIDTH - 1 downto 0);
       constant mask : std_logic_vector(DATA_BYTE_WIDTH - 1 downto 0);
       variable id   : std_logic_vector(TID_WIDTH - 1 downto 0);
       constant last : boolean := False) is
     begin
-      debug(sformat("Writing: %r %r %s", fo(data), fo(mask), fo(last)));
-
       if not wr_en then
         wait until wr_en;
       end if;
@@ -154,10 +153,9 @@ begin
       m_tid    <= (others => 'U');
       m_tvalid <= '0';
       m_tlast  <= '0';
-    end;
+    end procedure; -- }} ---------------------------------------------------------------
 
-    ------------------------------------------------------------------------------------
-    procedure write_data (
+    procedure write_data ( -- {{ -------------------------------------------------------
       constant tdata       : byte_array_t;
       constant tuser       : tuser_array_t;
       constant probability : real range 0.0 to 1.0 := 1.0;
@@ -183,6 +181,11 @@ begin
 
         cfg_probability <= probability;
       end if;
+
+      info(
+        logger,
+        sformat("Writing frame with %d words (id=%r)", fo(tdata'length), fo(tid))
+      );
 
       write_id := tid;
 
@@ -215,11 +218,12 @@ begin
         report "This shouldn't really happen should it"
         severity Failure;
 
-    end;
+      end procedure; -- }} -------------------------------------------------------------
 
-    ------------------------------------------------------------------------------------
-    procedure handle_frame_user ( constant frame : axi_stream_tuser_frame_t ) is
-      variable tdata : byte_array_t(frame.data'range);
+    procedure handle_frame_user ( -- {{ ------------------------------------------------
+      constant frame : axi_stream_tuser_frame_t
+    ) is
+      variable tdata : tdata_array_t(frame.data'range);
       variable tuser : tuser_array_t(frame.data'range);
     begin
       -- Convert a list of tuples into two lists
@@ -229,16 +233,17 @@ begin
       end loop;
 
       write_data(
-        tdata       => tdata,
+        tdata       => reinterpret(tdata, 8),
         tuser       => tuser,
         probability => frame.probability,
         tid         => frame.tid
       );
 
-    end;
+    end procedure; -- }} ---------------------------------------------------------------
 
-    ------------------------------------------------------------------------------------
-    procedure handle_frame ( constant frame : axi_stream_frame_t ) is
+    procedure handle_frame ( -- {{ -----------------------------------------------------
+      constant frame : axi_stream_frame_t
+    ) is 
     begin
 
       write_data(
@@ -248,25 +253,28 @@ begin
         tid         => frame.tid
       );
 
-    end;
-
-    ------------------------------------------------------------------------------------
+    end procedure; -- }} ---------------------------------------------------------------
 
   begin
     m_tvalid <= '0';
-    m_tlast <= '0';
+    m_tlast  <= '0';
 
+    debug(logger, "Waiting for frames");
     receive(net, self, msg);
+
     if TUSER_WIDTH = 0 then
       handle_frame(pop(msg));
     else
       handle_frame_user(pop(msg));
     end if;
+
     acknowledge(net, msg);
 
-  end process;
+    info(logger, "Writing frame completed");
 
-  duty_cycle_p : process(clk, rst)
+  end process; -- }} -------------------------------------------------------------------
+
+  duty_cycle_p : process(clk, rst) -- {{ -----------------------------------------------
     variable rand : RandomPType;
   begin
     if rst = '1' then
@@ -275,6 +283,6 @@ begin
     elsif rising_edge(clk) then
       wr_en <= rand.RandReal(1.0) < cfg_probability;
     end if;
-  end process;
+  end process; -- }} -------------------------------------------------------------------
 
 end axi_stream_bfm;
