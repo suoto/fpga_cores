@@ -72,9 +72,10 @@ end axi_file_compare;
 
 architecture axi_file_compare of axi_file_compare is
 
-  -----------
-  -- Types --
-  -----------
+  ---------------
+  -- Constants --
+  ---------------
+  constant logger : logger_t := get_logger(READER_NAME);
 
   -------------
   -- Signals --
@@ -146,7 +147,9 @@ begin
       tdata_error_cnt_i <= (others => '0');
       tlast_error_cnt_i <= (others => '0');
       error_cnt_i       <= (others => '0');
-      frame_cnt         <= 0;
+      if word_cnt /= 0 then
+        warning(logger, "Reset asserted but there's an unfinished frame");
+      end if;
       word_cnt          <= 0;
     elsif rising_edge(clk) then
 
@@ -175,6 +178,7 @@ begin
           tdata_error_cnt_i <= tdata_error_cnt_i + 1;
 
           warning(
+            logger,
             sformat(
               "TDATA error in frame %d, word %d: Expected %r but got %r",
               fo(frame_cnt), fo(word_cnt), fo(expected_tdata_i), fo(s_tdata)));
@@ -188,6 +192,7 @@ begin
           tlast_error_cnt_i <= tlast_error_cnt_i + 1;
 
           warning(
+            logger,
             sformat(
               "TLAST error in frame %d, word %d: Expected %r but got %r",
               fo(frame_cnt), fo(word_cnt), fo(to_boolean(expected_tlast_i)), fo(to_boolean(s_tlast))));

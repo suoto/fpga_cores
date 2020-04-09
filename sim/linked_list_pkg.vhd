@@ -45,7 +45,7 @@ package linked_list_pkg is
     next_ptr : ptr_t;
   end record;
 
-  -- Linked list core API
+  -- Doulbe linked list core API
   type linked_list_t is protected
     procedure push_back (variable item : inout type_t);
     impure function pop_front return type_t;
