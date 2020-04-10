@@ -1,3 +1,4 @@
+-- vim: set foldmethod=marker foldmarker=--\ {{,--\ }} :
 --
 -- DVB IP
 --
@@ -45,15 +46,28 @@ package linked_list_pkg is
     next_ptr : ptr_t;
   end record;
 
-  -- Doulbe linked list core API
+  -- Double linked list core API
   type linked_list_t is protected
-    procedure push_back (variable item : inout type_t);
+    -- General push back/front for non access types or records not containing access types
+    -- elements
+    procedure push_back (constant item : in type_t);
+    -- procedure push_front(constant item : in type_t);
+
+    -- Specific push back for access types or records containing access types elements
+    procedure push_back_access (variable item : inout type_t);
+    -- procedure push_front_access (variable item : inout type_t);
+
     impure function pop_front return type_t;
+    -- impure function pop_back return type_t;
+
+    impure function front return type_t;
+    impure function back return type_t;
+
     impure function get(index : natural) return type_t;
     impure function items return array_t;
     impure function size return integer;
     impure function empty return boolean;
-    procedure reset;
+    procedure clear;
   end protected;
 
 end linked_list_pkg;
@@ -61,12 +75,36 @@ end linked_list_pkg;
 package body linked_list_pkg is
 
   type linked_list_t is protected body
-    variable m_head   : ptr_t := null;
     variable m_tail   : ptr_t := null;
+    variable m_head   : ptr_t := null;
     variable m_size   : natural := 0;
     constant m_logger : logger_t := get_logger("linked_list_logger");
 
-    procedure push_back (variable item : inout type_t) is
+    -- Adds an element to the end of the list
+    procedure push_back (constant item : in type_t) is -- {{ -----------------------------------------------
+      variable new_item : ptr_t;
+      variable node     : ptr_t;
+    begin
+      new_item      := new link_t;
+      new_item.data := item;
+
+      if m_tail = null then
+        m_tail        := new_item;
+      else
+        node          := m_tail;
+        node.next_ptr := new_item;
+        m_tail        := m_tail.next_ptr;
+      end if;
+
+      if m_head = null and m_size = 0 then
+        m_head := m_tail;
+      end if;
+
+      m_size := m_size + 1;
+    end; -- }}
+
+    -- Adds an element to the beginning of the list
+    procedure push_front (constant item : in type_t) is -- {{ ----------------------------------------------
       variable new_item : ptr_t;
       variable node     : ptr_t;
     begin
@@ -81,21 +119,86 @@ package body linked_list_pkg is
         m_head        := m_head.next_ptr;
       end if;
 
-      if m_tail = null and m_size = 0 then
-        m_tail := m_head;
+      if m_head = null and m_size = 0 then
+        m_head := m_head;
+      end if;
+
+      m_size := m_size + 1;
+    end; -- }}
+
+    -- Access type capable method to add element to the end of the list
+    procedure push_back_access (variable item : inout type_t) is -- {{ -------------------------------------
+      variable new_item : ptr_t;
+      variable node     : ptr_t;
+    begin
+      new_item      := new link_t;
+      new_item.data := item;
+
+      if m_tail = null then
+        m_tail        := new_item;
+      else
+        node          := m_tail;
+        node.next_ptr := new_item;
+        m_tail        := m_tail.next_ptr;
+      end if;
+
+      if m_head = null and m_size = 0 then
+        m_head := m_tail;
+      end if;
+
+      m_size := m_size + 1;
+    end; -- }}
+
+    -- Access type capable method to add element to the end of the list
+    procedure push_front_access (variable item : inout type_t) is -- {{ ------------------------------------
+      variable new_item : ptr_t;
+      variable node     : ptr_t;
+    begin
+      new_item      := new link_t;
+      new_item.data := item;
+
+      if m_head = null then
+        m_head        := new_item;
+      else
+        node          := m_head;
+        node.next_ptr := new_item;
+        m_head        := m_head.next_ptr;
+      end if;
+
+      if m_head = null and m_size = 0 then
+        m_head := m_head;
       end if;
 
       m_size := m_size + 1;
       
-    end;
+    end; -- }}
 
-    impure function pop_front return type_t is
+    impure function pop_front return type_t is -- {{ -------------------------------------------------------
       variable node : ptr_t;
       variable item : type_t;
     begin
-      assert m_tail /= null and m_size /= 0
-        report "List is empty"
-        severity Failure;
+      -- assert m_head /= null and m_size /= 0
+      --   report "List is empty"
+      --   severity Failure;
+
+      node   := m_head;
+      m_head := m_head.next_ptr;
+      item   := node.data;
+      deallocate(node);
+
+      m_size    := m_size - 1;
+
+      return item;
+
+    end; -- }}
+
+    impure function pop_back return type_t is -- {{ --------------------------------------------------------
+      variable node : ptr_t;
+      variable item : type_t;
+    begin
+      -- assert m_tail /= null and m_size /= 0
+      --   report "List is empty"
+      --   severity Failure;
 
       node   := m_tail;
       m_tail := m_tail.next_ptr;
@@ -106,21 +209,31 @@ package body linked_list_pkg is
 
       return item;
 
-    end;
+    end; -- }}
 
-    impure function get(index : natural) return type_t is
+    impure function front return type_t is -- {{ -----------------------------------------------------------
+    begin
+      return m_head.data;
+    end; -- }}
+
+    impure function back return type_t is -- {{ ------------------------------------------------------------
+    begin
+      return m_tail.data;
+    end; -- }}
+
+    impure function get(index : natural) return type_t is -- {{ --------------------------------------------
       variable current : ptr_t;
     begin
-      current := m_tail;
+      current := m_head;
 
       for i in 0 to index - 1 loop
         current := current.next_ptr;
       end loop;
 
       return current.data;
-    end;
+    end; -- }}
 
-    impure function items return array_t is
+    impure function items return array_t is -- {{ ----------------------------------------------------------
       variable list    : array_t(0 to m_size - 1);
       variable current : ptr_t;
     begin
@@ -128,7 +241,7 @@ package body linked_list_pkg is
         return list;
       end if;
 
-      current := m_tail;
+      current := m_head;
 
       for i in 0 to m_size - 1 loop
         list(i) := current.data;
@@ -136,24 +249,30 @@ package body linked_list_pkg is
       end loop;
 
       return list;
-    end;
+    end; -- }}
 
-    impure function empty return boolean is
+    impure function empty return boolean is -- {{ ----------------------------------------------------------
     begin
       return m_size = 0;
-    end;
+    end; -- }}
 
-    impure function size return integer is
+    impure function size return integer is -- {{ -----------------------------------------------------------
     begin
       return m_size;
-    end;
+    end; -- }}
 
-    procedure reset is
+    procedure clear is -- {{ -------------------------------------------------------------------------------
+      variable item : type_t;
     begin
-      m_size := 0;
-      m_head := null;
-      m_tail := null;
-    end;
+      while not empty loop
+        item := pop_front;
+      end loop;
+
+      assert m_size = 0;
+      assert m_tail = null;
+      assert m_head = null;
+
+    end; -- }}
 
   end protected body;
 
