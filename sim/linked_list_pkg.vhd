@@ -170,7 +170,7 @@ package body linked_list_pkg is
       end if;
 
       m_size := m_size + 1;
-      
+
     end; -- }}
 
     impure function pop_front return type_t is -- {{ -------------------------------------------------------

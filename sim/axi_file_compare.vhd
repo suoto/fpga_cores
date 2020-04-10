@@ -114,7 +114,7 @@ begin
     -- Config and status
     completed          => completed,
     tvalid_probability => 1.0,
-    
+
     -- Data output
     m_tready           => axi_data_valid,
     m_tdata            => expected_tdata_i,
