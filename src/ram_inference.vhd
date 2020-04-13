@@ -66,7 +66,7 @@ architecture ram_inference of ram_inference is
   -------------
   -- Signals --
   -------------
-  signal ram        : data_array_t(2**ADDR_WIDTH - 1 downto 0);
+  signal ram        : data_array_t(0 to 2**ADDR_WIDTH - 1);
   signal rddata_a_i : std_logic_vector(DATA_WIDTH - 1 downto 0);
   signal rddata_b_i : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
