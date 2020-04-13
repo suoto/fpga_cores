@@ -139,7 +139,19 @@ begin
   -- Processes --
   ---------------
   process(clk, rst)
+
+    procedure notify ( constant s : string ) is
+    begin
+      case REPORT_SEVERITY is
+        when note    => info(logger, s);
+        when warning => warning(logger, s);
+        when error   => error(logger, s);
+        when failure => failure(logger, s);
+      end case;
+    end procedure;
+
     variable tready_rand : RandomPType;
+
   begin
     if rst = '1' then
       s_tready_i        <= '0';
@@ -177,11 +189,15 @@ begin
           error_cnt_i       <= error_cnt_i + 1;
           tdata_error_cnt_i <= tdata_error_cnt_i + 1;
 
-          warning(
-            logger,
+          notify(
             sformat(
               "TDATA error in frame %d, word %d: Expected %r but got %r",
-              fo(frame_cnt), fo(word_cnt), fo(expected_tdata_i), fo(s_tdata)));
+              fo(frame_cnt),
+              fo(word_cnt),
+              fo(expected_tdata_i),
+              fo(s_tdata)
+            )
+          );
 
             -- severity REPORT_SEVERITY;
         end if;
@@ -191,11 +207,15 @@ begin
           error_cnt_i       <= error_cnt_i + 1;
           tlast_error_cnt_i <= tlast_error_cnt_i + 1;
 
-          warning(
-            logger,
+          notify(
             sformat(
               "TLAST error in frame %d, word %d: Expected %r but got %r",
-              fo(frame_cnt), fo(word_cnt), fo(to_boolean(expected_tlast_i)), fo(to_boolean(s_tlast))));
+              fo(frame_cnt),
+              fo(word_cnt),
+              fo(to_boolean(expected_tlast_i)),
+              fo(to_boolean(s_tlast))
+            )
+          );
         end if;
 
       end if;
