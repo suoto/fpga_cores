@@ -31,7 +31,12 @@ package axi_pkg is
     tlast  : std_logic;
   end record;
 
-  subtype axi_stream_data_bus_t is axi_stream_bus_t(tdata(open), tuser(-1 downto 0));
+  type axi_stream_data_bus_t is record
+    tdata  : std_logic_vector;
+    tvalid : std_logic;
+    tready : std_logic;
+    tlast  : std_logic;
+  end record;
 
 end package axi_pkg;
 
