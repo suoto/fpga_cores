@@ -64,14 +64,14 @@ package file_utils_pkg is
 
   impure function new_file_reader(constant reader_name : in string) return file_reader_t;
 
-  procedure enqueue_file(
+  procedure read_file(
     signal net           : inout network_t;
     variable file_reader : inout file_reader_t;
     constant filename    : string;
     constant ratio       : ratio_t := (8, 8);
     constant blocking    : boolean := False);
 
-  procedure enqueue_file(
+  procedure read_file(
     signal net           : inout network_t;
     variable file_reader : inout file_reader_t;
     constant filename    : string;
@@ -197,7 +197,7 @@ package body file_utils_pkg is
   end;
 
 
-  procedure enqueue_file(
+  procedure read_file(
     signal net           : inout network_t;
     variable file_reader : inout file_reader_t;
     constant filename    : string;
@@ -213,14 +213,14 @@ package body file_utils_pkg is
           sformat("Enqueued %s, outstanding transfers: %d", quote(filename), fo(file_reader.outstanding)));
   end;
 
-  procedure enqueue_file(
+  procedure read_file(
     signal net           : inout network_t;
     variable file_reader : inout file_reader_t;
     constant filename    : string;
     constant ratio       : string;
     constant blocking    : boolean := False) is
   begin
-    enqueue_file(net, file_reader, filename, parse_data_ratio(ratio, 8), blocking);
+    read_file(net, file_reader, filename, parse_data_ratio(ratio, 8), blocking);
   end;
 
 

@@ -198,7 +198,7 @@ begin
     ------------------------------------------------------------------------------------
     procedure test_no_errors_detected is
     begin
-      enqueue_file(net, reader, input_file);
+      read_file(net, reader, input_file);
       write_data_from_file(reference_file);
       wait_all_read(net, reader);
 
@@ -214,7 +214,7 @@ begin
     procedure test_tlast_error is
     begin
       info("Starting tlast error");
-      enqueue_file(net, reader, input_file);
+      read_file(net, reader, input_file);
       info("Enqueued file");
       write_data_from_file(reference_file, tlast_every => 1e9);
       info("Wrote frame");
@@ -232,7 +232,7 @@ begin
     ------------------------------------------------------------------------------------
     procedure test_tdata_single_error is
     begin
-      enqueue_file(net, reader, input_file);
+      read_file(net, reader, input_file);
       write_data_from_file(tdata_single_error_file);
       wait_all_read(net, reader);
 
@@ -248,7 +248,7 @@ begin
     procedure test_tdata_2_errors is
       constant tdata_errors : integer := to_integer(unsigned(tdata_error_cnt));
     begin
-      enqueue_file(net, reader, input_file);
+      read_file(net, reader, input_file);
       write_data_from_file(tdata_two_errors_file);
       wait_all_read(net, reader);
 
@@ -267,7 +267,7 @@ begin
     begin
       -- Setup the AXI reader first to avoid glitches on m_tvalid
       for iter in 0 to 9 loop
-        enqueue_file(net, reader, input_file);
+        read_file(net, reader, input_file);
       end loop;
 
       for iter in 0 to 9 loop

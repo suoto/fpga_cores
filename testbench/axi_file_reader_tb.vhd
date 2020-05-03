@@ -168,7 +168,7 @@ begin
       for i in config_list'range loop
         cfg := new config_t'(config_list(i));
         -- Notify the DUT
-        enqueue_file(net, file_reader, cfg.input_file.all, cfg.ratio);
+        read_file(net, file_reader, cfg.input_file.all, cfg.ratio);
         -- Notify the TB check process
         msg := new_msg;
         push(msg, cfg.reference_file.all);
