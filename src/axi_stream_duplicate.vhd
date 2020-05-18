@@ -36,13 +36,13 @@ entity axi_stream_duplicate is
   generic ( TDATA_WIDTH : integer  := 8 );
   port (
     -- Usual ports
-    clk     : in  std_logic;
-    rst     : in  std_logic;
+    clk       : in  std_logic;
+    rst       : in  std_logic;
 
     -- AXI stream input
-    s_tready : out std_logic;
-    s_tdata  : in  std_logic_vector(TDATA_WIDTH - 1 downto 0);
-    s_tvalid : in  std_logic;
+    s_tready  : out std_logic;
+    s_tdata   : in  std_logic_vector(TDATA_WIDTH - 1 downto 0);
+    s_tvalid  : in  std_logic;
     -- AXI stream output 0
     m0_tready : in  std_logic;
     m0_tdata  : out std_logic_vector(TDATA_WIDTH - 1 downto 0);
@@ -58,9 +58,14 @@ architecture axi_stream_duplicate of axi_stream_duplicate is
   -------------
   -- Signals --
   -------------
-  signal s_axi_dv  : std_logic;
-  signal m0_axi_dv : std_logic;
-  signal m1_axi_dv : std_logic;
+  signal s_axi_dv    : std_logic;
+  signal m0_axi_dv   : std_logic;
+  signal m1_axi_dv   : std_logic;
+
+  -- Outputs
+  signal s_tready_i  : std_logic;
+  signal m0_tvalid_i : std_logic;
+  signal m1_tvalid_i : std_logic;
 
 begin
 
@@ -71,12 +76,16 @@ begin
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
-  s_tready <= m0_tready and m1_tready;
+  s_tready_i <= m0_tready and m1_tready;
 
-  s_axi_dv <= '1' when s_tvalid = '1' and s_tready = '1' else '0';
+  s_axi_dv <= '1' when s_tvalid = '1' and s_tready_i = '1' else '0';
 
-  m0_axi_dv <= '1' when m0_tvalid = '1' and m0_tready = '1' else '0';
-  m1_axi_dv <= '1' when m1_tvalid = '1' and m1_tready = '1' else '0';
+  m0_axi_dv <= '1' when m0_tvalid_i = '1' and m0_tready = '1' else '0';
+  m1_axi_dv <= '1' when m1_tvalid_i = '1' and m1_tready = '1' else '0';
+
+  s_tready  <= s_tready_i;
+  m0_tvalid <= m0_tvalid_i;
+  m1_tvalid <= m1_tvalid_i;
 
   ---------------
   -- Processes --
@@ -84,26 +93,26 @@ begin
   process(clk, rst)
   begin
     if rst = '1' then
-      m0_tvalid <= '0';
-      m1_tvalid <= '0';
-      m0_tdata  <= (others => 'U');
-      m1_tdata  <= (others => 'U');
+      m0_tvalid_i <= '0';
+      m1_tvalid_i <= '0';
+      m0_tdata    <= (others => 'U');
+      m1_tdata    <= (others => 'U');
     elsif clk'event and clk = '1' then
       if m0_axi_dv = '1' then
-        m0_tvalid <= '0';
-        m0_tdata  <= (others => 'U');
+        m0_tvalid_i <= '0';
+        m0_tdata    <= (others => 'U');
       end if;
 
       if m1_axi_dv = '1' then
-        m1_tvalid <= '0';
-        m1_tdata  <= (others => 'U');
+        m1_tvalid_i <= '0';
+        m1_tdata    <= (others => 'U');
       end if;
 
       if s_axi_dv = '1' then
-        m0_tvalid <= '1';
-        m1_tvalid <= '1';
-        m0_tdata  <= s_tdata;
-        m1_tdata  <= s_tdata;
+        m0_tvalid_i <= '1';
+        m1_tvalid_i <= '1';
+        m0_tdata    <= s_tdata;
+        m1_tdata    <= s_tdata;
       end if;
     end if;
   end process;

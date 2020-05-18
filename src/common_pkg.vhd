@@ -37,6 +37,7 @@ package common_pkg is
       -- pragma translate_on
       ;
 
+  type integer_vector is array (natural range <>) of integer;
   type integer_2d_array_t is array (natural range <>) of integer_vector;
 
   function to_string( constant v : integer_vector ) return string;
@@ -66,6 +67,9 @@ package common_pkg is
   function max (constant v : integer_vector) return integer;
 
   function sum (constant v : integer_vector) return integer;
+
+  function to_01_sim (constant v : std_logic) return std_logic;
+  function to_01_sim (constant v : std_logic_vector) return std_logic_vector;
 
   function extract (
     constant v      : in std_logic_vector;
@@ -304,12 +308,31 @@ package body common_pkg is
     constant result : std_logic_vector := extract(v => v, index => index, widths => widths);
   begin
 
+    -- synthesis translate_off
     assert widths(index) = 1
       report "Associated width when extracting std_logic must be 1 but got " & to_string(widths(index))
       severity Error;
+    -- synthesis translate_on
 
     return result(result'low);
-
   end;
+
+  function to_01_sim (constant v : std_logic) return std_logic is
+  begin
+    -- synthesis translate_off
+    return to_01(v);
+    -- synthesis translate_on
+    return v;
+  end;
+
+  function to_01_sim (constant v : std_logic_vector) return std_logic_vector is
+  begin
+    -- synthesis translate_off
+    return to_01(v);
+    -- synthesis translate_on
+    return v;
+  end;
+
+  -- function to_01_sim (constant v : std_logic_vector) return std_logic_vector;
 
 end package body;

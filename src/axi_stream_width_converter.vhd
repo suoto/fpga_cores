@@ -117,7 +117,7 @@ begin
     m_tkeep    <= s_tkeep;
     m_tvalid_i <= s_tvalid;
     m_tlast_i  <= s_tlast;
-    m_tid      <= s_tid when s_first_word else s_tid_reg;
+    m_tid      <= s_tid when s_first_word = '1' else s_tid_reg;
 
     process(clk)
     begin
@@ -139,6 +139,12 @@ begin
     -- Port mappings --
     -------------------
     g_tid_fifo : if AXI_TID_WIDTH > 0 generate
+      signal wr_en : std_logic;
+      signal rd_en : std_logic;
+    begin
+      wr_en <= s_first_word and s_data_valid;
+      rd_en <= m_tlast_i and m_tvalid_i and m_tready;
+
       -- Need a small FIFO for the TID
       tid_fifo_u : entity work.sync_fifo
         generic map (
@@ -155,16 +161,16 @@ begin
           rst     => rst,
 
           -- Status
-          full    => open, --full ,
-          upper   => open, --upper,
-          lower   => open, --lower,
-          empty   => open, --empty,
+          full    => open,
+          upper   => open,
+          lower   => open,
+          empty   => open,
 
-          wr_en   => s_first_word and s_data_valid,
+          wr_en   => wr_en,
           wr_data => s_tid,
 
           -- Read port
-          rd_en   => m_tlast_i and m_tvalid_i and m_tready, --'0',
+          rd_en   => rd_en,
           rd_data => m_tid,
           rd_dv   => open);
     end generate;
@@ -274,7 +280,7 @@ begin
 
   g_upsize : if INPUT_DATA_WIDTH < OUTPUT_DATA_WIDTH generate -- {{
     assert False
-      report "Conversion from " & to_string(INPUT_DATA_WIDTH) & " to " & to_string(OUTPUT_DATA_WIDTH) & " is not currently supported"
+      report "Conversion from " & integer'image(INPUT_DATA_WIDTH) & " to " & integer'image(OUTPUT_DATA_WIDTH) & " is not currently supported"
       severity Failure;
   end generate g_upsize; -- }}
 

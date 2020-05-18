@@ -59,6 +59,7 @@ architecture pipeline_context_ram of pipeline_context_ram is
   signal ram_rddata     : std_logic_vector(DATA_WIDTH - 1 downto 0);
   signal context_in_reg : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
+  signal addr_out_i     : std_logic_vector(ADDR_WIDTH - 1 downto 0);
   signal addr_sr        : addr_array_t(3 downto 0);
   signal en_sr          : std_logic_vector(3 downto 0);
 
@@ -92,12 +93,14 @@ begin
   -- Asynchronous assignments --
   ------------------------------
   -- Return data from the SRs if we have it in our internal pipelines
-  context_out <= context_in when addr_out = addr_sr(1) and en_sr(1) = '1' else
-                 context_in_reg when addr_out = addr_sr(2) and en_sr(2) = '1' else
+  context_out <= context_in when addr_out_i = addr_sr(1) and en_sr(1) = '1' else
+                 context_in_reg when addr_out_i = addr_sr(2) and en_sr(2) = '1' else
                  ram_rddata;
 
-  en_out   <= en_sr(0);
-  addr_out <= addr_sr(0);
+  en_out     <= en_sr(0);
+  addr_out_i <= addr_sr(0);
+
+  addr_out   <= addr_out_i;
 
   ---------------
   -- Processes --

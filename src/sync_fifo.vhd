@@ -169,6 +169,7 @@ begin
     end if;
   end process;
 
+  -- synthesis translate_off
   g_check : if IS_SIMULATION generate
       signal rst_prev : std_logic;
   begin
@@ -190,7 +191,7 @@ begin
 
       end if;
     end process;
-
   end generate;
+  -- synthesis translate_on
 
 end sync_fifo;

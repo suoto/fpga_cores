@@ -39,6 +39,3 @@ package axi_pkg is
   end record;
 
 end package axi_pkg;
-
-package body axi_pkg is
-end package body;
