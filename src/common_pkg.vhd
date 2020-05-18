@@ -37,7 +37,9 @@ package common_pkg is
       -- pragma translate_on
       ;
 
+  -- ghdl translate_off
   type integer_vector is array (natural range <>) of integer;
+  -- ghdl translate_on
   type integer_2d_array_t is array (natural range <>) of integer_vector;
 
   function to_string( constant v : integer_vector ) return string;

@@ -6,6 +6,7 @@
 
 import os.path as p
 import random
+import re
 import struct
 
 from vunit import VUnit  # type: ignore
@@ -13,11 +14,36 @@ from vunit import VUnit  # type: ignore
 ROOT = p.abspath(p.dirname(__file__))
 
 
+class GhdlPragmaHandler:
+    """
+    Removes code between arbitraty pragmas
+    -- ghdl translate_off
+    this is ignored
+    -- ghdl translate_on
+    """
+
+    _PRAGMA = re.compile(
+        r"\s*--\s*ghdl\s+translate_off[\r\n].*?[\n\r]\s*--\s*ghdl\s+translate_on",
+        flags=re.DOTALL | re.I | re.MULTILINE,
+    )
+
+    def run(self, code, file_name):  # pylint: disable=unused-argument,no-self-use
+        for word in ("ghdl", "translate_on", "translate_off"):
+            if word not in code:
+                return code
+
+        result = self._PRAGMA.sub(r"", code)
+
+        return result
+
+
 def main():
     cli = VUnit.from_argv()
     cli.add_osvvm()
     cli.enable_location_preprocessing()
     cli.add_com()
+    if cli.get_simulator_name() == "ghdl":
+        cli.add_preprocessor(GhdlPragmaHandler())
 
     cli.add_library("fpga_cores").add_source_files(p.join(ROOT, "src", "*.vhd"))
 
