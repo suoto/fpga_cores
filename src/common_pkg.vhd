@@ -37,12 +37,10 @@ package common_pkg is
       -- pragma translate_on
       ;
 
-  -- ghdl translate_off
-  type integer_vector is array (natural range <>) of integer;
-  -- ghdl translate_on
-  type integer_2d_array_t is array (natural range <>) of integer_vector;
+  type integer_vector_t is array (natural range <>) of integer;
+  type integer_2d_array_t is array (natural range <>) of integer_vector_t;
 
-  function to_string( constant v : integer_vector ) return string;
+  function to_string( constant v : integer_vector_t ) return string;
 
   -- Calculates the number of bits required to represent a given value
   function numbits (constant v : natural) return natural;
@@ -61,14 +59,14 @@ package common_pkg is
   function mirror_bits (constant v : std_logic_vector) return std_logic_vector;
 
   function minimum(constant a, b : integer) return integer;
-  function minimum(constant values : integer_vector) return integer;
+  function minimum(constant values : integer_vector_t) return integer;
   function to_boolean( v : std_ulogic) return boolean;
   function from_boolean( v : boolean ) return std_ulogic;
 
   function max (constant a, b : integer) return integer;
-  function max (constant v : integer_vector) return integer;
+  function max (constant v : integer_vector_t) return integer;
 
-  function sum (constant v : integer_vector) return integer;
+  function sum (constant v : integer_vector_t) return integer;
 
   function to_01_sim (constant v : std_logic) return std_logic;
   function to_01_sim (constant v : std_logic_vector) return std_logic_vector;
@@ -76,13 +74,13 @@ package common_pkg is
   function extract (
     constant v      : in std_logic_vector;
     constant index  : in natural;
-    constant widths : in integer_vector
+    constant widths : in integer_vector_t
   ) return            std_logic;
 
   function extract (
     constant v      : in std_logic_vector;
     constant index  : in natural;
-    constant widths : in integer_vector
+    constant widths : in integer_vector_t
   ) return            std_logic_vector;
 
 end common_pkg;
@@ -133,11 +131,11 @@ package body common_pkg is
   ------------------------------------------------------------------------------------
   function minimum(constant a, b : integer) return integer is
   begin
-    return minimum(integer_vector'(a, b));
+    return minimum(integer_vector_t'(a, b));
   end;
 
   ------------------------------------------------------------------------------------
-  function minimum(constant values : integer_vector) return integer is
+  function minimum(constant values : integer_vector_t) return integer is
     variable result : integer := integer'high;
   begin
     assert values'length /= 0
@@ -179,7 +177,7 @@ package body common_pkg is
   end;
 
   --------------------------------------------------------------------------------------
-  function max (constant v : integer_vector) return integer is
+  function max (constant v : integer_vector_t) return integer is
     variable result : integer := integer'low;
   begin
     assert v'length /= 0
@@ -195,7 +193,7 @@ package body common_pkg is
   end;
 
   --------------------------------------------------------------------------------------
-  function sum (constant v : integer_vector) return integer is
+  function sum (constant v : integer_vector_t) return integer is
     variable sum : natural;
   begin
     for i in v'range loop
@@ -257,7 +255,7 @@ package body common_pkg is
 
   -- 
   function to_string(
-    constant v : integer_vector) return string is
+    constant v : integer_vector_t) return string is
     variable L : line;
   begin
     for i in v'range loop
@@ -271,7 +269,7 @@ package body common_pkg is
   end;
 
   -- Replace v'ascending to work around GHDL limitation
-  function ascending ( constant v : integer_vector ) return boolean is
+  function ascending ( constant v : integer_vector_t ) return boolean is
   begin
     if v'right > v'left then
       return True;
@@ -283,7 +281,7 @@ package body common_pkg is
   function extract (
     constant v      : in std_logic_vector;
     constant index  : in natural;
-    constant widths : in integer_vector
+    constant widths : in integer_vector_t
   ) return            std_logic_vector is
     variable start  : natural;
   begin
@@ -305,7 +303,7 @@ package body common_pkg is
   function extract (
     constant v      : in std_logic_vector;
     constant index  : in natural;
-    constant widths : in integer_vector
+    constant widths : in integer_vector_t
   ) return            std_logic is
     constant result : std_logic_vector := extract(v => v, index => index, widths => widths);
   begin
