@@ -78,6 +78,7 @@ architecture axi_file_reader of axi_file_reader is
   -------------
   -- Signals --
   -------------
+  signal m_tdata_i      : std_logic_vector(DATA_WIDTH - 1 downto 0);
   signal m_tvalid_i     : std_logic;
   signal m_tvalid_wr    : std_logic;
   signal m_tvalid_en    : std_logic := '0';
@@ -99,6 +100,8 @@ begin
 
   m_tlast        <= m_tlast_i;
   axi_data_valid <= m_tvalid_i = '1' and m_tready = '1';
+
+  m_tdata <= m_tdata_i when m_tvalid_i = '1' else (others => 'U');
 
   ---------------
   -- Processes --
@@ -244,7 +247,7 @@ begin
     if rst = '1' then
       m_tvalid_wr <= '0';
       m_tlast_i   <= '0';
-      m_tdata     <= (others => 'U');
+      m_tdata_i   <= (others => 'U');
       completed   <= '0';
       -- bit_list.reset;
       if file_status /= closed then
@@ -258,7 +261,7 @@ begin
         completed   <= '0';
         m_tvalid_wr <= '0';
         m_tlast_i   <= '0';
-        m_tdata     <= (others => 'U');
+        m_tdata_i   <= (others => 'U');
         word_cnt    := word_cnt + 1;
         dbg_word_cnt <= dbg_word_cnt + 1;
 
@@ -318,7 +321,7 @@ begin
 
       if file_status = opened then
         m_tvalid_wr <= '1';
-        m_tdata     <= m_tdata_next;
+        m_tdata_i   <= m_tdata_next;
         if axi_data_valid then
           -- Only assert tlast when the file has been completely read and all data
           -- buffered has been read
