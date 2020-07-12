@@ -33,11 +33,12 @@ use work.common_pkg.all;
 entity sync_fifo is
   generic (
     -- FIFO configuration
-    RAM_TYPE       : string  := "bram";
-    DEPTH          : natural := 512; -- FIFO length in number of positions
-    DATA_WIDTH     : natural := 8;  -- Data width
-    UPPER_TRESHOLD : natural := 510; -- FIFO level to assert upper
-    LOWER_TRESHOLD : natural := 10);  -- FIFO level to assert lower
+    RAM_TYPE           : string  := "bram";
+    DEPTH              : natural := 512;    -- FIFO length in number of positions
+    DATA_WIDTH         : natural := 8;      -- Data width
+    UPPER_TRESHOLD     : natural := 510;    -- FIFO level to assert upper
+    LOWER_TRESHOLD     : natural := 10;     -- FIFO level to assert lower
+    EXTRA_OUTPUT_DELAY : natural := 0);     --
   port (
     -- Write port
     clk     : in  std_logic;        -- Write clock
@@ -64,15 +65,18 @@ architecture sync_fifo of sync_fifo is
   -------------
   -- Signals --
   -------------
-  signal wr_ptr     : unsigned(numbits(DEPTH) - 1 downto 0) := (others => '0');
-  signal rd_ptr     : unsigned(numbits(DEPTH) - 1 downto 0) := (others => '0');
-  signal ptr_diff   : unsigned(numbits(DEPTH) - 1 downto 0);
+  signal wr_ptr      : unsigned(numbits(DEPTH) - 1 downto 0)  := (others => '0');
+  signal rd_ptr      : unsigned(numbits(DEPTH) - 1 downto 0)  := (others => '0');
+  signal ptr_diff    : unsigned(numbits(DEPTH) - 1 downto 0);
 
-  signal inc_wr_ptr : std_logic;
-  signal inc_rd_ptr : std_logic;
+  signal rd_dv_async : std_logic; -- Read data valid (async)
+  signal rd_dv_reg   : std_logic; -- Read data valid (registered)
 
-  signal full_i     : std_logic;
-  signal empty_i    : std_logic;
+  signal inc_wr_ptr  : std_logic;
+  signal inc_rd_ptr  : std_logic;
+
+  signal full_i      : std_logic;
+  signal empty_i     : std_logic;
 
 begin
 
@@ -84,7 +88,7 @@ begin
       ADDR_WIDTH   => numbits(DEPTH),
       DATA_WIDTH   => DATA_WIDTH,
       RAM_TYPE     => RAM_TYPE,
-      OUTPUT_DELAY => 1)
+      OUTPUT_DELAY => EXTRA_OUTPUT_DELAY)
     port map (
       -- Port A
       clk_a    => clk,
@@ -109,6 +113,8 @@ begin
   inc_wr_ptr <= wr_en when clken = '1' and full_i = '0' else '0';
   inc_rd_ptr <= rd_en when clken = '1' and empty_i = '0' else '0';
 
+  rd_dv_async <= inc_rd_ptr;
+
   -- Set thesholds
   upper      <= '1' when ptr_diff >= UPPER_TRESHOLD else '0';
   lower      <= '1' when ptr_diff <= LOWER_TRESHOLD else '0';
@@ -117,20 +123,28 @@ begin
   full       <= full_i;
   empty      <= empty_i;
 
+  g_rd_dv_async : if EXTRA_OUTPUT_DELAY = 0 generate
+    rd_dv <= rd_dv_async;
+  end generate;
+
+  g_rd_dv_reg : if EXTRA_OUTPUT_DELAY /= 0 generate
+    rd_dv <= rd_dv_reg;
+  end generate;
+
   ---------------
   -- Processes --
   ---------------
   process(clk, rst)
   begin
     if rst = '1' then
-      wr_ptr   <= (others => '0');
-      rd_ptr   <= (others => '0');
-      ptr_diff <= (others => '0');
-      rd_dv    <= '0';
+      wr_ptr    <= (others => '0');
+      rd_ptr    <= (others => '0');
+      ptr_diff  <= (others => '0');
+      rd_dv_reg <= '0';
     elsif clk'event and clk = '1' then
       if clken = '1' then
 
-        rd_dv    <= '0';
+        rd_dv_reg <= '0';
 
         if inc_wr_ptr = '1' and inc_rd_ptr = '0' then
           ptr_diff <= ptr_diff + 1;
@@ -143,8 +157,8 @@ begin
         end if;
 
         if inc_rd_ptr = '1' then
-          rd_dv  <= '1';
-          rd_ptr <= rd_ptr + 1;
+          rd_dv_reg <= '1';
+          rd_ptr    <= rd_ptr + 1;
         end if;
 
       end if;
