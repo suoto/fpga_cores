@@ -84,7 +84,7 @@ begin
       ADDR_WIDTH   => numbits(DEPTH),
       DATA_WIDTH   => DATA_WIDTH,
       RAM_TYPE     => RAM_TYPE,
-      OUTPUT_DELAY => 0)
+      OUTPUT_DELAY => 1)
     port map (
       -- Port A
       clk_a    => clk,
