@@ -4,12 +4,12 @@
 -- Copyright 2014-2016 by Andre Souto (suoto)
 --
 -- This file is part of FPGA Cores.
--- 
+--
 -- FPGA Cores is free software: you can redistribute it and/or modify
 -- it under the terms of the GNU General Public License as published by
 -- the Free Software Foundation, either version 3 of the License, or
 -- (at your option) any later version.
--- 
+--
 -- FPGA Cores is distributed in the hope that it will be useful,
 -- but WITHOUT ANY WARRANTY; without even the implied warranty of
 -- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -82,6 +82,11 @@ package common_pkg is
     constant index  : in natural;
     constant widths : in integer_vector_t
   ) return            std_logic_vector;
+
+  function get_field (
+    constant field_index : integer;
+    constant v           : std_logic_vector;
+    constant widths      : integer_vector_t) return std_logic_vector;
 
 end common_pkg;
 
@@ -253,7 +258,7 @@ package body common_pkg is
     return '"' & s & '"';
   end function quote;
 
-  -- 
+  --
   function to_string(
     constant v : integer_vector_t) return string is
     variable L : line;
@@ -333,6 +338,34 @@ package body common_pkg is
     return v;
   end;
 
-  -- function to_01_sim (constant v : std_logic_vector) return std_logic_vector;
+  function get_field (
+    constant field_index : integer;
+    constant v           : std_logic_vector;
+    constant widths      : integer_vector_t) return std_logic_vector is
+    variable lsb         : integer := 0;
+    variable msb         : integer := 0;
+  begin
+    assert sum(widths) = v'length
+      report "Conflicting widths: sum(widths) = " & integer'image(sum(widths)) &
+             " but v'length is " & integer'image(v'length)
+      severity Failure;
+
+      if field_index > 0 then
+        if widths'ascending then
+          lsb := sum(widths(widths'left to field_index - 1));
+        else
+          lsb := sum(widths(field_index - 1 downto widths'right));
+        end if;
+      end if;
+
+      msb := lsb + widths(field_index);
+
+      if v'ascending then
+        return v(lsb to msb - 1);
+      else
+        return v(msb - 1 downto lsb);
+      end if;
+
+  end;
 
 end package body;
