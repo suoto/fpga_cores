@@ -87,9 +87,15 @@ architecture ram_inference of ram_inference is
   -------------
   -- Signals --
   -------------
-  signal ram        : data_array_t(0 to 2**ADDR_WIDTH - 1);
-  signal rddata_a_i : std_logic_vector(DATA_WIDTH - 1 downto 0);
-  signal rddata_b_i : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal ram                 : data_array_t(0 to 2**ADDR_WIDTH - 1);
+
+  signal rddata_a_async      : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal rddata_a_sync       : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal rddata_a_delay      : std_logic_vector(DATA_WIDTH - 1 downto 0);
+
+  signal rddata_b_async      : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal rddata_b_sync       : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal rddata_b_delay      : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
   attribute RAM_STYLE        : string;
   attribute RAM_STYLE of ram : signal is RESOLVED_RAM_STYLE;
@@ -102,65 +108,53 @@ begin
     report "Invalid RAM_STYLE: " & quote(RAM_TYPE)
     severity Warning;
 
+  assert OUTPUT_DELAY /= 0 or RESOLVED_RAM_STYLE /= "bram"
+    report "Can't use RAM_TYPE " & quote(RESOLVED_RAM_STYLE) & " with output delay set to " & integer'image(OUTPUT_DELAY)
+    severity Failure;
+
   -------------------
   -- Port mappings --
   -------------------
-  gen_not_bram_delay : if RESOLVED_RAM_STYLE /= "block" generate
-    rddata_a_delay : entity work.sr_delay
+  gen_sr_delay : if OUTPUT_DELAY > 1 generate
+    rddata_a_delay_u : entity work.sr_delay
       generic map (
-        DELAY_CYCLES => OUTPUT_DELAY,
-        DATA_WIDTH   => DATA_WIDTH)
+        DELAY_CYCLES  => OUTPUT_DELAY - 1,
+        DATA_WIDTH    => DATA_WIDTH,
+        EXTRACT_SHREG => False)
       port map (
         clk     => clk_a,
         clken   => clken_a,
 
-        din     => rddata_a_i,
-        dout    => rddata_a);
+        din     => rddata_a_sync,
+        dout    => rddata_a_delay);
 
-    rddata_a_i <= ram(to_integer(unsigned(addr_a)));
-
-  end generate;
-
-  -- Need this workaround so that Vivado manages to infer a block RAM when specified
-  gen_bram_delay : if RESOLVED_RAM_STYLE = "block" generate
-    assert OUTPUT_DELAY /= 0
-      report "Can't use RAM_TYPE " & quote(RESOLVED_RAM_STYLE) & " with output delay set to " & integer'image(OUTPUT_DELAY)
-      severity Failure;
-
-    rddata_a_delay : entity work.sr_delay
+    rddata_b_delay_u : entity work.sr_delay
       generic map (
-        DELAY_CYCLES => OUTPUT_DELAY - 1,
-        DATA_WIDTH   => DATA_WIDTH)
+        DELAY_CYCLES  => OUTPUT_DELAY - 1,
+        DATA_WIDTH    => DATA_WIDTH,
+        EXTRACT_SHREG => False)
       port map (
-        clk     => clk_a,
-        clken   => clken_a,
+        clk     => clk_b,
+        clken   => clken_b,
 
-        din     => rddata_a_i,
-        dout    => rddata_a);
+        din     => rddata_b_sync,
+        dout    => rddata_b_delay);
+    end generate;
 
-    process(clk_a)
-    begin
-      if clk_a'event and clk_a = '1' then
-        if clken_a = '1' then
-          rddata_a_i <= ram(to_integer(unsigned(addr_a)));
-        end if;
-      end if;
-    end process;
+  ------------------------------
+  -- Asynchronous assignments --
+  ------------------------------
+  rddata_a_async <= ram(to_integer(unsigned(addr_a)));
+  rddata_b_async <= ram(to_integer(unsigned(addr_b)));
 
-  end generate;
+  rddata_a <= rddata_a_async when OUTPUT_DELAY = 0 else
+              rddata_a_sync when OUTPUT_DELAY = 1 else
+              rddata_a_delay;
 
-  rddata_b_delay : entity work.sr_delay
-    generic map (
-      DELAY_CYCLES => OUTPUT_DELAY,
-      DATA_WIDTH   => DATA_WIDTH)
-    port map (
-      clk     => clk_b,
-      clken   => clken_b,
+  rddata_b <= rddata_b_async when OUTPUT_DELAY = 0 else
+              rddata_b_sync when OUTPUT_DELAY = 1 else
+              rddata_b_delay;
 
-      din     => rddata_b_i,
-      dout    => rddata_b);
-
-  rddata_b_i <= ram(to_integer(unsigned(addr_b)));
 
   ---------------
   -- Processes --
@@ -169,9 +163,19 @@ begin
   begin
     if clk_a'event and clk_a = '1' then
       if clken_a = '1' then
+        rddata_a_sync <= ram(to_integer(unsigned(addr_a)));
         if wren_a = '1' then
           ram(to_integer(unsigned(addr_a))) <= wrdata_a;
         end if;
+      end if;
+    end if;
+  end process;
+
+  port_b : process(clk_b)
+  begin
+    if clk_b'event and clk_b = '1' then
+      if clken_b = '1' then
+        rddata_b_sync <= ram(to_integer(unsigned(addr_b)));
       end if;
     end if;
   end process;

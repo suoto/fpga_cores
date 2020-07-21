@@ -73,6 +73,8 @@ begin
       ADDR_WIDTH   => ADDR_WIDTH,
       DATA_WIDTH   => DATA_WIDTH,
       RAM_TYPE     => RAM_TYPE,
+      -- TODO: Adjust the pipeline to handle OUTPUT_DELAY = 2 to get better timing on
+      -- Xilinx devices (see message Synth 8-7053)
       OUTPUT_DELAY => 1)
     port map (
       -- Port A
