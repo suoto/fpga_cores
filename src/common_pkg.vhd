@@ -186,7 +186,7 @@ package body common_pkg is
     variable result : integer := integer'low;
   begin
     assert v'length /= 0
-      report "Can't get minimum from an empty sequence"
+      report "Can't get maximum from an empty sequence"
       severity Error;
 
     for i in v'range loop
