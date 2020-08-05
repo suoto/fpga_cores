@@ -39,7 +39,6 @@ use fpga_cores.common_pkg.all;
 
 package testbench_utils_pkg is
 
-  type std_logic_vector_2d_t is array (natural range <>) of std_logic_vector;
   subtype byte_array_t is std_logic_vector_2d_t(open)(7 downto 0);
 
   shared variable rand   : RandomPType;

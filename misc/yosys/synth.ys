@@ -6,6 +6,7 @@ ghdl --std=08                                                             \
                     src/skidbuffer.vhd                                    \
                     src/ram_inference_dport.vhd                           \
                     src/ram_inference.vhd                                 \
+                    src/rom_inference.vhd                                 \
                     src/pipeline_context_ram.vhd                          \
                     src/edge_detector.vhd                                 \
                     src/pulse_sync.vhd                                    \
