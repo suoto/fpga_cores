@@ -21,6 +21,7 @@
 ---------------------------------
 -- Block name and description --
 --------------------------------
+-- Simple dual port RAM inference
 
 ---------------
 -- Libraries --
@@ -38,7 +39,7 @@ entity ram_inference is
   generic (
     ADDR_WIDTH   : natural := 16;
     DATA_WIDTH   : natural := 16;
-    RAM_TYPE     : string  := "auto";
+    RAM_TYPE     : ram_type_t := auto;
     OUTPUT_DELAY : natural := 1);
   port (
     -- Port A
@@ -58,27 +59,6 @@ end ram_inference;
 
 architecture ram_inference of ram_inference is
 
-  -- Assign block RAM if the RAM size is bigger than 150% of a 18KB block RAM
-  function get_ram_style return string is
-    constant BRAM_SIZE     : integer := 18 * 1024;
-    constant BRAM_TRESHOLD : real    := 1.5;
-
-    constant size : natural := (2**ADDR_WIDTH) * DATA_WIDTH;
-  begin
-    if RAM_TYPE /= "auto"  then
-      return RAM_TYPE;
-    end if;
-
-    if real(size / BRAM_SIZE) > BRAM_TRESHOLD then
-      return "block";
-    end if;
-
-    return "distributed";
-
-  end function get_ram_style;
-
-  constant RESOLVED_RAM_STYLE : string := get_ram_style;
-
   -----------
   -- Types --
   -----------
@@ -97,19 +77,13 @@ architecture ram_inference of ram_inference is
   signal rddata_b_sync       : std_logic_vector(DATA_WIDTH - 1 downto 0);
   signal rddata_b_delay      : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
-  attribute RAM_STYLE        : string;
-  attribute RAM_STYLE of ram : signal is RESOLVED_RAM_STYLE;
+  attribute RAM_STYLE : string;
+  attribute RAM_STYLE of ram : signal is get_ram_style(RAM_TYPE, ADDR_WIDTH, DATA_WIDTH);
 
 begin
 
-  assert RAM_TYPE = "auto"
-      or RAM_TYPE = "block"
-      or RAM_TYPE = "distributed"
-    report "Invalid RAM_STYLE: " & quote(RAM_TYPE)
-    severity Warning;
-
-  assert OUTPUT_DELAY /= 0 or RESOLVED_RAM_STYLE /= "bram"
-    report "Can't use RAM_TYPE " & quote(RESOLVED_RAM_STYLE) & " with output delay set to " & integer'image(OUTPUT_DELAY)
+  assert OUTPUT_DELAY /= 0 or ram'ram_style /= "bram"
+    report "Can't use RAM_TYPE " & quote(ram'ram_style) & " with output delay set to " & integer'image(OUTPUT_DELAY)
     severity Failure;
 
   -------------------

@@ -25,14 +25,16 @@ library	ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use work.common_pkg.all;
+
 ------------------------
 -- Entity declaration --
 ------------------------
 entity pipeline_context_ram is
   generic (
-    ADDR_WIDTH : natural := 16;
-    DATA_WIDTH : natural := 16;
-    RAM_TYPE   : string  := "auto");
+    ADDR_WIDTH : natural    := 16;
+    DATA_WIDTH : natural    := 16;
+    RAM_TYPE   : ram_type_t := auto);
   port (
     clk         : in  std_logic;
     -- Checkout request interface

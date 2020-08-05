@@ -25,6 +25,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use work.common_pkg.all;
+
 ------------------------
 -- Entity declaration --
 ------------------------
@@ -149,7 +151,7 @@ begin
       tid_fifo_u : entity work.sync_fifo
         generic map (
           -- FIFO configuration
-          RAM_TYPE           => "distributed",
+          RAM_TYPE           => lut,
           DEPTH              => 4,
           DATA_WIDTH         => AXI_TID_WIDTH,
           UPPER_TRESHOLD     => 3,

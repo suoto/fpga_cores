@@ -37,6 +37,8 @@ package common_pkg is
       -- pragma translate_on
       ;
 
+  type ram_type_t is (auto, bram, lut, uram);
+  type std_logic_vector_2d_t is array (natural range <>) of std_logic_vector; -- Needs VHDL 2008 in Vivado
   type integer_vector_t is array (natural range <>) of integer;
   type integer_2d_array_t is array (natural range <>) of integer_vector_t;
 
@@ -87,6 +89,14 @@ package common_pkg is
     constant field_index : integer;
     constant v           : std_logic_vector;
     constant widths      : integer_vector_t) return std_logic_vector;
+
+  constant BRAM_SIZE     : integer := 18 * 1024;
+  constant BRAM_TRESHOLD : real    := 1.5;
+
+  function get_ram_style (
+    constant ram_type   : ram_type_t;
+    constant addr_width : natural;
+    constant data_width : natural) return string;
 
 end common_pkg;
 
@@ -365,7 +375,36 @@ package body common_pkg is
       else
         return v(msb - 1 downto lsb);
       end if;
-
   end;
+
+  --
+  function resolve_ram_type (constant ram_type : ram_type_t) return string is
+  begin
+    case ram_type is
+      when bram => return "block";
+      when lut => return "distributed";
+      when others => return ram_type_t'image(ram_type);
+    end case;
+  end;
+
+  -- Define RAM style based on the size if ram_type is set to auto
+  -- Assign block RAM if the rom size is bigger than 150% of a 18KB block RAM
+  function get_ram_style (
+    constant ram_type   : ram_type_t;
+    constant addr_width : natural;
+    constant data_width : natural) return string is
+    constant size       : natural := (2**ADDR_WIDTH) * DATA_WIDTH;
+  begin
+    if ram_type /= auto  then
+      return resolve_ram_type(ram_type);
+    end if;
+
+    if real(size / BRAM_SIZE) > BRAM_TRESHOLD then
+      return resolve_ram_type(bram);
+    end if;
+
+    return resolve_ram_type(lut);
+
+  end function get_ram_style;
 
 end package body;
