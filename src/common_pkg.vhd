@@ -73,22 +73,16 @@ package common_pkg is
   function to_01_sim (constant v : std_logic) return std_logic;
   function to_01_sim (constant v : std_logic_vector) return std_logic_vector;
 
-  function extract (
+  function get_field (
     constant v      : in std_logic_vector;
     constant index  : in natural;
     constant widths : in integer_vector_t
   ) return            std_logic;
 
-  function extract (
+  function get_field (
     constant v      : in std_logic_vector;
     constant index  : in natural;
-    constant widths : in integer_vector_t
-  ) return            std_logic_vector;
-
-  function get_field (
-    constant field_index : integer;
-    constant v           : std_logic_vector;
-    constant widths      : integer_vector_t) return std_logic_vector;
+    constant widths : in integer_vector_t) return std_logic_vector;
 
   constant BRAM_SIZE     : integer := 18 * 1024;
   constant BRAM_TRESHOLD : real    := 1.5;
@@ -293,34 +287,47 @@ package body common_pkg is
   end;
 
   -- Extracts a field from a std_logic_vector composed of multiple concatenated fields
-  function extract (
+  function get_field (
     constant v      : in std_logic_vector;
     constant index  : in natural;
     constant widths : in integer_vector_t
   ) return            std_logic_vector is
-    variable start  : natural;
+    variable lsb    : integer := 0;
+    variable msb    : integer := 0;
   begin
+    assert sum(widths) = v'length
+      report "Conflicting widths: sum(widths) = " & integer'image(sum(widths)) &
+             " but v'length is " & integer'image(v'length)
+      severity Failure;
 
-    if ascending(widths) then
-      start := sum(widths(0 to index - 1));
-    else
-      start := sum(widths(widths'length - 1 downto widths'length - index));
-    end if;
-
-    assert widths(index) + start <= v'length
+    assert widths(index) + lsb <= v'length
       report "Width vector " & to_string(widths) & " can't address a vector whose width is " & integer'image(v'length)
       severity Failure;
 
-    return v(start + widths(index) - 1 downto start);
+    if index > 0 then
+      if widths'ascending then
+        lsb := sum(widths(widths'left to index - 1));
+      else
+        lsb := sum(widths(index - 1 downto widths'right));
+      end if;
+    end if;
+
+    msb := lsb + widths(index);
+
+    if v'ascending then
+      return v(lsb to msb - 1);
+    else
+      return v(msb - 1 downto lsb);
+    end if;
   end;
 
   -- Extracts a field from a std_logic_vector composed of multiple concatenated fields
-  function extract (
+  function get_field (
     constant v      : in std_logic_vector;
     constant index  : in natural;
     constant widths : in integer_vector_t
   ) return            std_logic is
-    constant result : std_logic_vector := extract(v => v, index => index, widths => widths);
+    constant result : std_logic_vector := get_field(v => v, index => index, widths => widths);
   begin
 
     -- synthesis translate_off
@@ -346,35 +353,6 @@ package body common_pkg is
     return to_01(v);
     -- synthesis translate_on
     return v;
-  end;
-
-  function get_field (
-    constant field_index : integer;
-    constant v           : std_logic_vector;
-    constant widths      : integer_vector_t) return std_logic_vector is
-    variable lsb         : integer := 0;
-    variable msb         : integer := 0;
-  begin
-    assert sum(widths) = v'length
-      report "Conflicting widths: sum(widths) = " & integer'image(sum(widths)) &
-             " but v'length is " & integer'image(v'length)
-      severity Failure;
-
-      if field_index > 0 then
-        if widths'ascending then
-          lsb := sum(widths(widths'left to field_index - 1));
-        else
-          lsb := sum(widths(field_index - 1 downto widths'right));
-        end if;
-      end if;
-
-      msb := lsb + widths(field_index);
-
-      if v'ascending then
-        return v(lsb to msb - 1);
-      else
-        return v(msb - 1 downto lsb);
-      end if;
   end;
 
   --
