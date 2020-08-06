@@ -58,9 +58,10 @@ architecture rom_inference of rom_inference is
   -------------
   -- Signals --
   -------------
-  signal rddata_async      : std_logic_vector(DATA_WIDTH - 1 downto 0);
-  signal rddata_sync       : std_logic_vector(DATA_WIDTH - 1 downto 0);
-  signal rddata_delay      : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal addr_uns     : unsigned(addr'range);
+  signal rddata_async : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal rddata_sync  : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal rddata_delay : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
 begin
 
@@ -88,7 +89,10 @@ begin
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
-  rddata_async <= ROM_DATA(to_integer(unsigned(addr)));
+  addr_uns     <= unsigned(addr);
+
+  rddata_async <= ROM_DATA(to_integer(addr_uns)) when addr_uns >= ROM_DATA'low and addr_uns <= ROM_DATA'high else
+                  (others => 'U');
 
   rddata <= rddata_async when OUTPUT_DELAY = 0 else
             rddata_sync when OUTPUT_DELAY = 1 else
@@ -101,7 +105,11 @@ begin
   begin
     if clk'event and clk = '1' then
       if clken = '1' then
-        rddata_sync <= ROM_DATA(to_integer(unsigned(addr)));
+        if addr_uns >= ROM_DATA'low and addr_uns <= ROM_DATA'high then
+          rddata_sync <= ROM_DATA(to_integer(addr_uns));
+        else
+          rddata_sync <= (others => 'U');
+        end if;
       end if;
     end if;
   end process;
