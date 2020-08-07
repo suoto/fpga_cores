@@ -50,7 +50,8 @@ entity rom_inference is
   constant DATA_WIDTH : natural := ROM_DATA(0)'length;
 
   attribute ROM_STYLE : string;
-  attribute ROM_STYLE of ROM_DATA : constant is get_ram_style(ROM_TYPE, ADDR_WIDTH, DATA_WIDTH);
+  constant RESOLVED_ROM_TYPE : string := get_ram_style(ROM_TYPE, ADDR_WIDTH, DATA_WIDTH);
+  attribute ROM_STYLE of ROM_DATA : constant is RESOLVED_ROM_TYPE;
 end rom_inference;
 
 architecture rom_inference of rom_inference is
@@ -65,8 +66,8 @@ architecture rom_inference of rom_inference is
 
 begin
 
-  assert OUTPUT_DELAY /= 0 or ROM_DATA'ROM_STYLE /= "bram"
-    report "Can't use RAM_TYPE " & quote(ROM_DATA'ROM_STYLE) & " with output delay set to " & integer'image(OUTPUT_DELAY)
+  assert OUTPUT_DELAY /= 0 or RESOLVED_ROM_TYPE /= "bram"
+    report "Can't use ROM_TYPE " & quote(RESOLVED_ROM_TYPE) & " with output delay set to " & integer'image(OUTPUT_DELAY)
     severity Failure;
 
   ------------------

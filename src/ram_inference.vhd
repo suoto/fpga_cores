@@ -78,12 +78,13 @@ architecture ram_inference of ram_inference is
   signal rddata_b_delay      : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
   attribute RAM_STYLE : string;
-  attribute RAM_STYLE of ram : signal is get_ram_style(RAM_TYPE, ADDR_WIDTH, DATA_WIDTH);
+  constant RESOLVED_RAM_TYPE : string := get_ram_style(RAM_TYPE, ADDR_WIDTH, DATA_WIDTH);
+  attribute RAM_STYLE of ram : signal is RESOLVED_RAM_TYPE;
 
 begin
 
-  assert OUTPUT_DELAY /= 0 or ram'ram_style /= "bram"
-    report "Can't use RAM_TYPE " & quote(ram'ram_style) & " with output delay set to " & integer'image(OUTPUT_DELAY)
+  assert OUTPUT_DELAY /= 0 or RESOLVED_RAM_TYPE /= "bram"
+    report "Can't use RAM_TYPE " & quote(RESOLVED_RAM_TYPE) & " with output delay set to " & integer'image(OUTPUT_DELAY)
     severity Failure;
 
   -------------------
