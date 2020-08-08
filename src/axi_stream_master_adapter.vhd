@@ -53,7 +53,7 @@ architecture axi_stream_master_adapter of axi_stream_master_adapter is
   -- Constants --
   ---------------
   -- Need some more legroom to cope with internal delays
-  constant BUFFER_DEPTH : positive := MAX_SKEW_CYCLES + 2;
+  constant BUFFER_DEPTH : positive := max(MAX_SKEW_CYCLES + 2, 2*MAX_SKEW_CYCLES);
 
   -----------
   -- Types --
@@ -71,7 +71,7 @@ architecture axi_stream_master_adapter of axi_stream_master_adapter is
 
   signal wr_ptr    : unsigned(numbits(BUFFER_DEPTH) - 1 downto 0);
   signal rd_ptr    : unsigned(numbits(BUFFER_DEPTH) - 1 downto 0);
-  signal ptr_diff  : unsigned(numbits(BUFFER_DEPTH) - 1 downto 0);
+  signal ptr_diff  : unsigned(numbits(BUFFER_DEPTH) downto 0);
 
   signal wr_full_i : std_logic;
 
