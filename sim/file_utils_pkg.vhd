@@ -53,6 +53,7 @@ package file_utils_pkg is
   type file_reader_cfg_t is record
     filename : line;
     ratio    : ratio_t;
+    tid      : std_logic_vector;
   end record;
 
   type file_reader_t is record
@@ -64,11 +65,14 @@ package file_utils_pkg is
 
   impure function new_file_reader(constant reader_name : in string) return file_reader_t;
 
+  constant NULL_VECTOR : std_logic_vector(-1 downto 0) := (others => 'U');
+
   procedure read_file(
     signal net           : inout network_t;
     variable file_reader : inout file_reader_t;
     constant filename    : string;
     constant ratio       : ratio_t := (8, 8);
+    constant tid         : std_logic_vector := NULL_VECTOR;
     constant blocking    : boolean := False);
 
   procedure read_file(
@@ -76,6 +80,7 @@ package file_utils_pkg is
     variable file_reader : inout file_reader_t;
     constant filename    : string;
     constant ratio       : string;
+    constant tid         : std_logic_vector := NULL_VECTOR;
     constant blocking    : boolean := False);
 
   procedure wait_all_read (
@@ -107,7 +112,8 @@ package file_utils_pkg is
   procedure push(
     msg               : msg_t;
     constant filename : string;
-    constant ratio    : ratio_t);
+    constant ratio    : ratio_t;
+    constant tid      : std_logic_vector);
 
 end file_utils_pkg;
 
@@ -157,11 +163,13 @@ package body file_utils_pkg is
   procedure push(
     msg               : msg_t;
     constant filename : string;
-    constant ratio    : ratio_t) is
-    variable cfg      : file_reader_cfg_t;
+    constant ratio    : ratio_t;
+    constant tid      : std_logic_vector) is
+    variable cfg      : file_reader_cfg_t(tid(tid'range));
   begin
     write(cfg.filename, filename);
     cfg.ratio := ratio;
+    cfg.tid := tid;
     push(msg, cfg);
   end;
 
@@ -169,6 +177,7 @@ package body file_utils_pkg is
   begin
     push(msg, value.filename.all);
     push(msg, value.ratio);
+    push(msg, value.tid);
   end;
 
   impure function pop(msg : msg_t) return ratio_t is
@@ -178,9 +187,15 @@ package body file_utils_pkg is
   end;
 
   impure function pop(msg : msg_t) return file_reader_cfg_t is
+    -- Pop each element like this instead of inline because we need to make sure this
+    -- happens in the correct sequence
+    constant filename : string           := pop_string(msg);
+    constant ratio    : ratio_t          := pop(msg);
+    constant tid      : std_logic_vector := pop(msg);
   begin
-    return (new string'(pop_string(msg)),
-            pop(msg));
+    return (filename => new string'(filename),
+            ratio => ratio,
+            tid => tid);
   end;
 
   -- -----------------------------------------------------------------------------------
@@ -202,11 +217,12 @@ package body file_utils_pkg is
     variable file_reader : inout file_reader_t;
     constant filename    : string;
     constant ratio       : ratio_t := (8, 8);
+    constant tid         : std_logic_vector := NULL_VECTOR;
     constant blocking    : boolean := False) is
     variable msg         : msg_t := new_msg;
   begin
     msg.sender := file_reader.sender;
-    push(msg, filename, ratio);
+    push(msg, filename, ratio, tid);
     file_reader.outstanding := file_reader.outstanding + 1;
     send(net, file_reader.reader, msg);
     debug(file_reader.logger,
@@ -218,9 +234,10 @@ package body file_utils_pkg is
     variable file_reader : inout file_reader_t;
     constant filename    : string;
     constant ratio       : string;
+    constant tid         : std_logic_vector := NULL_VECTOR;
     constant blocking    : boolean := False) is
   begin
-    read_file(net, file_reader, filename, parse_data_ratio(ratio, 8), blocking);
+    read_file(net, file_reader, filename, parse_data_ratio(ratio, 8), tid, blocking);
   end;
 
 

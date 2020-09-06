@@ -53,7 +53,8 @@ use work.testbench_utils_pkg.all;
 entity axi_file_reader is
   generic (
     READER_NAME : string;
-    DATA_WIDTH  : integer  := 1);
+    DATA_WIDTH  : integer := 1;
+    TID_WIDTH   : natural := 0);
   port (
     -- Usual ports
     clk                : in  std_logic;
@@ -65,6 +66,7 @@ entity axi_file_reader is
     -- Data output
     m_tready           : in std_logic;
     m_tdata            : out std_logic_vector(DATA_WIDTH - 1 downto 0);
+    m_tid              : out std_logic_vector(TID_WIDTH - 1 downto 0);
     m_tvalid           : out std_logic;
     m_tlast            : out std_logic);
 end axi_file_reader;
@@ -79,6 +81,7 @@ architecture axi_file_reader of axi_file_reader is
   -- Signals --
   -------------
   signal m_tdata_i      : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal m_tid_i        : std_logic_vector(TID_WIDTH - 1 downto 0);
   signal m_tvalid_i     : std_logic;
   signal m_tvalid_wr    : std_logic;
   signal m_tvalid_en    : std_logic := '0';
@@ -102,12 +105,13 @@ begin
   axi_data_valid <= m_tvalid_i = '1' and m_tready = '1';
 
   m_tdata <= m_tdata_i when m_tvalid_i = '1' else (others => 'U');
+  m_tid   <= m_tid_i when m_tvalid_i = '1' else (others => 'U');
 
   ---------------
   -- Processes --
   ---------------
   process
-    variable cfg          : file_reader_cfg_t;
+    variable cfg          : file_reader_cfg_t(tid(TID_WIDTH - 1 downto 0));
     variable ratio        : ratio_t := (DATA_WIDTH, DATA_WIDTH);
     --
     constant self         : actor_t := new_actor(READER_NAME);
@@ -248,6 +252,7 @@ begin
       m_tvalid_wr <= '0';
       m_tlast_i   <= '0';
       m_tdata_i   <= (others => 'U');
+      m_tid_i     <= (others => 'U');
       completed   <= '0';
       -- bit_list.reset;
       if file_status /= closed then
@@ -258,11 +263,12 @@ begin
 
       -- Clear out AXI stuff when data has been transferred only
       if axi_data_valid then
-        completed   <= '0';
-        m_tvalid_wr <= '0';
-        m_tlast_i   <= '0';
-        m_tdata_i   <= (others => 'U');
-        word_cnt    := word_cnt + 1;
+        completed    <= '0';
+        m_tvalid_wr  <= '0';
+        m_tlast_i    <= '0';
+        m_tdata_i    <= (others => 'U');
+        m_tid_i      <= (others => 'U');
+        word_cnt     := word_cnt + 1;
         dbg_word_cnt <= dbg_word_cnt + 1;
 
         if m_tlast_i = '1' then
@@ -322,6 +328,9 @@ begin
       if file_status = opened then
         m_tvalid_wr <= '1';
         m_tdata_i   <= m_tdata_next;
+        if cfg.tid /= NULL_VECTOR then
+          m_tid_i <= cfg.tid;
+        end if;
         if axi_data_valid then
           -- Only assert tlast when the file has been completely read and all data
           -- buffered has been read
