@@ -38,6 +38,7 @@ entity axi_stream_master_adapter is
     -- wanna-be AXI interface
     wr_en    : in  std_logic;
     wr_full  : out std_logic;
+    wr_empty : out std_logic;
     wr_data  : in  std_logic_vector(TDATA_WIDTH - 1 downto 0);
     wr_last  : in  std_logic;
     -- AXI master
@@ -73,16 +74,14 @@ architecture axi_stream_master_adapter of axi_stream_master_adapter is
   signal rd_ptr    : unsigned(numbits(BUFFER_DEPTH) - 1 downto 0);
   signal ptr_diff  : unsigned(numbits(BUFFER_DEPTH) downto 0);
 
-  signal wr_full_i : std_logic;
-
 begin
 
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
   -- Extract data asynchronously to avoid inserting bubbles
-  m_tdata <= data_buffer(to_integer(rd_ptr))(TDATA_WIDTH - 1 downto 0);
-  m_tlast <= data_buffer(to_integer(rd_ptr))(TDATA_WIDTH);
+  m_tdata <= data_buffer(to_integer(rd_ptr))(TDATA_WIDTH - 1 downto 0) when axi_tvalid = '1' else (others => 'U');
+  m_tlast <= data_buffer(to_integer(rd_ptr))(TDATA_WIDTH) and axi_tvalid;
 
   -- tvalid is asserted when pointers are different, regardless of tready. Also, there's
   -- no need to force it to 0 when reset = '1' because both pointers are asynchronously
@@ -94,11 +93,11 @@ begin
   -- Assert the full flag whenever we run out of space to store more data. At this
   -- point, if the write interface doesn't respect MAX_SKEW_CYCLES *and* m_tready is
   -- deasserted, there will loss of data
-  wr_full_i  <= '1' when ptr_diff >= BUFFER_DEPTH - MAX_SKEW_CYCLES else '0';
+  wr_full  <= '1' when ptr_diff >= BUFFER_DEPTH - MAX_SKEW_CYCLES else '0';
+  wr_empty <= '1' when ptr_diff = 0 else '0';
 
   -- Assign internals
   m_tvalid <= axi_tvalid;
-  wr_full  <= wr_full_i;
 
   ---------------
   -- Processes --

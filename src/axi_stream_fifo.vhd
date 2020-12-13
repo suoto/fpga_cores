@@ -77,11 +77,13 @@ architecture axi_stream_fifo of axi_stream_fifo is
 
   -- AXI stream master adapter interface
   signal ram_rd_full     : std_logic;
+  signal ram_rd_empty    : std_logic;
   signal ram_rd_dv       : std_logic;
   signal ram_rd_tdata    : std_logic_vector(DATA_WIDTH - 1 downto 0);
   signal ram_rd_tlast    : std_logic;
 
   -- Internals
+  signal m_tvalid_i      : std_logic;
   signal s_tready_i      : std_logic;
   signal ram_wr_addr     : std_logic_vector(numbits(FIFO_DEPTH) - 1 downto 0);
   signal ram_rd_addr     : std_logic_vector(numbits(FIFO_DEPTH) - 1 downto 0);
@@ -124,10 +126,11 @@ begin
       -- wanna-be AXI interface
       wr_en    => ram_rd_dv,
       wr_full  => ram_rd_full,
+      wr_empty => ram_rd_empty,
       wr_data  => ram_rd_tdata,
       wr_last  => ram_rd_tlast,
       -- AXI master
-      m_tvalid => m_tvalid,
+      m_tvalid => m_tvalid_i,
       m_tready => m_tready,
       m_tdata  => m_tdata ,
       m_tlast  => m_tlast);
@@ -144,12 +147,13 @@ begin
 
   -- Assign internals
   s_tready    <= s_tready_i;
+  m_tvalid    <= m_tvalid_i;
   -- GHDL fails with bound check error if this is wired directly
   ram_wr_addr <= std_logic_vector(ram_wr_ptr(ram_wr_ptr'length - 2 downto 0));
   ram_rd_addr <= std_logic_vector(ram_rd_ptr(ram_rd_ptr'length - 2 downto 0));
 
   entries  <= std_logic_vector(ptr_diff);
-  empty    <= '1' when ptr_diff = 0 else '0';
+  empty    <= ram_rd_empty when ptr_diff = 0 else '0';
   full     <= '1' when ptr_diff = FIFO_DEPTH else '0';
 
   ---------------
