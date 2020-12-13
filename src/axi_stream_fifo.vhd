@@ -1,28 +1,27 @@
 --
--- DVB IP
+-- FPGA Cores -- An HDL core library
 --
--- Copyright 2019 by Suoto <andre820@gmail.com>
+-- Copyright 2014 by Andre Souto (suoto)
 --
--- This file is part of DVB IP.
+-- This file is part of FPGA Cores.
 --
--- DVB IP is free software: you can redistribute it and/or modify
+-- FPGA Cores is free software: you can redistribute it and/or modify
 -- it under the terms of the GNU General Public License as published by
 -- the Free Software Foundation, either version 3 of the License, or
 -- (at your option) any later version.
 --
--- DVB IP is distributed in the hope that it will be useful,
+-- FPGA Cores is distributed in the hope that it will be useful,
 -- but WITHOUT ANY WARRANTY; without even the implied warranty of
 -- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 -- GNU General Public License for more details.
 --
 -- You should have received a copy of the GNU General Public License
--- along with DVB IP.  If not, see <http://www.gnu.org/licenses/>.
-
+-- along with FPGA Cores.  If not, see <http://www.gnu.org/licenses/>.
 
 ---------------
 -- Libraries --
 ---------------
-library	ieee;
+library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
@@ -40,6 +39,11 @@ entity axi_stream_fifo is
     -- Usual ports
     clk     : in  std_logic;
     rst     : in  std_logic;
+
+    -- status
+    entries  : out std_logic_vector(numbits(FIFO_DEPTH) downto 0);
+    empty    : out std_logic;
+    full     : out std_logic;
 
     -- Write side
     s_tvalid : in  std_logic;
@@ -143,6 +147,10 @@ begin
   -- GHDL fails with bound check error if this is wired directly
   ram_wr_addr <= std_logic_vector(ram_wr_ptr(ram_wr_ptr'length - 2 downto 0));
   ram_rd_addr <= std_logic_vector(ram_rd_ptr(ram_rd_ptr'length - 2 downto 0));
+
+  entries  <= std_logic_vector(ptr_diff);
+  empty    <= '1' when ptr_diff = 0 else '0';
+  full     <= '1' when ptr_diff = FIFO_DEPTH else '0';
 
   ---------------
   -- Processes --
