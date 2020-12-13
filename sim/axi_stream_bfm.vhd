@@ -156,7 +156,7 @@ begin
     end procedure; -- }} ---------------------------------------------------------------
 
     procedure write_data ( -- {{ -------------------------------------------------------
-      constant tdata       : byte_array_t;
+      constant bytes       : byte_array_t;
       constant tuser       : tuser_array_t;
       constant probability : real range 0.0 to 1.0 := 1.0;
       constant tid         : std_logic_vector(TID_WIDTH - 1 downto 0)
@@ -184,25 +184,25 @@ begin
 
       info(
         logger,
-        sformat("Writing frame with %d words (id=%r)", fo(tdata'length), fo(tid))
+        sformat("Writing frame with %d bytes (id=%r)", fo(bytes'length), fo(tid))
       );
 
       write_id := tid;
 
-      for i in 0 to tdata'length - 1 loop
+      for i in 0 to bytes'length - 1 loop
         byte  := i mod DATA_BYTE_WIDTH;
 
-        word(8*(byte + 1) - 1 downto 8*byte) := tdata(i);
+        word(8*(byte + 1) - 1 downto 8*byte) := bytes(i);
 
         if ((i + 1) mod DATA_BYTE_WIDTH) = 0 then
           -- Only try to get tuser if there's such port in the first place. Also allow
-          -- tuser to have less entries than tdata.
+          -- tuser to have less entries than bytes.
           if TUSER_WIDTH > 0 and word_index < tuser'length then
             write_user := tuser(word_index);
             word_index := word_index + 1;
           end if;
 
-          if i /= tdata'length - 1 then
+          if i /= bytes'length - 1 then
             write(word, write_user, (others => '0'), write_id, False);
           else
             write(word, write_user, infer_mask(word), write_id, True);
@@ -233,7 +233,7 @@ begin
       end loop;
 
       write_data(
-        tdata       => reinterpret(tdata, 8),
+        bytes       => reinterpret(tdata, 8),
         tuser       => tuser,
         probability => frame.probability,
         tid         => frame.tid
@@ -243,11 +243,11 @@ begin
 
     procedure handle_frame ( -- {{ -----------------------------------------------------
       constant frame : axi_stream_frame_t
-    ) is 
+    ) is
     begin
-
+      info(sformat("Frame has %d words", fo(frame.data'length)));
       write_data(
-        tdata       => reinterpret(frame.data, 8),
+        bytes       => reinterpret(frame.data, 8),
         tuser       => (0 to 0 => (TUSER_WIDTH - 1 downto 0 => 'U')),
         probability => frame.probability,
         tid         => frame.tid
