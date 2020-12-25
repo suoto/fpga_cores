@@ -154,7 +154,7 @@ begin
 
   entries  <= std_logic_vector(ptr_diff);
   empty    <= ram_rd_empty when ptr_diff = 0 else '0';
-  full     <= '1' when ptr_diff = FIFO_DEPTH else '0';
+  full     <= '1' when ptr_diff = FIFO_DEPTH - 1 else '0';
 
   ---------------
   -- Processes --
@@ -173,19 +173,19 @@ begin
 
       -- Handle write pointer increment (FIFO_DEPTH is not necessarily a power of 2)
       if s_axi_dv = '1' then
-        if ram_wr_ptr < FIFO_DEPTH then
-          ram_wr_ptr <= ram_wr_ptr + 1;
-        else
+        if ram_wr_ptr = FIFO_DEPTH - 1 then
           ram_wr_ptr <= (others => '0');
+        else
+          ram_wr_ptr <= ram_wr_ptr + 1;
         end if;
       end if;
 
       -- Handle read pointer increment (FIFO_DEPTH is not necessarily a power of 2)
       if ram_rd_en = '1' then
-        if ram_rd_ptr < FIFO_DEPTH then
-          ram_rd_ptr <= ram_rd_ptr + 1;
-        else
+        if ram_rd_ptr = FIFO_DEPTH - 1 then
           ram_rd_ptr <= (others => '0');
+        else
+          ram_rd_ptr <= ram_rd_ptr + 1;
         end if;
       end if;
 
