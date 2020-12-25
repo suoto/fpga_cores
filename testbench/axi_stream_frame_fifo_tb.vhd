@@ -35,7 +35,7 @@ library str_format;
 use str_format.str_format_pkg.all;
 
 library fpga_cores_sim;
-use fpga_cores_sim.axi_stream_bfm_pkg.all;
+context fpga_cores_sim.sim_context;
 
 library fpga_cores;
 use fpga_cores.axi_pkg.all;
@@ -67,7 +67,8 @@ architecture axi_stream_frame_fifo_tb of axi_stream_frame_fifo_tb is
 
   signal cfg_rd_probability       : real := 1.0;
 
-  subtype frame_t is data_tuple_array_t(open)(tdata(DATA_WIDTH - 1 downto 0), tuser(0 downto 0));
+  -- AXI BFM works with multiples of 8, add an extra byte to carry tlast
+  subtype frame_t is std_logic_vector_2d_t(open)(DATA_WIDTH + 8 - 1 downto 0);
 
   type frame_ptr_t is access frame_t;
 
@@ -87,21 +88,24 @@ begin
   -------------------
   -- Port mappings --
   -------------------
-  axi_master_bfm_u : entity fpga_cores_sim.axi_stream_bfm
-    generic map (
-      TDATA_WIDTH => DATA_WIDTH,
-      TUSER_WIDTH => 1,
-      TID_WIDTH   => 0)
-    port map (
-      -- Usual ports
-      clk        => clk,
-      rst        => rst,
-      -- AXI stream output
-      m_tready   => m_axi.tready,
-      m_tdata    => m_axi.tdata,
-      m_tuser(0) => m_axi.tlast,
-      m_tvalid   => m_axi.tvalid,
-      m_tlast    => open);
+  bfm_block : block
+    signal tdata : std_logic_vector(DATA_WIDTH + 8 - 1 downto 0);
+  begin
+    axi_master_bfm_u : entity fpga_cores_sim.axi_stream_bfm
+      generic map ( TDATA_WIDTH => DATA_WIDTH + 8 )
+      port map (
+        -- Usual ports
+        clk        => clk,
+        rst        => rst,
+        -- AXI stream output
+        m_tready   => m_axi.tready,
+        m_tdata    => tdata,
+        m_tvalid   => m_axi.tvalid,
+        m_tlast    => open);
+
+    m_axi.tdata <= tdata(DATA_WIDTH - 1 downto 0);
+    m_axi.tlast <= tdata(DATA_WIDTH);
+  end block;
 
 
   dut : entity fpga_cores.axi_stream_frame_fifo
@@ -159,50 +163,58 @@ begin
     impure function generate_frame ( constant length : natural ) return frame_t is
       variable frame : frame_t(0 to length - 1);
     begin
-      for i in frame'range loop
-        frame(i).tdata := wr_data_gen.RandSlv(DATA_WIDTH);
-        frame(i).tuser := (others => '0');
+      for i in 0 to length - 1 loop
+        if i = length - 1 then
+          frame(i) := (6 downto 0 => 'U') & '1' & wr_data_gen.RandSlv(DATA_WIDTH);
+        else
+          frame(i) := (6 downto 0 => 'U') & '0' & wr_data_gen.RandSlv(DATA_WIDTH);
+        end if;
       end loop;
-      frame(length - 1).tuser := (others => '1');
       return frame;
     end;
+
     --
     -- Generate a frame without tlast to check if the read side is never active before an
     -- entire frame is written
     --
     procedure test_frame_contention is
-      variable frame    : frame_t(0 to FIFO_DEPTH/8 - 1);
       variable data     : frame_ptr_t;
       variable msg      : msg_t;
-      variable expected : data_tuple_t(tdata(DATA_WIDTH - 1 downto 0), tuser(0 downto 0));
+      variable expected : std_logic_vector(DATA_WIDTH + 8 - 1 downto 0);
     begin
+      data := new frame_t(0 to FIFO_DEPTH/8 - 1);
       for i in 0 to FIFO_DEPTH/8 - 1 loop
-        frame(i).tdata := std_logic_vector(to_unsigned(i, DATA_WIDTH));
-        frame(i).tuser := (others => '0'); -- No tlast at all
+        data(i) := (6 downto 0 => 'U') & '0' & std_logic_vector(to_unsigned(i, DATA_WIDTH));
       end loop;
 
       cfg_rd_probability <= 1.0;
       axi_bfm_write(net,
-        bfm         => axi_master,
-        data        => frame,
-        probability => 1.0,
-        blocking    => False);
+        bfm      => axi_master,
+        data     => data.all,
+        blocking => False);
 
-      walk(2*frame'length);
+      walk(2*data.all'length);
+
+      deallocate(data);
 
       check_false(has_message(self), "Did not expect anything to be received");
       check_equal(s_axi.tvalid, '0');
       check_equal(full, '0', "Expected FIFO to be full");
       check_equal(empty, '1', "Didn't expect FIFO to be empty");
 
-      -- Generate a single tlast and check the frame is received
+      -- Generate a single tlast with all ones as data and check the frame is received
+      data    := new frame_t(0 to 0);
+      data(0) := (6 downto 0 => 'U') & '1' & (DATA_WIDTH - 1 downto 0 => '1');
       axi_bfm_write(net,
-        bfm         => axi_master,
-        data        => data_tuple_array_t'(0 to 0 => (tdata => (DATA_WIDTH - 1 downto 0 => '0'), tuser => (0 downto 0 => '1'))),
-        probability => 1.0,
-        blocking    => True);
+        bfm      => axi_master,
+        data     => data.all,
+        blocking => True);
+      deallocate(data);
 
       wait until rising_edge(clk) and s_axi.tvalid = '1' and s_axi.tlast = '1' for 4*CLK_PERIOD;
+      if not s_axi.tvalid = '1' and s_axi.tlast = '1' then
+        error(logger, "Timeout waiting to s_axi");
+      end if;
 
       check_false(has_message(self), "Did not expect anything to be received");
       check_equal(full, '0', "Expected FIFO to be full");
@@ -213,20 +225,14 @@ begin
       data := new frame_t'(pop(msg));
       for word in 0 to data'length - 1 loop
         if word = data'length - 1 then
-          expected.tdata := (others => '0');
-          expected.tuser := (others => '1');
+          -- Last word we added manually as all ones
+          expected := (6 downto 0 => 'U') & '1' & (DATA_WIDTH - 1 downto 0 => '1');
         else
-          expected.tdata := std_logic_vector(to_unsigned(word, DATA_WIDTH));
-          expected.tuser := (others => '0');
+          expected := (6 downto 0 => 'U') & '0' & std_logic_vector(to_unsigned(word, DATA_WIDTH));
         end if;
 
-        if data(word) /= expected then
-          error(
-            sformat(
-              "Word %d: expected %r but got %r",
-              fo(word),
-              fo(expected),
-              fo(data(word))));
+        if data(word)(DATA_WIDTH downto 0) /= expected(DATA_WIDTH downto 0) then
+          error(logger, sformat("Word %d: expected %r but got %r", fo(word), fo(expected), fo(data(word))));
         end if;
       end loop;
 
@@ -247,7 +253,7 @@ begin
 
       variable data             : frame_ptr_t;
       variable msg              : msg_t;
-      variable expected         : data_tuple_t(tdata(DATA_WIDTH - 1 downto 0), tuser(0 downto 0));
+      variable expected         : std_logic_vector(DATA_WIDTH + 8 - 1 downto 0);
     begin
       cfg_rd_probability <= rd_probability;
 
@@ -262,25 +268,23 @@ begin
           blocking    => False);
       end loop;
 
+      join(net, axi_master);
+
       for frame in 0 to number_of_frames - 1 loop
         receive(net, self, msg);
         data := new frame_t'(pop(msg));
         debug(logger, sformat("Checking frame %d (length is %d)", fo(frame), fo(data'length)));
-        expected.tuser := (others => '0'); -- tuser here is used only to pass tvalid
         for word in 0 to data'length - 1 loop
-          expected.tdata := rd_data_gen.RandSlv(DATA_WIDTH);
           if word = data'length - 1 then
-            expected.tuser := (others => '1');
+            expected := (6 downto 0 => 'U') & '1' & rd_data_gen.RandSlv(DATA_WIDTH);
+          else
+            expected := (6 downto 0 => 'U') & '0' & rd_data_gen.RandSlv(DATA_WIDTH);
           end if;
 
-          if data(word) /= expected then
-            error(
-              sformat(
-                "Frame %d, word %d: expected %r but got %r",
-                fo(frame),
-                fo(word),
-                fo(expected),
-                fo(data(word))));
+          if data(word)(DATA_WIDTH downto 0) /= expected(DATA_WIDTH downto 0) then
+            error(sformat("Frame %d, word %d: expected %r (last=%r) but got %r",
+                          fo(frame), fo(word), fo(expected(DATA_WIDTH - 1 downto 0)),
+                          fo(expected(DATA_WIDTH)), fo(data(word))));
           end if;
         end loop;
         debug(logger, sformat("Finished checking frame %d", fo(frame)));
@@ -296,7 +300,7 @@ begin
       variable length           : natural;
       variable data             : frame_ptr_t;
       variable msg              : msg_t;
-      variable expected         : data_tuple_t(tdata(DATA_WIDTH - 1 downto 0), tuser(0 downto 0));
+      variable expected         : std_logic_vector(DATA_WIDTH + 8 - 1 downto 0);
     begin
       cfg_rd_probability <= rd_probability;
       for frame in 0 to number_of_frames - 1 loop
@@ -315,21 +319,18 @@ begin
         receive(net, self, msg);
         data := new frame_t'(pop(msg));
         debug(logger, sformat("Checking frame %d (length is %d)", fo(frame), fo(data'length)));
-        expected.tuser := (others => '0'); -- tuser here is used only to pass tvalid
         for word in 0 to data'length - 1 loop
-          expected.tdata := rd_data_gen.RandSlv(DATA_WIDTH);
+
           if word = data'length - 1 then
-            expected.tuser := (others => '1');
+            expected := (DATA_WIDTH - 1 downto 0 => '1') & rd_data_gen.RandSlv(DATA_WIDTH);
+          else
+            expected := (DATA_WIDTH - 1 downto 0 => '0') & rd_data_gen.RandSlv(DATA_WIDTH);
           end if;
 
-          if data(word) /= expected then
-            error(
-              sformat(
-                "Frame %d, word %d: expected %r but got %r",
-                fo(frame),
-                fo(word),
-                fo(expected),
-                fo(data(word))));
+          if data(word)(DATA_WIDTH downto 0) /= expected(DATA_WIDTH downto 0) then
+            error(sformat("Frame %d, word %d: expected %r (last=%r) but got %r",
+                          fo(frame), fo(word), fo(expected(DATA_WIDTH - 1 downto 0)),
+                          fo(expected(DATA_WIDTH)), fo(data(word))));
           end if;
         end loop;
         debug(logger, sformat("Finished checking frame %d", fo(frame)));
@@ -339,7 +340,6 @@ begin
 
       --
       variable stat   : checker_stat_t;
-      -- variable filter : log_filter_t;
   begin
 
     -- Start both wr and rd data random generators with the same seed so we get the same
@@ -352,7 +352,6 @@ begin
 
     while test_suite loop
       cfg_rd_probability <= 0.0;
-      join(net, axi_master);
 
       rst <= '1';
       walk(16);
@@ -400,9 +399,11 @@ begin
 
       end if;
 
-      cfg_rd_probability <= 0.0;
+      join(net, axi_master);
       walk(16);
     end loop;
+
+    cfg_rd_probability <= 0.0;
 
     if not active_python_runner(runner_cfg) then
       get_checker_stat(stat);
@@ -440,11 +441,7 @@ begin
 
     while True loop
       wait until s_axi.tvalid = '1' and s_axi.tready = '1' and rising_edge(clk);
-      if s_axi.tlast = '1' then
-        push(msg, data_tuple_t'(tdata => s_axi.tdata, tuser => (0 downto 0 => '1')));
-      else
-        push(msg, data_tuple_t'(tdata => s_axi.tdata, tuser => (0 downto 0 => '0')));
-      end if;
+      push(msg, std_logic_vector'((6 downto 0 => '0') & s_axi.tlast & s_axi.tdata));
 
       word_count := word_count + 1;
 
