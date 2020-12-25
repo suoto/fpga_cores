@@ -67,6 +67,10 @@ package axi_stream_bfm_pkg is
   procedure push(msg : msg_t; frame : axi_stream_frame_t);
   impure function pop(msg : msg_t) return axi_stream_frame_t;
   impure function pop(msg : msg_t) return axi_stream_tuser_frame_t;
+  procedure push(msg : msg_t; frame : data_tuple_t);
+  impure function pop(msg : msg_t) return data_tuple_t;
+
+  impure function fo ( constant t : data_tuple_t ) return string;
 
   impure function create_bfm (
     constant reader_name : in string := AXI_STREAM_MASTER_DEFAULT_NAME )
@@ -178,6 +182,11 @@ package body axi_stream_bfm_pkg is
     end loop;
 
     return result;
+  end;
+
+  impure function fo ( constant t : data_tuple_t ) return string is
+  begin
+    return sformat("{tdata=%r, tuser=%r}", fo(t.tdata), fo(t.tuser));
   end;
 
   impure function pop(msg : msg_t) return axi_stream_tuser_frame_t is
