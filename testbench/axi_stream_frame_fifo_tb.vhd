@@ -68,7 +68,7 @@ architecture axi_stream_frame_fifo_tb of axi_stream_frame_fifo_tb is
   signal cfg_rd_probability       : real := 1.0;
 
   -- AXI BFM works with multiples of 8, add an extra byte to carry tlast
-  subtype frame_t is std_logic_vector_2d_t(open)(DATA_WIDTH + 8 - 1 downto 0);
+  subtype frame_t is std_logic_array_t(open)(DATA_WIDTH + 8 - 1 downto 0);
 
   type frame_ptr_t is access frame_t;
 

@@ -92,8 +92,8 @@ architecture axi_stream_bfm of axi_stream_bfm is
     return result;
   end;
 
-  subtype tdata_array_t is std_logic_vector_2d_t(open)(TDATA_WIDTH - 1 downto 0);
-  subtype tuser_array_t is std_logic_vector_2d_t(open)(TUSER_WIDTH - 1 downto 0);
+  subtype tdata_array_t is std_logic_array_t(open)(TDATA_WIDTH - 1 downto 0);
+  subtype tuser_array_t is std_logic_array_t(open)(TUSER_WIDTH - 1 downto 0);
 
   ---------------
   -- Constants --

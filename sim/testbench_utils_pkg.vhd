@@ -39,27 +39,27 @@ use fpga_cores.common_pkg.all;
 
 package testbench_utils_pkg is
 
-  subtype byte_array_t is std_logic_vector_2d_t(open)(7 downto 0);
+  subtype byte_array_t is std_logic_array_t(open)(7 downto 0);
 
   shared variable rand   : RandomPType;
 
   impure function counter ( constant length : integer ) return byte_array_t;
   impure function random ( constant length : integer ) return byte_array_t;
 
-  procedure push(msg : msg_t; value : std_logic_vector_2d_t);
-  impure function pop(msg : msg_t) return std_logic_vector_2d_t;
+  procedure push(msg : msg_t; value : std_logic_array_t);
+  impure function pop(msg : msg_t) return std_logic_array_t;
 
-  impure function reinterpret ( constant v : std_logic_vector_2d_t; constant width : natural ) return std_logic_vector_2d_t;
+  impure function reinterpret ( constant v : std_logic_array_t; constant width : natural ) return std_logic_array_t;
 
   impure function to_string (
-    constant source : std_logic_vector_2d_t;
+    constant source : std_logic_array_t;
     constant width  : integer := 16) return string;
 
 end testbench_utils_pkg;
 
 package body testbench_utils_pkg is
 
-  procedure push(msg : msg_t; value : std_logic_vector_2d_t) is
+  procedure push(msg : msg_t; value : std_logic_array_t) is
   begin
     push(msg, value'low);
     push(msg, value'high);
@@ -70,12 +70,12 @@ package body testbench_utils_pkg is
 
   end;
 
-  impure function pop(msg : msg_t) return std_logic_vector_2d_t is
+  impure function pop(msg : msg_t) return std_logic_array_t is
     constant low    : integer := pop(msg);
     constant high   : integer := pop(msg);
     constant first  : std_logic_vector := pop(msg);
     constant width  : integer := first'length;
-    variable result : std_logic_vector_2d_t(low to high)(width - 1 downto 0);
+    variable result : std_logic_array_t(low to high)(width - 1 downto 0);
   begin
 
     result(0) := first;
@@ -108,11 +108,11 @@ package body testbench_utils_pkg is
     return result;
   end;
 
-  impure function reinterpret ( constant v : std_logic_vector_2d_t; constant width : natural ) return std_logic_vector_2d_t is
+  impure function reinterpret ( constant v : std_logic_array_t; constant width : natural ) return std_logic_array_t is
     constant in_length  : natural := v'length;
     constant in_width   : natural := v(v'low)'length;
     constant out_length : natural := (in_length * in_width + width - 1) / width;
-    variable result     : std_logic_vector_2d_t(0 to out_length - 1)(width - 1 downto 0);
+    variable result     : std_logic_array_t(0 to out_length - 1)(width - 1 downto 0);
     variable bit_cnt    : natural := 0;
     variable ptr        : natural := 0;
     variable tmp        : std_logic_vector(in_width + width - 1 downto 0);
@@ -141,7 +141,7 @@ package body testbench_utils_pkg is
 
   --------------------------------------------------------------------------------------
   impure function to_string (
-    constant source      : std_logic_vector_2d_t;
+    constant source      : std_logic_array_t;
     constant width       : integer := 16) return string is
     variable result      : line;
     constant num_lines   : integer := (source'length + width - 1) / width;

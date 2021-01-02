@@ -194,7 +194,7 @@ begin
 
     ------------------------------------------------------------------------------------
     procedure test_frame ( constant id   : std_logic_vector(AXI_TID_WIDTH - 1 downto 0);
-                           constant data : std_logic_vector_2d_t ) is
+                           constant data : std_logic_array_t ) is
 
       constant frame : test_frame_t := (data => data, id => id, probability => tready_probability);
     begin
@@ -293,7 +293,7 @@ begin
 
     ------------------------------------------------------------------------------------
     procedure check_frame ( constant frame : test_frame_t ) is
-      constant resized_data : std_logic_vector_2d_t := reinterpret(frame.data, OUTPUT_DATA_WIDTH);
+      constant resized_data : std_logic_array_t := reinterpret(frame.data, OUTPUT_DATA_WIDTH);
       variable exp_tkeep    : std_logic_vector(OUTPUT_BYTE_WIDTH - 1 downto 0);
       variable word_cnt     : natural := 0;
       variable failed       : boolean := False;

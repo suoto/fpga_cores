@@ -37,7 +37,7 @@ use work.common_pkg.all;
 ------------------------
 entity rom_inference is
   generic (
-    ROM_DATA     : std_logic_vector_2d_t;
+    ROM_DATA     : std_logic_array_t;
     ROM_TYPE     : ram_type_t := auto;
     OUTPUT_DELAY : natural := 1);
   port (

@@ -38,9 +38,10 @@ package common_pkg is
       ;
 
   type ram_type_t is (auto, bram, lut, uram);
-  type std_logic_vector_2d_t is array (natural range <>) of std_logic_vector; -- Needs VHDL 2008 in Vivado
+  type std_logic_array_t is array (natural range <>) of std_logic_vector; -- Needs VHDL 2008 in Vivado
+  type unsigned_array_t is array (natural range <>) of unsigned; -- Needs VHDL 2008 in Vivado
   type integer_vector_t is array (natural range <>) of integer;
-  type integer_2d_array_t is array (natural range <>) of integer_vector_t;
+  type integer_array_t is array (natural range <>) of integer_vector_t;
 
   function to_string( constant v : integer_vector_t ) return string;
 
