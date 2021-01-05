@@ -93,6 +93,10 @@ package common_pkg is
     constant addr_width : natural;
     constant data_width : natural) return string;
 
+  function one_hot_to_decimal ( constant v : std_logic_vector) return unsigned;
+  function has_undefined ( constant v : std_logic_vector ) return boolean;
+  function has_undefined ( constant v : unsigned ) return boolean;
+
 end common_pkg;
 
 package body common_pkg is
@@ -385,5 +389,35 @@ package body common_pkg is
     return resolve_ram_type(lut);
 
   end function get_ram_style;
+
+  function has_undefined ( constant v : std_logic_vector ) return boolean is
+  begin
+    for i in v'range loop
+      if v(i) = 'U' or v(i) = 'X' then
+        return True;
+      end if;
+    end loop;
+    return False;
+  end;
+
+  function has_undefined ( constant v : unsigned ) return boolean is
+  begin
+    return has_undefined(std_logic_vector(v));
+  end;
+
+  function one_hot_to_decimal ( constant v : std_logic_vector) return unsigned is
+    constant width : integer := numbits(v'length);
+    variable mux : unsigned(width - 1 downto 0);
+  begin
+    if v = (v'range => '0') then
+      return (width - 1 downto 0 => 'U');
+    end if;
+
+    mux := (others => '0');
+    for i in v'range loop
+      mux := mux or (to_unsigned(i, width) and (width - 1 downto 0 => v(i)));
+    end loop;
+    return mux;
+  end;
 
 end package body;
