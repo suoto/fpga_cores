@@ -59,7 +59,7 @@ end axi_stream_arbiter;
 
 architecture axi_stream_arbiter of axi_stream_arbiter is
 
-  function keep_first_one ( constant v : std_logic_vector ) return std_logic_vector is
+  function keep_first_bit_set ( constant v : std_logic_vector ) return std_logic_vector is
     constant v_unsigned : unsigned(v'range) := unsigned(v);
   begin
     return std_logic_vector(v_unsigned and not (v_unsigned - 1));
@@ -129,9 +129,9 @@ begin
     signal arbitrate    : std_logic;
     signal selected_reg : std_logic_vector(INTERFACES - 1 downto 0);
   begin
-    selected_i <= selected_reg             when not arbitrate    else
-                  keep_first_one(s_tvalid) when not (or waiting) else
-                  keep_first_one(waiting);
+    selected_i <= selected_reg                 when not arbitrate    else
+                  keep_first_bit_set(waiting)  when or waiting       else
+                  keep_first_bit_set(s_tvalid);
 
     process(clk, rst)
     begin

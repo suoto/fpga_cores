@@ -50,9 +50,9 @@ end axi_stream_arbiter_tb;
 
 architecture axi_stream_arbiter_tb of axi_stream_arbiter_tb is
 
-  constant CLK_PERIOD : time := 5 ns;
-  constant INTERFACES : positive := 4;
-  constant DATA_WIDTH : integer := 8;
+  constant CLK_PERIOD        : time := 5 ns;
+  constant INTERFACES        : positive := 4;
+  constant DATA_WIDTH        : integer := 8;
 
   shared variable random_gen : RandomPType;
 
@@ -259,7 +259,7 @@ begin
 
     procedure test_arb_sequence_0 is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t := (
+      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
         '0' & x"10", '1' & x"11",
         '0' & x"20", '1' & x"21",
         '0' & x"30", '1' & x"31",
@@ -298,7 +298,7 @@ begin
 
     procedure test_arb_sequence_1 is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t := (
+      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
         '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
         '1' & x"00",
         '1' & x"10",
@@ -344,7 +344,7 @@ begin
 
     procedure test_multiple_frames ( constant rd_probability : real ) is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t := (
+      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
         '0' & x"00", '0' & x"01", '0' & x"02", '1' & x"03",
         '0' & x"10", '0' & x"11", '0' & x"12", '1' & x"13",
         '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
@@ -407,7 +407,7 @@ begin
 
     procedure test_uneven_rates ( constant rd_probability : real ) is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t := (
+      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
         '1' & x"10",
         '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
         '1' & x"30",
