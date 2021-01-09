@@ -77,7 +77,9 @@ architecture axi_stream_arbiter of axi_stream_arbiter is
   signal s_data_valid   : std_logic_vector(INTERFACES - 1 downto 0);
   signal m_data_valid   : std_logic;
 
+  signal arbitrate      : std_logic;
   signal selected_i     : std_logic_vector(INTERFACES - 1 downto 0);
+  signal selected_reg   : std_logic_vector(INTERFACES - 1 downto 0);
 
 begin
 
@@ -124,10 +126,51 @@ begin
   selected         <= selected_i;
   selected_encoded <= std_logic_vector(one_hot_to_decimal(selected_i));
 
+  -- Common process
+  process(clk, rst)
+  begin
+    if rst = '1' then
+      arbitrate    <= '1';
+      selected_reg <= (others => '0');
+    elsif rising_edge(clk) then
+      selected_reg <= selected_i;
+
+      -- Arbitrate at the first word of every frame only
+      if m_data_valid = '1' then
+        arbitrate <= m_tlast_i;
+      elsif or s_tvalid then
+        arbitrate <= '0';
+      end if;
+    end if;
+  end process;
+
+
+  g_absolute : if MODE = "ABSOLUTE" generate
+    selected_i <= selected_reg when not arbitrate    else
+                  keep_first_bit_set(s_tvalid);
+  end generate;
+
+
+  g_interleaved : if MODE = "INTERLEAVED" generate
+    signal selected : std_logic_vector(INTERFACES - 1 downto 0);
+  begin
+    selected_i <= selected_reg when not arbitrate    else
+                  selected;
+
+    process(clk, rst)
+    begin
+      if rst = '1' then
+        selected <= (0 => '1', others => '0');
+      elsif rising_edge(clk) then
+        if arbitrate and or s_tvalid then
+          selected <= selected(INTERFACES - 2 downto 0) & selected(INTERFACES - 1);
+        end if;
+      end if;
+    end process;
+  end generate;
+
   g_round_robin : if MODE = "ROUND_ROBIN" generate
     signal waiting      : std_logic_vector(INTERFACES - 1 downto 0);
-    signal arbitrate    : std_logic;
-    signal selected_reg : std_logic_vector(INTERFACES - 1 downto 0);
   begin
     selected_i <= selected_reg                 when not arbitrate    else
                   keep_first_bit_set(waiting)  when or waiting       else
@@ -136,18 +179,8 @@ begin
     process(clk, rst)
     begin
       if rst = '1' then
-        selected_reg <= (others => '0');
         waiting      <= (others => '0');
-        arbitrate    <= '1';
       elsif rising_edge(clk) then
-        selected_reg <= selected_i;
-
-        -- Arbitrate at the first word of every frame only
-        if m_data_valid = '1' then
-          arbitrate <= m_tlast_i;
-        elsif or s_tvalid then
-          arbitrate <= '0';
-        end if;
 
         if arbitrate = '1' then
           -- Serve interfaces that are waiting first and when that's complete

@@ -87,6 +87,7 @@ def addTests(cli):
     addAxiFileReaderTests(cli.library("tb").entity("axi_file_reader_tb"))
     addAxiFileCompareTests(cli.library("tb").entity("axi_file_compare_tb"))
     addAxiWidthConverterTests(cli.library("tb").entity("axi_stream_width_converter_tb"))
+    addAxiArbiterTests(cli.library("tb").entity("axi_stream_arbiter_tb"))
 
 
 def addAsyncFifoTests(entity):
@@ -312,6 +313,22 @@ def addAxiWidthConverterTests(entity):
                     INPUT_DATA_WIDTH=input_data_width,
                     OUTPUT_DATA_WIDTH=output_data_width,
                 ),
+            )
+
+
+def addAxiArbiterTests(entity):
+    for test in entity.get_tests():
+        if test.name.startswith("test_round_robin"):
+            test.add_config(
+                name=f"mode=ROUND_ROBIN", generics=dict(MODE="ROUND_ROBIN",),
+            )
+        if test.name.startswith("test_interleaved"):
+            test.add_config(
+                name=f"mode=INTERLEAVED", generics=dict(MODE="INTERLEAVED",),
+            )
+        if test.name.startswith("test_absolute"):
+            test.add_config(
+                name=f"mode=ABSOLUTE", generics=dict(MODE="ABSOLUTE",),
             )
 
 

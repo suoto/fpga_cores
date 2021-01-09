@@ -18,8 +18,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with FPGA Cores.  If not, see <http://www.gnu.org/licenses/>.
 
--- vunit: run_all_in_same_sim
-
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -44,7 +42,7 @@ use fpga_cores.common_pkg.all;
 entity axi_stream_arbiter_tb is
   generic (
     runner_cfg : string;
-    MODE       : string  := "ROUND_ROBIN" -- ROUND_ROBIN, INTERLEAVED, ABSOLUTE
+    MODE       : string  := "" -- ROUND_ROBIN, INTERLEAVED, ABSOLUTE
   );
 end axi_stream_arbiter_tb;
 
@@ -213,7 +211,7 @@ begin
       return frame;
     end;
 
-    procedure test_base_sequence ( constant frames_per_interface : positive ) is
+    procedure test_round_robin_base_sequence ( constant frames_per_interface : positive ) is
       variable msg      : msg_t;
       variable expected : std_logic_array_t(0 to INTERFACES*frames_per_interface - 1)(DATA_WIDTH downto 0);
       variable received : std_logic_vector(DATA_WIDTH downto 0);
@@ -257,7 +255,7 @@ begin
       end loop;
     end;
 
-    procedure test_arb_sequence_0 is
+    procedure test_round_robin_arb_sequence_0 is
       variable msg      : msg_t;
       constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
         '0' & x"10", '1' & x"11",
@@ -296,7 +294,7 @@ begin
       end loop;
     end;
 
-    procedure test_arb_sequence_1 is
+    procedure test_round_robin_arb_sequence_1 is
       variable msg      : msg_t;
       constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
         '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
@@ -342,7 +340,7 @@ begin
       end loop;
     end;
 
-    procedure test_multiple_frames ( constant rd_probability : real ) is
+    procedure test_round_robin_multiple_frames ( constant rd_probability : real ) is
       variable msg      : msg_t;
       constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
         '0' & x"00", '0' & x"01", '0' & x"02", '1' & x"03",
@@ -405,7 +403,7 @@ begin
       end loop;
     end;
 
-    procedure test_uneven_rates ( constant rd_probability : real ) is
+    procedure test_round_robin_uneven_rates ( constant rd_probability : real ) is
       variable msg      : msg_t;
       constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
         '1' & x"10",
@@ -444,6 +442,220 @@ begin
       end loop;
     end;
 
+    procedure test_interleaved_0 is
+      variable msg      : msg_t;
+      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+        '0' & x"00", '0' & x"01", '0' & x"02", '1' & x"03",
+        '0' & x"10", '0' & x"11", '0' & x"12", '1' & x"13",
+        '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
+        '0' & x"30", '0' & x"31", '0' & x"32", '1' & x"33");
+      variable received : std_logic_vector(DATA_WIDTH downto 0);
+    begin
+      axi_bfm_write(net,
+        bfm         => axi_master0,
+        data        => generate_frame(first_value => x"00", length => 4),
+        blocking    => False);
+      -- Let the first transfer start then send the next ones out of order
+      cfg_rd_probability <= 1.0;
+      walk(2);
+
+      axi_bfm_write(net,
+        bfm         => axi_master2,
+        data        => generate_frame(first_value => x"20", length => 4),
+        blocking    => False);
+      axi_bfm_write(net,
+        bfm         => axi_master3,
+        data        => generate_frame(first_value => x"30", length => 4),
+        blocking    => False);
+      axi_bfm_write(net,
+        bfm         => axi_master1,
+        data        => generate_frame(first_value => x"10", length => 4),
+        blocking    => False);
+
+      for i in expected'range loop
+        receive(net, self, msg);
+        received := pop(msg);
+        check_equal(
+          received,
+          expected(i),
+          sformat("Word %d: expected %r but got %r", fo(i), fo(expected(i)), fo(received)));
+      end loop;
+    end;
+
+    procedure test_interleaved_1 is
+      variable msg      : msg_t;
+      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+        '0' & x"00", '0' & x"01", '0' & x"02", '1' & x"03",
+        '0' & x"10", '0' & x"11", '0' & x"12", '1' & x"13",
+        '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
+        '0' & x"30", '0' & x"31", '0' & x"32", '1' & x"33");
+      variable received : std_logic_vector(DATA_WIDTH downto 0);
+    begin
+      cfg_rd_probability <= 1.0;
+
+      walk(2);
+      axi_bfm_write(net,
+        bfm         => axi_master3,
+        data        => generate_frame(first_value => x"30", length => 4),
+        blocking    => False);
+
+      walk(2);
+      axi_bfm_write(net,
+        bfm         => axi_master2,
+        data        => generate_frame(first_value => x"20", length => 4),
+        blocking    => False);
+
+      walk(2);
+      axi_bfm_write(net,
+        bfm         => axi_master1,
+        data        => generate_frame(first_value => x"10", length => 4),
+        blocking    => False);
+
+      walk(2);
+      axi_bfm_write(net,
+        bfm         => axi_master0,
+        data        => generate_frame(first_value => x"00", length => 4),
+        blocking    => False);
+
+      for i in expected'range loop
+        receive(net, self, msg);
+        received := pop(msg);
+        check_equal(
+          received,
+          expected(i),
+          sformat("Word %d: expected %r but got %r", fo(i), fo(expected(i)), fo(received)));
+      end loop;
+    end;
+
+    procedure test_absolute_0 is
+      variable msg      : msg_t;
+      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+        '0' & x"00", '0' & x"01", '0' & x"02", '1' & x"03",
+        '0' & x"10", '0' & x"11", '0' & x"12", '1' & x"13",
+        '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
+        '0' & x"30", '0' & x"31", '0' & x"32", '1' & x"33");
+      variable received : std_logic_vector(DATA_WIDTH downto 0);
+    begin
+      cfg_rd_probability <= 1.0;
+
+      axi_bfm_write(net,
+        bfm         => axi_master0,
+        data        => generate_frame(first_value => x"00", length => 4),
+        blocking    => False);
+      axi_bfm_write(net,
+        bfm         => axi_master1,
+        data        => generate_frame(first_value => x"10", length => 4),
+        blocking    => False);
+      axi_bfm_write(net,
+        bfm         => axi_master2,
+        data        => generate_frame(first_value => x"20", length => 4),
+        blocking    => False);
+      axi_bfm_write(net,
+        bfm         => axi_master3,
+        data        => generate_frame(first_value => x"30", length => 4),
+        blocking    => False);
+
+      for i in expected'range loop
+        receive(net, self, msg);
+        received := pop(msg);
+        check_equal(
+          received,
+          expected(i),
+          sformat("Word %d: expected %r but got %r", fo(i), fo(expected(i)), fo(received)));
+      end loop;
+    end;
+
+    procedure test_absolute_1 is
+      variable msg      : msg_t;
+      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+        '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
+        '0' & x"00", '0' & x"01", '0' & x"02", '1' & x"03",
+        '0' & x"10", '0' & x"11", '0' & x"12", '1' & x"13",
+        '0' & x"30", '0' & x"31", '0' & x"32", '1' & x"33");
+      variable received : std_logic_vector(DATA_WIDTH downto 0);
+    begin
+      cfg_rd_probability <= 1.0;
+
+      axi_bfm_write(net,
+        bfm         => axi_master2,
+        data        => generate_frame(first_value => x"20", length => 4),
+        blocking    => False);
+      axi_bfm_write(net,
+        bfm         => axi_master3,
+        data        => generate_frame(first_value => x"30", length => 4),
+        blocking    => False);
+      walk(2);
+      axi_bfm_write(net,
+        bfm         => axi_master1,
+        data        => generate_frame(first_value => x"10", length => 4),
+        blocking    => False);
+      walk(2);
+      axi_bfm_write(net,
+        bfm         => axi_master0,
+        data        => generate_frame(first_value => x"00", length => 4),
+        blocking    => False);
+
+      for i in expected'range loop
+        receive(net, self, msg);
+        received := pop(msg);
+        check_equal(
+          received,
+          expected(i),
+          sformat("Word %d: expected %r but got %r", fo(i), fo(expected(i)), fo(received)));
+      end loop;
+    end;
+
+    procedure test_absolute_2 is
+      variable msg      : msg_t;
+      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+        '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
+        '0' & x"24", '0' & x"25", '0' & x"26", '1' & x"27",
+        '0' & x"30", '0' & x"31", '0' & x"32", '1' & x"33",
+        '0' & x"34", '0' & x"35", '0' & x"36", '1' & x"37",
+        '0' & x"00", '0' & x"01", '0' & x"02", '1' & x"03",
+        '0' & x"10", '0' & x"11", '0' & x"12", '1' & x"13"
+      );
+      variable received : std_logic_vector(DATA_WIDTH downto 0);
+    begin
+      cfg_rd_probability <= 1.0;
+
+      axi_bfm_write(net,
+        bfm         => axi_master2,
+        data        => generate_frame(first_value => x"20", length => 4),
+        blocking    => False);
+      axi_bfm_write(net,
+        bfm         => axi_master2,
+        data        => generate_frame(first_value => x"24", length => 4),
+        blocking    => False);
+      axi_bfm_write(net,
+        bfm         => axi_master3,
+        data        => generate_frame(first_value => x"30", length => 4),
+        blocking    => False);
+      axi_bfm_write(net,
+        bfm         => axi_master3,
+        data        => generate_frame(first_value => x"34", length => 4),
+        blocking    => False);
+      walk(15);
+
+      axi_bfm_write(net,
+        bfm         => axi_master1,
+        data        => generate_frame(first_value => x"10", length => 4),
+        blocking    => False);
+      axi_bfm_write(net,
+        bfm         => axi_master0,
+        data        => generate_frame(first_value => x"00", length => 4),
+        blocking    => False);
+
+      for i in expected'range loop
+        receive(net, self, msg);
+        received := pop(msg);
+        check_equal(
+          received,
+          expected(i),
+          sformat("Word %d: expected %r but got %r", fo(i), fo(expected(i)), fo(received)));
+      end loop;
+    end;
+
     --
     variable stat   : checker_stat_t;
   begin
@@ -461,26 +673,37 @@ begin
 
       set_timeout(runner, 1 us);
 
-      if run("test_base_sequence") then
-        test_base_sequence(frames_per_interface => 4);
-      elsif run("test_arb_sequence_0") then
-        test_arb_sequence_0;
-      elsif run("test_arb_sequence_1") then
-        test_arb_sequence_1;
-      elsif run("test_multiple_frames_100") then
-        test_multiple_frames(1.0);
-      elsif run("test_multiple_frames_50") then
-        test_multiple_frames(0.5);
-      elsif run("test_multiple_frames_20") then
-        test_multiple_frames(0.2);
-      elsif run("test_uneven_rates_100") then
+      if run("test_round_robin_base_sequence") then
+        test_round_robin_base_sequence(frames_per_interface => 4);
+      elsif run("test_round_robin_arb_sequence_0") then
+        test_round_robin_arb_sequence_0;
+      elsif run("test_round_robin_arb_sequence_1") then
+        test_round_robin_arb_sequence_1;
+      elsif run("test_round_robin_multiple_frames_100") then
+        test_round_robin_multiple_frames(1.0);
+      elsif run("test_round_robin_multiple_frames_50") then
+        test_round_robin_multiple_frames(0.5);
+      elsif run("test_round_robin_multiple_frames_20") then
+        test_round_robin_multiple_frames(0.2);
+      elsif run("test_round_robin_uneven_rates_100") then
         cfg_rd_probability <= 1.0;
         walk(1);
-        test_base_sequence(frames_per_interface => 1);
-        test_uneven_rates(1.0);
-        test_base_sequence(frames_per_interface => 1);
-      elsif run("test_uneven_rates_20") then
-        test_uneven_rates(0.2);
+        test_round_robin_base_sequence(frames_per_interface => 1);
+        test_round_robin_uneven_rates(1.0);
+        test_round_robin_base_sequence(frames_per_interface => 1);
+      elsif run("test_round_robin_uneven_rates_20") then
+        test_round_robin_uneven_rates(0.2);
+
+      elsif run("test_interleaved_0") then
+        test_interleaved_0;
+      elsif run("test_interleaved_1") then
+        test_interleaved_1;
+      elsif run("test_absolute_0") then
+        test_absolute_0;
+      elsif run("test_absolute_1") then
+        test_absolute_1;
+      elsif run("test_absolute_2") then
+        test_absolute_2;
       end if;
 
       join(net, axi_master0);
