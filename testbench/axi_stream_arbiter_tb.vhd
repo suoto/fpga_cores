@@ -476,9 +476,9 @@ begin
       elsif run("test_uneven_rates_100") then
         cfg_rd_probability <= 1.0;
         walk(1);
-        -- test_base_sequence(frames_per_interface => 1);
+        test_base_sequence(frames_per_interface => 1);
         test_uneven_rates(1.0);
-        -- test_base_sequence(frames_per_interface => 1);
+        test_base_sequence(frames_per_interface => 1);
       elsif run("test_uneven_rates_20") then
         test_uneven_rates(0.2);
       end if;
