@@ -92,7 +92,8 @@ begin
   ------------------------------
   addr_uns     <= unsigned(addr);
 
-  rddata_async <= ROM_DATA(to_integer(addr_uns)) when addr_uns >= ROM_DATA'low and addr_uns <= ROM_DATA'high else
+  rddata_async <= (others => 'U') when has_undefined(addr)                                                   else
+                  ROM_DATA(to_integer(addr_uns)) when addr_uns >= ROM_DATA'low and addr_uns <= ROM_DATA'high else
                   (others => 'U');
 
   rddata <= rddata_async when OUTPUT_DELAY = 0 else
