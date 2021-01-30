@@ -104,6 +104,7 @@ architecture axi_stream_width_converter of axi_stream_width_converter is
   signal s_first_word : std_logic;
   signal s_data_valid : std_logic;
   signal m_data_valid : std_logic;
+  signal m_tdata_i    : std_logic_vector(OUTPUT_DATA_WIDTH - 1 downto 0);
   signal s_tready_i   : std_logic;
   signal m_tvalid_i   : std_logic;
   signal m_tlast_i    : std_logic;
@@ -115,7 +116,7 @@ begin
   begin
 
     s_tready_i <= m_tready;
-    m_tdata    <= s_tdata;
+    m_tdata_i  <= s_tdata;
     m_tkeep    <= s_tkeep;
     m_tvalid_i <= s_tvalid;
     m_tlast_i  <= s_tlast;
@@ -133,10 +134,12 @@ begin
   end generate g_pass_through; -- }}
 
   g_downsize : if INPUT_DATA_WIDTH > OUTPUT_DATA_WIDTH generate -- {{
-    signal dbg_tmp       : std_logic_vector(2*(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH) - 1 downto 0);
-    signal dbg_bit_cnt   : natural range 0 to dbg_tmp'length - 1;
-    signal dbg_flush_req : boolean := False;
+    signal s_tdata_full_bytes : std_logic_vector(8*INPUT_BYTE_WIDTH - 1 downto 0);
+    signal dbg_tmp            : std_logic_vector(2*(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH) - 1 downto 0);
+    signal dbg_bit_cnt        : natural range 0 to dbg_tmp'length - 1;
+    signal dbg_flush_req      : boolean := False;
   begin
+
     -------------------
     -- Port mappings --
     -------------------
@@ -182,6 +185,8 @@ begin
       m_tid <= (others => 'U');
     end generate;
 
+    s_tdata_full_bytes <= (8*INPUT_BYTE_WIDTH - 1 downto INPUT_DATA_WIDTH => 'U') & s_tdata;
+
     ---------------
     -- Processes --
     ---------------
@@ -209,17 +214,23 @@ begin
 
           -- Need to assign data before bit_cnt (it's a variable)
           if s_tlast = '0' then
-            tmp(INPUT_DATA_WIDTH + bit_cnt - 1 downto bit_cnt) := s_tdata;
+            tmp(INPUT_DATA_WIDTH + bit_cnt - 1 downto bit_cnt) := s_tdata_full_bytes;
             bit_cnt                                            := bit_cnt + INPUT_DATA_WIDTH;
           else
             -- FIXME: This does not look very synth friendly, check how this gets mapped and refactor if needed
             -- Last word, add the appropriate number of bits
             for i in 0 to s_tkeep'length - 1 loop
               if s_tkeep(i) = '1' then
-                tmp(8 + bit_cnt - 1 downto bit_cnt) := s_tdata(8*(i + 1) - 1 downto 8*i);
-                bit_cnt                             := bit_cnt + 8;
+                tmp(8 + bit_cnt - 1 downto bit_cnt) := s_tdata_full_bytes(8*(i + 1) - 1 downto 8*i);
+                -- INPUT_DATA_WIDTH may or may not be a submultiple of 8
+                if i = s_tkeep'length - 1 and (INPUT_DATA_WIDTH mod 8) /= 0 then
+                  bit_cnt := bit_cnt + (INPUT_DATA_WIDTH mod 8);
+                else
+                  bit_cnt := bit_cnt + 8;
+                end if;
               end if;
             end loop;
+
           end if;
 
           -- Upon receiving the last input word, clear the flush request
@@ -246,7 +257,7 @@ begin
 
         if bit_cnt >= OUTPUT_DATA_WIDTH or flush_req then
           m_tvalid_i <= '1';
-          m_tdata    <= tmp(OUTPUT_DATA_WIDTH - 1 downto 0);
+          m_tdata_i  <= tmp(OUTPUT_DATA_WIDTH - 1 downto 0);
           m_tkeep    <= (others => '0');
 
           -- Work out if the next word will be the last and fill in the bit mask
@@ -294,12 +305,13 @@ begin
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
-  s_data_valid     <= s_tready_i and s_tvalid and not rst;
-  m_data_valid     <= m_tready and m_tvalid_i and not rst;
+  s_data_valid <= s_tready_i and s_tvalid and not rst;
+  m_data_valid <= m_tready and m_tvalid_i and not rst;
 
-  s_tready <= s_tready_i;
-  m_tvalid <= m_tvalid_i;
-  m_tlast  <= m_tlast_i;
+  m_tdata      <= m_tdata_i when m_tvalid_i = '1' else (others => 'U');
+  s_tready     <= s_tready_i;
+  m_tvalid     <= m_tvalid_i;
+  m_tlast      <= m_tlast_i and m_tvalid_i;
 
   ---------------
   -- Processes --
