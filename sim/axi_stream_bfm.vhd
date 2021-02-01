@@ -92,6 +92,9 @@ architecture axi_stream_bfm of axi_stream_bfm is
     return result;
   end;
 
+  -- TDATA_WIDTH rounded up to the nearest divider of 8
+  constant TDATA_WIDTH_ADJUSTED : integer := 8*((TDATA_WIDTH + 7) / 8);
+
   subtype tdata_array_t is std_logic_array_t(open)(TDATA_WIDTH - 1 downto 0);
   subtype tuser_array_t is std_logic_array_t(open)(TUSER_WIDTH - 1 downto 0);
 
@@ -126,7 +129,7 @@ begin
     variable msg : msg_t;
 
     procedure write ( -- {{ ------------------------------------------------------------
-      constant data : std_logic_vector(TDATA_WIDTH - 1 downto 0);
+      constant data : std_logic_vector(TDATA_WIDTH_ADJUSTED - 1 downto 0);
       constant user : std_logic_vector(TUSER_WIDTH - 1 downto 0);
       constant mask : std_logic_vector(DATA_BYTE_WIDTH - 1 downto 0);
       variable id   : std_logic_vector(TID_WIDTH - 1 downto 0);
@@ -136,7 +139,7 @@ begin
         wait until wr_en;
       end if;
 
-      m_tdata   <= data;
+      m_tdata   <= data(m_tdata'range);
       m_tuser   <= user;
       m_tkeep   <= mask;
       m_tid     <= id;
@@ -163,7 +166,7 @@ begin
    ) is
       variable write_user  : std_logic_vector(TUSER_WIDTH - 1 downto 0);
       variable write_id    : std_logic_vector(TID_WIDTH - 1 downto 0);
-      variable word        : std_logic_vector(TDATA_WIDTH - 1 downto 0);
+      variable word        : std_logic_vector(TDATA_WIDTH_ADJUSTED - 1 downto 0);
       variable word_index  : natural := 0;
       variable byte        : natural;
 
