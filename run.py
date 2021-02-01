@@ -66,9 +66,9 @@ def main():
     cli.set_compile_option("modelsim.vcom_flags", ["-explicit"])
 
     # Not all options are supported by all GHDL backends
-    #  cli.set_compile_option("ghdl.flags", ["-frelaxed-rules"])
-    #  cli.set_compile_option("ghdl.flags", ["-frelaxed-rules", "-O0", "-g"])
-    cli.set_compile_option("ghdl.flags", ["-frelaxed-rules", "-O2", "-g"])
+    #  cli.set_compile_option("ghdl.a_flags", ["-frelaxed-rules"])
+    #  cli.set_compile_option("ghdl.a_flags", ["-frelaxed-rules", "-O0", "-g"])
+    cli.set_compile_option("ghdl.a_flags", ["-frelaxed-rules", "-O2", "-g"])
 
     # Make components not bound (error 3473) an error
     cli.set_sim_option("modelsim.vsim_flags", ["-error", "3473", '-voptargs="+acc=n"'])
