@@ -32,9 +32,10 @@ use work.common_pkg.all;
 ------------------------
 entity axi_stream_width_converter is
   generic (
-    INPUT_DATA_WIDTH  : natural := 32;
-    OUTPUT_DATA_WIDTH : natural := 16;
-    AXI_TID_WIDTH     : natural := 0);
+    INPUT_DATA_WIDTH  : natural     := 32;
+    OUTPUT_DATA_WIDTH : natural     := 16;
+    AXI_TID_WIDTH     : natural     := 0;
+    ENDIANNESS        : endianess_t := RIGHT_FIRST);
   port (
     -- Usual ports
     clk      : in  std_logic;
@@ -185,7 +186,8 @@ begin
       m_tid <= (others => 'U');
     end generate;
 
-    s_tdata_full_bytes <= (8*INPUT_BYTE_WIDTH - 1 downto INPUT_DATA_WIDTH => 'U') & s_tdata;
+    s_tdata_full_bytes <= (8*INPUT_BYTE_WIDTH - 1 downto INPUT_DATA_WIDTH => 'U') & s_tdata when ENDIANNESS = RIGHT_FIRST else
+                          mirror_bits(s_tdata) & (8*INPUT_BYTE_WIDTH - 1 downto INPUT_DATA_WIDTH => 'U');
 
     ---------------
     -- Processes --
@@ -308,7 +310,9 @@ begin
   s_data_valid <= s_tready_i and s_tvalid and not rst;
   m_data_valid <= m_tready and m_tvalid_i and not rst;
 
-  m_tdata      <= m_tdata_i when m_tvalid_i = '1' else (others => 'U');
+  m_tdata      <= (others => 'U')         when m_tvalid_i = '0'         else
+                  m_tdata_i               when ENDIANNESS = RIGHT_FIRST else
+                  mirror_bits(m_tdata_i);
   s_tready     <= s_tready_i;
   m_tvalid     <= m_tvalid_i;
   m_tlast      <= m_tlast_i and m_tvalid_i;

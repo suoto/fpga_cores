@@ -38,6 +38,7 @@ package common_pkg is
       ;
 
   type ram_type_t is (auto, bram, lut, uram);
+  type endianess_t is (LEFT_FIRST, RIGHT_FIRST); -- Shamelessly inspired by UVVM :)
   type std_logic_array_t is array (natural range <>) of std_logic_vector; -- Needs VHDL 2008 in Vivado
   type unsigned_array_t is array (natural range <>) of unsigned; -- Needs VHDL 2008 in Vivado
   type integer_vector_t is array (natural range <>) of integer;
