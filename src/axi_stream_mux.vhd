@@ -40,7 +40,7 @@ entity axi_stream_mux is
 
     s_tvalid       : in  std_logic_vector(INTERFACES - 1 downto 0);
     s_tready       : out std_logic_vector(INTERFACES - 1 downto 0);
-    s_tdata        : in  std_logic_array_t(INTERFACES - 1 downto 0)(DATA_WIDTH - 1 downto 0);
+    s_tdata        : in  std_logic_array_t(INTERFACES - 1 downto 0)(DATA_WIDTH - 1 downto 0) := (others => (others => 'U'));
 
     m_tvalid       : out std_logic;
     m_tready       : in  std_logic;

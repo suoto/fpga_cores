@@ -43,7 +43,7 @@ entity axi_stream_demux is
 
     s_tvalid       : in  std_logic;
     s_tready       : out std_logic;
-    s_tdata        : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
+    s_tdata        : in  std_logic_vector(DATA_WIDTH - 1 downto 0) := (others => 'U');
 
     m_tvalid       : out std_logic_vector(INTERFACES - 1 downto 0);
     m_tready       : in  std_logic_vector(INTERFACES - 1 downto 0);
