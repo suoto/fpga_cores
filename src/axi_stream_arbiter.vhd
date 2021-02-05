@@ -100,7 +100,7 @@ begin
       INTERFACES => INTERFACES,
       DATA_WIDTH => DATA_WIDTH + 1)
     port map (
-     selection_mask => selected_i,
+      selection_mask => selected_i,
 
       s_tvalid      => s_tvalid,
       s_tready      => s_tready_i,
@@ -160,7 +160,8 @@ begin
     process(clk, rst)
     begin
       if rst = '1' then
-        selected <= (0 => '1', others => '0');
+        selected    <= (others => '0');
+        selected(0) <= '1';
       elsif rising_edge(clk) then
         if arbitrate and or s_tvalid then
           selected <= selected(INTERFACES - 2 downto 0) & selected(INTERFACES - 1);
@@ -172,8 +173,9 @@ begin
   g_round_robin : if MODE = "ROUND_ROBIN" generate
     signal waiting      : std_logic_vector(INTERFACES - 1 downto 0);
   begin
-    selected_i <= selected_reg                 when not arbitrate    else
-                  keep_first_bit_set(waiting)  when or waiting       else
+    selected_i <= selected_reg                 when not arbitrate         else
+                  keep_first_bit_set(waiting)  when or waiting            else
+                  (others => '1') when s_tvalid = (s_tvalid'range => '0') else -- Forward m_tready to all s_tready whenever there's no pending and no tvalid
                   keep_first_bit_set(s_tvalid);
 
     process(clk, rst)
