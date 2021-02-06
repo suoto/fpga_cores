@@ -41,8 +41,9 @@ use fpga_cores.common_pkg.all;
 
 entity axi_stream_arbiter_tb is
   generic (
-    runner_cfg : string;
-    MODE       : string  := "" -- ROUND_ROBIN, INTERLEAVED, ABSOLUTE
+    runner_cfg      : string;
+    REGISTER_INPUTS : boolean;
+    MODE            : string   := "" -- ROUND_ROBIN, INTERLEAVED, ABSOLUTE
   );
 end axi_stream_arbiter_tb;
 
@@ -136,9 +137,10 @@ begin
 
   dut : entity fpga_cores.axi_stream_arbiter
     generic map (
-      MODE       => MODE,
-      INTERFACES => INTERFACES,
-      DATA_WIDTH => DATA_WIDTH)
+      MODE            => MODE,
+      INTERFACES      => INTERFACES,
+      DATA_WIDTH      => DATA_WIDTH,
+      REGISTER_INPUTS => REGISTER_INPUTS)
     port map (
       -- Write port
       clk              => clk,

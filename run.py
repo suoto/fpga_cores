@@ -318,18 +318,22 @@ def addAxiWidthConverterTests(entity):
 
 def addAxiArbiterTests(entity):
     for test in entity.get_tests():
-        if test.name.startswith("test_round_robin"):
-            test.add_config(
-                name=f"mode=ROUND_ROBIN", generics=dict(MODE="ROUND_ROBIN",),
-            )
-        if test.name.startswith("test_interleaved"):
-            test.add_config(
-                name=f"mode=INTERLEAVED", generics=dict(MODE="INTERLEAVED",),
-            )
-        if test.name.startswith("test_absolute"):
-            test.add_config(
-                name=f"mode=ABSOLUTE", generics=dict(MODE="ABSOLUTE",),
-            )
+        for register_inputs in (True, False):
+            if test.name.startswith("test_round_robin"):
+                test.add_config(
+                    name=f"mode=ROUND_ROBIN,register_inputs={register_inputs}",
+                    generics=dict(MODE="ROUND_ROBIN", REGISTER_INPUTS=register_inputs),
+                )
+            if test.name.startswith("test_interleaved"):
+                test.add_config(
+                    name=f"mode=INTERLEAVED,register_inputs={register_inputs}",
+                    generics=dict(MODE="INTERLEAVED", REGISTER_INPUTS=register_inputs),
+                )
+            if test.name.startswith("test_absolute"):
+                test.add_config(
+                    name=f"mode=ABSOLUTE,register_inputs={register_inputs}",
+                    generics=dict(MODE="ABSOLUTE", REGISTER_INPUTS=register_inputs),
+                )
 
 
 if __name__ == "__main__":
