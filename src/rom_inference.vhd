@@ -45,16 +45,17 @@ entity rom_inference is
     clken  : in  std_logic;
     addr   : in  std_logic_vector(numbits(ROM_DATA'length) - 1 downto 0);
     rddata : out std_logic_vector(ROM_DATA(0)'length - 1 downto 0));
-
-  constant ADDR_WIDTH : natural := numbits(ROM_DATA'length);
-  constant DATA_WIDTH : natural := ROM_DATA(0)'length;
-
-  attribute ROM_STYLE : string;
-  constant RESOLVED_ROM_TYPE : string := get_ram_style(ROM_TYPE, ADDR_WIDTH, DATA_WIDTH);
-  attribute ROM_STYLE of ROM_DATA : constant is RESOLVED_ROM_TYPE;
 end rom_inference;
 
 architecture rom_inference of rom_inference is
+
+  constant ROM : std_logic_array_t := ROM_DATA;
+  constant ADDR_WIDTH : natural := numbits(ROM'length);
+  constant DATA_WIDTH : natural := ROM(0)'length;
+
+  attribute ROM_STYLE : string;
+  constant RESOLVED_ROM_TYPE : string := get_ram_style(ROM_TYPE, ADDR_WIDTH, DATA_WIDTH);
+  attribute ROM_STYLE of ROM : constant is RESOLVED_ROM_TYPE;
 
   -------------
   -- Signals --
@@ -92,8 +93,8 @@ begin
   ------------------------------
   addr_uns     <= unsigned(addr);
 
-  rddata_async <= (others => 'U') when has_undefined(addr)                                                   else
-                  ROM_DATA(to_integer(addr_uns)) when addr_uns >= ROM_DATA'low and addr_uns <= ROM_DATA'high else
+  rddata_async <= (others => 'U') when has_undefined(addr)                                    else
+                  ROM(to_integer(addr_uns)) when addr_uns >= ROM'low and addr_uns <= ROM'high else
                   (others => 'U');
 
   rddata <= rddata_async when OUTPUT_DELAY = 0 else
@@ -107,8 +108,8 @@ begin
   begin
     if clk'event and clk = '1' then
       if clken = '1' then
-        if addr_uns >= ROM_DATA'low and addr_uns <= ROM_DATA'high then
-          rddata_sync <= ROM_DATA(to_integer(addr_uns));
+        if addr_uns >= ROM'low and addr_uns <= ROM'high then
+          rddata_sync <= ROM(to_integer(addr_uns));
         else
           rddata_sync <= (others => 'U');
         end if;
