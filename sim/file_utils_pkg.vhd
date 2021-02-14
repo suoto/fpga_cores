@@ -41,16 +41,8 @@ package file_utils_pkg is
   -----------
   -- Types --
   -----------
-  type ratio_t is record
-    first  : positive;
-    second : positive;
-  end record ratio_t;
-
-  function fo( constant ratio : ratio_t ) return string;
-
   type file_reader_cfg_t is record
     filename : line;
-    ratio    : ratio_t;
     tid      : std_logic_vector;
   end record;
 
@@ -69,15 +61,6 @@ package file_utils_pkg is
     signal net           : inout network_t;
     variable file_reader : inout file_reader_t;
     constant filename    : string;
-    constant ratio       : ratio_t := (8, 8);
-    constant tid         : std_logic_vector := NULL_VECTOR;
-    constant blocking    : boolean := False);
-
-  procedure read_file(
-    signal net           : inout network_t;
-    variable file_reader : inout file_reader_t;
-    constant filename    : string;
-    constant ratio       : string;
     constant tid         : std_logic_vector := NULL_VECTOR;
     constant blocking    : boolean := False);
 
@@ -94,79 +77,27 @@ package file_utils_pkg is
   -----------------
   -- Subprograms --
   -----------------
-  function parse_data_ratio (
-    constant s               : string;
-    constant base_data_width : in positive := 1) return ratio_t;
-
-  procedure push(msg : msg_t; value : ratio_t);
-  impure function pop(msg : msg_t) return ratio_t;
-
   procedure push(msg : msg_t; variable value : file_reader_cfg_t);
   impure function pop(msg : msg_t) return file_reader_cfg_t;
 
-  alias push_data_ratio is push[msg_t, ratio_t];
   alias push_file_reader_cfg is push[msg_t, file_reader_cfg_t];
 
-  procedure push(
-    msg               : msg_t;
-    constant filename : string;
-    constant ratio    : ratio_t;
-    constant tid      : std_logic_vector);
+  -- procedure push(
+  --   msg               : msg_t;
+  --   constant filename : string;
+  --   constant tid      : std_logic_vector);
 
 end file_utils_pkg;
 
 package body file_utils_pkg is
 
-  function fo( constant ratio : ratio_t ) return string is
-  begin
-    return positive'image(ratio.first) & ":" & positive'image(ratio.second);
-  end;
-
-  function parse_data_ratio (
-    constant s               : string;
-    constant base_data_width : in positive := 1) return ratio_t is
-    variable second          : line;
-    variable first           : line;
-    variable is_first_char   : boolean := True;
-  begin
-    if s = "" then
-      return (base_data_width, base_data_width);
-    end if;
-
-    for i in s'range loop
-      if s(i) = ':' then
-        is_first_char := False;
-      elsif is_first_char then
-        write(first, s(i));
-      else
-        write(second, s(i));
-      end if;
-    end loop;
-
-    assert not is_first_char
-      report "Malformed s: " & quote(s)
-      severity Failure;
-
-    return (second => integer'value(second.all),
-            first => integer'value(first.all));
-
-  end function parse_data_ratio;
-
-  procedure push(msg : msg_t; value : ratio_t) is
-  begin
-    push(msg, value.first);
-    push(msg, value.second);
-  end;
-
   procedure push(
     msg               : msg_t;
     constant filename : string;
-    constant ratio    : ratio_t;
     constant tid      : std_logic_vector) is
     variable cfg      : file_reader_cfg_t(tid(tid'range));
   begin
     write(cfg.filename, filename);
-    cfg.ratio := ratio;
     cfg.tid := tid;
     push(msg, cfg);
   end;
@@ -174,25 +105,16 @@ package body file_utils_pkg is
   procedure push(msg : msg_t; variable value : file_reader_cfg_t) is
   begin
     push(msg, value.filename.all);
-    push(msg, value.ratio);
     push(msg, value.tid);
-  end;
-
-  impure function pop(msg : msg_t) return ratio_t is
-  begin
-    return (first => pop(msg),
-            second => pop(msg));
   end;
 
   impure function pop(msg : msg_t) return file_reader_cfg_t is
     -- Pop each element like this instead of inline because we need to make sure this
     -- happens in the correct sequence
     constant filename : string           := pop_string(msg);
-    constant ratio    : ratio_t          := pop(msg);
     constant tid      : std_logic_vector := pop(msg);
   begin
     return (filename => new string'(filename),
-            ratio => ratio,
             tid => tid);
   end;
 
@@ -214,30 +136,18 @@ package body file_utils_pkg is
     signal net           : inout network_t;
     variable file_reader : inout file_reader_t;
     constant filename    : string;
-    constant ratio       : ratio_t := (8, 8);
     constant tid         : std_logic_vector := NULL_VECTOR;
     constant blocking    : boolean := False) is
     variable msg         : msg_t := new_msg;
   begin
     msg.sender := file_reader.sender;
-    push(msg, filename, ratio, tid);
+    push(msg, filename);
+    push(msg, tid);
     file_reader.outstanding := file_reader.outstanding + 1;
     send(net, file_reader.reader, msg);
     debug(file_reader.logger,
           sformat("Enqueued %s, outstanding transfers: %d", quote(filename), fo(file_reader.outstanding)));
   end;
-
-  procedure read_file(
-    signal net           : inout network_t;
-    variable file_reader : inout file_reader_t;
-    constant filename    : string;
-    constant ratio       : string;
-    constant tid         : std_logic_vector := NULL_VECTOR;
-    constant blocking    : boolean := False) is
-  begin
-    read_file(net, file_reader, filename, parse_data_ratio(ratio, 8), tid, blocking);
-  end;
-
 
   procedure wait_file_read (
     signal net           : inout network_t;

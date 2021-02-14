@@ -56,7 +56,6 @@ end axi_file_reader_tb;
 architecture axi_file_reader_tb of axi_file_reader_tb is
 
   type config_t is record
-    ratio          : ratio_t;
     input_file     : line;
     reference_file : line;
   end record;
@@ -72,7 +71,6 @@ architecture axi_file_reader_tb of axi_file_reader_tb is
   begin
 
     return (
-      parse_data_ratio(s(1 to div_0 - 1)),
       new string'(s(div_0 + 1 to div_1 - 1)),
       new string'(s(div_1 + 1 to s'length)));
 
@@ -168,7 +166,7 @@ begin
       for i in config_list'range loop
         cfg := new config_t'(config_list(i));
         -- Notify the DUT
-        read_file(net, file_reader, cfg.input_file.all, cfg.ratio);
+        read_file(net, file_reader, cfg.input_file.all);
         -- Notify the TB check process
         msg := new_msg;
         push(msg, cfg.reference_file.all);

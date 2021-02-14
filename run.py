@@ -138,7 +138,6 @@ def addAxiFileCompareTests(entity):
             reference_file=reference_file,
             data_width=32,
             length=256 * 32,
-            ratio=(32, 32),
         )
 
     tdata_single_error_file = p.join(
@@ -186,49 +185,29 @@ def addAxiFileReaderTests(entity):
     for data_width in (1, 8, 32):
         all_configs = []
 
-        for ratio in (
-            (1, 8),
-            (2, 8),
-            (3, 8),
-            (5, 8),
-            (7, 8),
-            (8, 8),
-            (1, 4),
-            (2, 4),
-            (1, 1),
-            (8, 32),
-        ):
+        basename = (
+            f"file_reader_data_width_{data_width}"
+        )
 
-            basename = (
-                f"file_reader_data_width_{data_width}_ratio_{ratio[0]}_{ratio[1]}"
+        test_file = p.join(ROOT, "vunit_out", basename + "_input.bin")
+        reference_file = p.join(ROOT, "vunit_out", basename + "_reference.bin")
+
+        if not (p.exists(test_file) and p.exists(reference_file)):
+            generateAxiFileReaderTestFile(
+                test_file=test_file,
+                reference_file=reference_file,
+                data_width=data_width,
+                length=256 * data_width,
             )
 
-            test_file = p.join(ROOT, "vunit_out", basename + "_input.bin")
-            reference_file = p.join(ROOT, "vunit_out", basename + "_reference.bin")
+        test_cfg = ",".join([test_file, reference_file])
 
-            if not (p.exists(test_file) and p.exists(reference_file)):
-                generateAxiFileReaderTestFile(
-                    test_file=test_file,
-                    reference_file=reference_file,
-                    data_width=data_width,
-                    length=256 * data_width,
-                    ratio=ratio,
-                )
+        all_configs += [test_cfg]
 
-            test_cfg = ",".join([f"{ratio[0]}:{ratio[1]}", test_file, reference_file])
-
-            all_configs += [test_cfg]
-
-            # Uncomment this to test configs individually
-            #  name = f"single,data_width={data_width},ratio={ratio[0]}:{ratio[1]}"
-            #  entity.add_config(
-            #      name=name, generics={"DATA_WIDTH": data_width, "test_cfg": test_cfg}
-            #  )
-
-        entity.add_config(
-            name=f"multiple,data_width={data_width}",
-            generics={"DATA_WIDTH": data_width, "test_cfg": "|".join(all_configs)},
-        )
+    entity.add_config(
+        name=f"multiple,data_width={data_width}",
+        generics={"DATA_WIDTH": data_width, "test_cfg": "|".join(all_configs)},
+    )
 
 
 def swapBits(value, width=8):
@@ -241,10 +220,9 @@ def swapBits(value, width=8):
     return int(v_in_binary[::-1], 2)
 
 
-def generateAxiFileReaderTestFile(test_file, reference_file, data_width, length, ratio):
+def generateAxiFileReaderTestFile(test_file, reference_file, data_width, length):
     "Create a pair of test files for the AXI file reader testbench"
     rand_max = 2 ** data_width
-    ratio_first, ratio_second = ratio
     packed_data = []
     unpacked_bytes = []
 
@@ -253,29 +231,24 @@ def generateAxiFileReaderTestFile(test_file, reference_file, data_width, length,
     byte = ""
 
     for _ in range(length):
-        for ratio_i in reversed(range(ratio_second)):
-            if ratio_i < ratio_first:
-                # Generate a new data word every time the previous is read out
-                # completely
-                if buffer_length == 0:
-                    buffer_data = random.randrange(0, rand_max)
-                    packed_data += [buffer_data]
+        # Generate a new data word every time the previous is read out
+        # completely
+        if buffer_length == 0:
+            buffer_data = random.randrange(0, rand_max)
+            packed_data += [buffer_data]
 
-                    buffer_data = swapBits(buffer_data, width=data_width)
-                    buffer_length += data_width
+            buffer_data = swapBits(buffer_data, width=data_width)
+            buffer_length += data_width
 
-                byte += str(buffer_data & 1)
+        byte += str(buffer_data & 1)
 
-                buffer_data >>= 1
-                buffer_length -= 1
-            else:
-                # Pad only
-                byte += "0"
+        buffer_data >>= 1
+        buffer_length -= 1
 
-            # Every time we get enough data, save it and reset it
-            if len(byte) == 8:
-                unpacked_bytes += [int(byte, 2)]
-                byte = ""
+        # Every time we get enough data, save it and reset it
+        if len(byte) == 8:
+            unpacked_bytes += [int(byte, 2)]
+            byte = ""
 
     assert not byte, (
         f"Data width {data_width}, length {length} is invalid, "
