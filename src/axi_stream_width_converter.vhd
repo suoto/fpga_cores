@@ -35,7 +35,8 @@ entity axi_stream_width_converter is
     INPUT_DATA_WIDTH  : natural     := 32;
     OUTPUT_DATA_WIDTH : natural     := 16;
     AXI_TID_WIDTH     : natural     := 0;
-    ENDIANNESS        : endianess_t := RIGHT_FIRST);
+    ENDIANNESS        : endianess_t := RIGHT_FIRST;
+    IGNORE_TKEEP      : boolean     := False);
   port (
     -- Usual ports
     clk      : in  std_logic;
@@ -43,15 +44,15 @@ entity axi_stream_width_converter is
     -- AXI stream input
     s_tready : out std_logic;
     s_tdata  : in  std_logic_vector(INPUT_DATA_WIDTH - 1 downto 0);
-    s_tkeep  : in  std_logic_vector((INPUT_DATA_WIDTH + 7) / 8 - 1 downto 0);
-    s_tid    : in  std_logic_vector(AXI_TID_WIDTH - 1 downto 0);
+    s_tkeep  : in  std_logic_vector((INPUT_DATA_WIDTH + 7) / 8 - 1 downto 0) := (others => 'U');
+    s_tid    : in  std_logic_vector(AXI_TID_WIDTH - 1 downto 0) := (others => 'U');
     s_tvalid : in  std_logic;
     s_tlast  : in  std_logic;
     -- AXI stream output
     m_tready : in  std_logic;
     m_tdata  : out std_logic_vector(OUTPUT_DATA_WIDTH - 1 downto 0);
-    m_tkeep  : out std_logic_vector((OUTPUT_DATA_WIDTH + 7) / 8 - 1 downto 0) := (others => '0');
-    m_tid    : out std_logic_vector(AXI_TID_WIDTH - 1 downto 0) := (others => '0');
+    m_tkeep  : out std_logic_vector((OUTPUT_DATA_WIDTH + 7) / 8 - 1 downto 0) := (others => 'U');
+    m_tid    : out std_logic_vector(AXI_TID_WIDTH - 1 downto 0) := (others => 'U');
     m_tvalid : out std_logic;
     m_tlast  : out std_logic := '0');
 end axi_stream_width_converter;
@@ -63,6 +64,8 @@ architecture axi_stream_width_converter of axi_stream_width_converter is
   ---------------
   constant INPUT_BYTE_WIDTH  : natural := (INPUT_DATA_WIDTH + 7) / 8;
   constant OUTPUT_BYTE_WIDTH : natural := (OUTPUT_DATA_WIDTH + 7) / 8;
+  -- TKEEP is not supported if tdata is not multiple of 8 bits
+  constant HANDLE_TKEEP      : boolean := INPUT_DATA_WIDTH mod 8 = 0 and not IGNORE_TKEEP;
 
   ------------------
   -- Sub programs --
@@ -82,8 +85,8 @@ architecture axi_stream_width_converter of axi_stream_width_converter is
 
   -- Sets the appropriate tkeep bits so that it representes the specified number of bytes,
   -- where bytes are in the LSB of tdata
-  function get_tkeep ( constant valid_bytes : natural; constant width : natural ) return std_logic_vector is
-    variable result : std_logic_vector(width - 1 downto 0) := (others => '0');
+  function get_tkeep ( constant valid_bytes : natural ) return std_logic_vector is
+    variable result : std_logic_vector(OUTPUT_BYTE_WIDTH - 1 downto 0) := (others => '0');
   begin
     for i in 0 to result'length - 1 loop
       if i < valid_bytes then
@@ -137,7 +140,7 @@ begin
   g_downsize : if INPUT_DATA_WIDTH > OUTPUT_DATA_WIDTH generate -- {{
     signal s_tdata_full_bytes : std_logic_vector(8*INPUT_BYTE_WIDTH - 1 downto 0);
     signal dbg_tmp            : std_logic_vector(2*(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH) - 1 downto 0);
-    signal dbg_bit_cnt        : natural range 0 to dbg_tmp'length - 1;
+    signal dbg_bit_cnt        : unsigned(numbits(dbg_tmp'length) - 1 downto 0);
     signal dbg_flush_req      : boolean := False;
   begin
 
@@ -196,7 +199,6 @@ begin
       variable tmp       : std_logic_vector(2*(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH) - 1 downto 0);
       variable bit_cnt   : natural range 0 to tmp'length - 1;
       variable flush_req : boolean := False;
-
     begin
       if rising_edge(clk) then
 
@@ -215,10 +217,7 @@ begin
           s_tready_i <= '0'; -- Each incoming word will generate at least 1 output word
 
           -- Need to assign data before bit_cnt (it's a variable)
-          if s_tlast = '0' then
-            tmp(INPUT_DATA_WIDTH + bit_cnt - 1 downto bit_cnt) := s_tdata_full_bytes;
-            bit_cnt                                            := bit_cnt + INPUT_DATA_WIDTH;
-          else
+          if s_tlast = '1' and HANDLE_TKEEP then
             -- FIXME: This does not look very synth friendly, check how this gets mapped and refactor if needed
             -- Last word, add the appropriate number of bits
             for i in 0 to s_tkeep'length - 1 loop
@@ -233,6 +232,9 @@ begin
               end if;
             end loop;
 
+          else
+            tmp(8*INPUT_BYTE_WIDTH + bit_cnt - 1 downto bit_cnt) := s_tdata_full_bytes;
+            bit_cnt                                              := bit_cnt + INPUT_DATA_WIDTH;
           end if;
 
           -- Upon receiving the last input word, clear the flush request
@@ -266,10 +268,12 @@ begin
           -- appropriately
           if bit_cnt <= OUTPUT_DATA_WIDTH and flush_req then
             m_tlast_i <= '1';
-            if OUTPUT_DATA_WIDTH < 8 then
-              m_tkeep <= (others => '1');
-            else
-              m_tkeep <= get_tkeep((bit_cnt + 7) / 8, OUTPUT_BYTE_WIDTH);
+            if HANDLE_TKEEP then
+                if OUTPUT_DATA_WIDTH < 8 then
+                m_tkeep <= (others => '1');
+              else
+                m_tkeep <= get_tkeep((bit_cnt + 7) / 8);
+              end if;
             end if;
           end if;
         end if;
@@ -282,7 +286,7 @@ begin
         end if;
 
         dbg_tmp       <= tmp;
-        dbg_bit_cnt   <= bit_cnt;
+        dbg_bit_cnt   <= to_unsigned(bit_cnt, dbg_bit_cnt'length);
         dbg_flush_req <= flush_req;
 
         if rst = '1' then
@@ -292,6 +296,7 @@ begin
         end if;
       end if;
     end process;
+
   end generate g_downsize; -- }}
 
   g_upsize : if INPUT_DATA_WIDTH < OUTPUT_DATA_WIDTH generate -- {{

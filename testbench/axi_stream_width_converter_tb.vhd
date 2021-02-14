@@ -198,7 +198,7 @@ begin
 
       constant frame : test_frame_t := (data => data, id => id, probability => tready_probability);
     begin
-      info(sformat("Writing frame: id=%r, data=%s" & cr, fo(id), to_string(data)));
+      info(sformat("Writing frame: id=%r, length=%d bytes (%d bits), data=%s" & cr, fo(id), fo(data'length), fo(8*data'length), to_string(data)));
 
       send_frame(frame);
 
