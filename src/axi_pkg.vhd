@@ -23,6 +23,15 @@ use ieee.std_logic_1164.all;
 
 package axi_pkg is
 
+  type axi_stream_qualified_data_t is record
+    tdata  : std_logic_vector;
+    tkeep  : std_logic_vector;
+    tuser  : std_logic_vector;
+    tvalid : std_logic;
+    tready : std_logic;
+    tlast  : std_logic;
+  end record;
+
   type axi_stream_bus_t is record
     tdata  : std_logic_vector;
     tuser  : std_logic_vector;
