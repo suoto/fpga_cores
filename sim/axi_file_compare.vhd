@@ -48,7 +48,7 @@ entity axi_file_compare is
   generic (
     READER_NAME     : string;
     ERROR_CNT_WIDTH : natural := 8;
-    REPORT_SEVERITY : severity_level := Warning;
+    REPORT_SEVERITY : severity_level := Error;
     -- axi_file_reader config
     DATA_WIDTH      : positive := 1);
   port (

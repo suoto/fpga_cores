@@ -112,7 +112,6 @@ begin
   ---------------
   process
     variable cfg          : file_reader_cfg_t(tid(TID_WIDTH - 1 downto 0));
-    variable ratio        : ratio_t := (DATA_WIDTH, DATA_WIDTH);
     --
     constant self         : actor_t := new_actor(READER_NAME);
     constant logger       : logger_t := get_logger(READER_NAME);
@@ -133,9 +132,6 @@ begin
     type std_logic_vector_ptr_t is access std_logic_vector;
     variable bytes_read     : integer := 0;
 
-    variable ratio_buff_cnt : integer := 0;
-    variable ratio_buff     : std_logic_vector_ptr_t;
-
     variable buffer_bit_cnt : natural := 0;
     variable data_buffer    : std_logic_vector(max(2*DATA_WIDTH, 8) - 1 downto 0);
 
@@ -143,75 +139,25 @@ begin
     impure function read_word_from_file return std_logic_vector is
       variable char       : character;
       variable byte       : std_logic_vector(7 downto 0);
-      variable buff_local : std_logic_vector(ratio_buff'range);
-      variable result     : std_logic_vector(ratio.first - 1 downto 0);
-      variable unused     : std_logic_vector(ratio.second - ratio.first - 1 downto 0);
     begin
-
-      buff_local := ratio_buff.all;
-      deallocate(ratio_buff);
-
       -- Need to read bytes to decode them properly, make sure we have enough first
-      while ratio_buff_cnt < ratio.second loop
-        read(file_handler, char);
-        byte           := std_logic_vector(to_unsigned(character'pos(char), 8));
-        bytes_read     := bytes_read + 1;
-
-        buff_local     := buff_local(buff_local'length - byte'length - 1 downto 0) & byte;
-        ratio_buff_cnt := ratio_buff_cnt + 8;
-
-        -- trace(
-        --   logger,
-        --   sformat(
-        --     "ratio = %s || bytes read=%d || ratio_buff_cnt=%d || byte=%r | buffer=%r || %b",
-        --     fo(ratio),
-        --     fo(bytes_read),
-        --     fo(ratio_buff_cnt),
-        --     fo(byte),
-        --     fo(buff_local),
-        --     fo(buff_local)));
-
-      end loop;
-
-      -- Bits we're interested in are on the MSB at this point
-      result := buff_local(buff_local'length - ratio.second + ratio.first - 1 downto buff_local'length - ratio.second);
-      unused := buff_local(buff_local'length - 1 downto buff_local'length - ratio.second + ratio.first);
-
-      -- Remove the bits we're going to return from the buffer
-      buff_local     := buff_local(buff_local'length - ratio.second - 1 downto 0) & (ratio.second - 1 downto 0 => 'U');
-      ratio_buff     := new std_logic_vector'(buff_local);
-      ratio_buff_cnt := ratio_buff_cnt - ratio.second;
-
-      -- Sanity check
-      if unused /= (unused'range => '0') then
-        warning(sformat("Unused bits should be 0, got %b", fo(unused)));
-      end if;
-
-      -- debug(
-      --   logger,
-      --   sformat("%2d => %2d || buff_local = %r || %b || result = %r",
-      --     fo(ratio_buff_cnt + ratio.second),
-      --     fo(ratio_buff_cnt),
-      --     fo(ratio_buff.all),
-      --     fo(ratio_buff.all),
-      --     fo(result)));
-
-      return result;
-
+      read(file_handler, char);
+      byte           := std_logic_vector(to_unsigned(character'pos(char), 8));
+      bytes_read     := bytes_read + 1;
+      return byte;
     end function read_word_from_file;
 
     ------------------------------------------------------------------------------------
     impure function get_next_data (constant word_width : in natural)
     return std_logic_vector is
       variable result : std_logic_vector(word_width - 1 downto 0);
-      variable word   : std_logic_vector(ratio.first - 1 downto 0);
+      variable word   : std_logic_vector(7 downto 0);
     begin
       while buffer_bit_cnt < word_width loop
         word           := read_word_from_file;
-        buffer_bit_cnt := buffer_bit_cnt + ratio.first;
+        buffer_bit_cnt := buffer_bit_cnt + 8;
 
-        data_buffer  := data_buffer(data_buffer'length - ratio.first - 1 downto 0)
-          & word(ratio.first - 1 downto 0);
+        data_buffer  := data_buffer(data_buffer'length - 8 - 1 downto 0) & word(7 downto 0);
 
         -- trace(
         --   logger,
@@ -291,26 +237,10 @@ begin
         if has_message(self) then
           receive(net, self, msg);
           cfg   := pop(msg);
-          ratio := cfg.ratio;
 
-          deallocate(ratio_buff);
           bytes_read     := 0;
-          ratio_buff_cnt := 0;
 
-          -- Avoid bit banging too much if everything is valid
-          if ratio.first = ratio.second then
-            ratio      := (DATA_WIDTH, DATA_WIDTH);
-            ratio_buff := new std_logic_vector(max(DATA_WIDTH, 8) - 1 downto 0);
-          else
-            ratio_buff := new std_logic_vector(max(ratio.second, 8) - 1 downto 0);
-          end if;
-
-          info(
-            logger,
-            sformat(
-              "Reading %s. Data ratio is %d:%d (requested by %s)", quote(cfg.filename.all),
-              fo(cfg.ratio.first), fo(cfg.ratio.second),
-              quote(name(msg.sender))));
+          info(logger, sformat( "Reading %s (requested by %s)", quote(cfg.filename.all), quote(name(msg.sender))));
 
           file_open(file_handler, cfg.filename.all, read_mode);
           file_status  := opened;
@@ -334,7 +264,7 @@ begin
         if axi_data_valid then
           -- Only assert tlast when the file has been completely read and all data
           -- buffered has been read
-          if endfile(file_handler) and buffer_bit_cnt = 0 and ratio_buff_cnt = 0 then
+          if endfile(file_handler) and buffer_bit_cnt = 0 then
             m_tlast_i    <= '1';
             reply_with_size;
           end if;
