@@ -188,8 +188,8 @@ begin
         data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width) := (others => 'U');
       else
         result(buffer_bit_cnt - 1 downto 0) := data_buffer(buffer_bit_cnt - 1 downto max(buffer_bit_cnt - data_width, 0));
-        m_tkeep_i                                                <= (others => '0');
-        m_tkeep_i(numbits((buffer_bit_cnt + 7)/ 8) - 1 downto 0) <= (others => '1');
+        m_tkeep_i                                        <= (others => '0');
+        m_tkeep_i((buffer_bit_cnt + 7) / 8 - 1 downto 0) <= (others => '1');
       end if;
 
       buffer_bit_cnt := max(buffer_bit_cnt - word_width, 0);
