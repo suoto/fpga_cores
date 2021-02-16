@@ -66,6 +66,7 @@ entity axi_file_reader is
     -- Data output
     m_tready           : in std_logic;
     m_tdata            : out std_logic_vector(DATA_WIDTH - 1 downto 0);
+    m_tkeep            : out std_logic_vector(DATA_WIDTH/8 - 1 downto 0);
     m_tid              : out std_logic_vector(TID_WIDTH - 1 downto 0);
     m_tvalid           : out std_logic;
     m_tlast            : out std_logic);
@@ -81,6 +82,7 @@ architecture axi_file_reader of axi_file_reader is
   -- Signals --
   -------------
   signal m_tdata_i      : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal m_tkeep_i      : std_logic_vector(DATA_WIDTH/8 - 1 downto 0);
   signal m_tid_i        : std_logic_vector(TID_WIDTH - 1 downto 0);
   signal m_tvalid_i     : std_logic;
   signal m_tvalid_wr    : std_logic;
@@ -105,6 +107,9 @@ begin
   axi_data_valid <= m_tvalid_i = '1' and m_tready = '1';
 
   m_tdata <= m_tdata_i when m_tvalid_i = '1' else (others => 'U');
+  m_tkeep <= m_tkeep_i       when m_tvalid_i and m_tlast_i     else
+             (others => '0') when m_tvalid_i and not m_tlast_i else
+             (others => 'U');
   m_tid   <= m_tid_i when m_tvalid_i = '1' else (others => 'U');
 
   ---------------
@@ -153,33 +158,42 @@ begin
       variable result : std_logic_vector(word_width - 1 downto 0);
       variable word   : std_logic_vector(7 downto 0);
     begin
+      m_tkeep_i <= (others => '1');
       while buffer_bit_cnt < word_width loop
         word           := read_word_from_file;
         buffer_bit_cnt := buffer_bit_cnt + 8;
 
         data_buffer  := data_buffer(data_buffer'length - 8 - 1 downto 0) & word(7 downto 0);
 
-        -- trace(
-        --   logger,
-        --   sformat(
-        --    "buffer_bit_cnt=%2d | word=%r | data_buffer=%r || %b",
-        --     fo(buffer_bit_cnt),
-        --     fo(word),
-        --     fo(data_buffer),
-        --     fo(data_buffer)));
+        trace(
+          logger,
+          sformat(
+           "buffer_bit_cnt=%2d | word=%r | data_buffer=%r || %b || endfile = %s",
+            fo(buffer_bit_cnt),
+            fo(word),
+            fo(data_buffer),
+            fo(data_buffer),
+            fo(endfile(file_handler))));
+
+        exit when endfile(file_handler);
 
       end loop;
 
       -- Result is going to be the MSB of the valid section
-      result := data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width);
+      if buffer_bit_cnt >= data_width then
+        result := data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width);
+        -- Remove the result from the bit counter and buffer. Assign U's to the
+        -- bit buffer so that we don't get accidently valid outputs when
+        -- something goes wrong
+        data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width) := (others => 'U');
+      else
+        result(buffer_bit_cnt - 1 downto 0) := data_buffer(buffer_bit_cnt - 1 downto max(buffer_bit_cnt - data_width, 0));
+        m_tkeep_i                                                <= (others => '0');
+        m_tkeep_i(numbits((buffer_bit_cnt + 7)/ 8) - 1 downto 0) <= (others => '1');
+      end if;
 
-      -- Remove the result from the bit counter and buffer. Assign U's to the
-      -- bit buffer so that we don't get accidently valid outputs when
-      -- something goes wrong
-      data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width) := (others => 'U');
-      buffer_bit_cnt := buffer_bit_cnt - word_width;
-
-      -- info(sformat("result = %r", fo(result)));
+      buffer_bit_cnt := max(buffer_bit_cnt - word_width, 0);
+      trace(logger, sformat("buffer_bit_cnt=%d, result = %r", fo(buffer_bit_cnt), fo(result)));
       return result;
 
     end function get_next_data;
