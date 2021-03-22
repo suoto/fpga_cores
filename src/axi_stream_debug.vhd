@@ -202,7 +202,7 @@ begin
       if s_last_valid then
         frame_count       <= frame_count + 1;
         last_frame_length <= word_count + 1;
-        update_min_max    <= '0';
+        update_min_max    <= '1';
       end if;
 
       -- Update a cycle later
