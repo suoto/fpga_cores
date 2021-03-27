@@ -137,7 +137,7 @@ def addAxiFileCompareTests(entity):
             test_file=test_file,
             reference_file=reference_file,
             data_width=32,
-            length=256 * 32,
+            length=32 * 8,
         )
 
     tdata_single_error_file = p.join(
@@ -145,6 +145,9 @@ def addAxiFileCompareTests(entity):
     )
     tdata_two_errors_file = p.join(
         ROOT, "vunit_out", "file_compare_reference_tdata_2_errors.bin"
+    )
+    tlast_error_file = p.join(
+        ROOT, "vunit_out", "file_compare_reference_tlast_error.bin"
     )
 
     if not p.exists(tdata_single_error_file):
@@ -169,6 +172,16 @@ def addAxiFileCompareTests(entity):
             )
             fd.write(b"\n".join(data))
 
+    if not p.exists(tlast_error_file):
+        ref_data = open(reference_file, "rb").read().strip().split(b"\n")
+
+        with open(tlast_error_file, "wb") as fd:
+            # Skip one, duplicate another so the size is the same
+            # Format is "tdata,tkeep,tlast", change tlast to 0
+            last_entry = ref_data[-1].split(b",")
+            data = ref_data[:-1] + [b",".join([last_entry[0], b"0", b"0"])]
+            fd.write(b"\n".join(data))
+
     entity.add_config(
         name="all",
         generics=dict(
@@ -176,38 +189,49 @@ def addAxiFileCompareTests(entity):
             reference_file=reference_file,
             tdata_single_error_file=tdata_single_error_file,
             tdata_two_errors_file=tdata_two_errors_file,
+            tlast_error_file=tlast_error_file,
         ),
     )
 
 
 def addAxiFileReaderTests(entity):
     "Parametrizes the AXI file reader testbench"
-    for data_width in (1, 8, 32):
+    # Dict with data_width: {lengths in bytes}
+    configs = {
+        1: [1, 2],
+        8: [1, 8, 16, 24],
+        16: [1, 2, 3, 4, 8, 9],
+        64: [16, 17, 18, 19],
+    }
+
+    for data_width, length_list in configs.items():
         all_configs = []
 
-        basename = (
-            f"file_reader_data_width_{data_width}"
+        for length in length_list:
+            basename = f"file_reader_data_width_{data_width}_length_{length}_bytes"
+
+            test_file = p.join(ROOT, "vunit_out", basename + "_input.bin")
+            reference_file = p.join(ROOT, "vunit_out", basename + "_reference.bin")
+
+            if not (p.exists(test_file) and p.exists(reference_file)) or (
+                p.getmtime(__file__)
+                > max(p.getmtime(test_file), p.getmtime(reference_file))
+            ):
+                generateAxiFileReaderTestFile(
+                    test_file=test_file,
+                    reference_file=reference_file,
+                    data_width=data_width,
+                    length=length,
+                )
+
+            test_cfg = ",".join([test_file, reference_file])
+
+            all_configs += [test_cfg]
+
+        entity.add_config(
+            name=f"multiple,data_width={data_width}",
+            generics={"DATA_WIDTH": data_width, "test_cfg": "|".join(all_configs)},
         )
-
-        test_file = p.join(ROOT, "vunit_out", basename + "_input.bin")
-        reference_file = p.join(ROOT, "vunit_out", basename + "_reference.bin")
-
-        if not (p.exists(test_file) and p.exists(reference_file)):
-            generateAxiFileReaderTestFile(
-                test_file=test_file,
-                reference_file=reference_file,
-                data_width=data_width,
-                length=256 * data_width,
-            )
-
-        test_cfg = ",".join([test_file, reference_file])
-
-        all_configs += [test_cfg]
-
-    entity.add_config(
-        name=f"multiple,data_width={data_width}",
-        generics={"DATA_WIDTH": data_width, "test_cfg": "|".join(all_configs)},
-    )
 
 
 def swapBits(value, width=8):
@@ -222,51 +246,60 @@ def swapBits(value, width=8):
 
 def generateAxiFileReaderTestFile(test_file, reference_file, data_width, length):
     "Create a pair of test files for the AXI file reader testbench"
-    rand_max = 2 ** data_width
-    packed_data = []
-    unpacked_bytes = []
+    print("Generating AXI file reader test files")
+    print("- test_file:      ", test_file)
+    print("- reference_file: ", reference_file)
+    print("- data_width:     ", data_width, "bits")
+    print("- length:         ", length, "bytes")
 
-    buffer_length = 0
-    buffer_data = 0
-    byte = ""
+    test_data = tuple([random.randint(0, 255) for _ in range(length)])
 
-    for _ in range(length):
-        # Generate a new data word every time the previous is read out
-        # completely
-        if buffer_length == 0:
-            buffer_data = random.randrange(0, rand_max)
-            packed_data += [buffer_data]
-
-            buffer_data = swapBits(buffer_data, width=data_width)
-            buffer_length += data_width
-
-        byte += str(buffer_data & 1)
-
-        buffer_data >>= 1
-        buffer_length -= 1
-
-        # Every time we get enough data, save it and reset it
-        if len(byte) == 8:
-            unpacked_bytes += [int(byte, 2)]
-            byte = ""
-
-    assert not byte, (
-        f"Data width {data_width}, length {length} is invalid, "
-        "need to make sure data_width*length is divisible by 8"
-    )
+    print("- test_data:      ", test_data)
 
     with open(test_file, "wb") as fd:
-        for byte in unpacked_bytes:
-            fd.write(struct.pack(">B", byte))
+        fd.write(struct.pack("<" + length * "B", *test_data))
 
     # Format will depend on the data width, need to be wide enough for to fit
     # one character per nibble
-    fmt = "%.{}x\n".format((data_width + 3) // 4)
-    with open(reference_file, "w") as fd:
-        for word in packed_data:
-            fd.write(fmt % word)
+    lines = []
+    tkeep_fmt = f"%.{data_width//8//4}x"
 
-    return packed_data
+    if data_width >= 8:
+        line = []
+        tkeep = 0
+        for i, byte in enumerate(test_data):
+            # TODO: Fix endianness (should be a generic or argument)
+            line.append(f"{byte:02x}")
+            tlast = i == length - 1
+            if (8 * (i + 1) % data_width) == 0:
+                if tlast:
+                    tkeep = (1 << len(line)) - 1
+                lines += [
+                    ",".join(["".join(line), tkeep_fmt % tkeep, "1" if tlast else "0"])
+                ]
+                line = []
+        if line:
+            tkeep = (1 << len(line)) - 1
+            line = (data_width // 8 - len(line)) * ["00"] + line
+            lines += [",".join(["".join(line), tkeep_fmt % tkeep, "1"])]
+    else:
+        # Flatten the test data into a bit string and slice it with data_width
+        for i, byte in enumerate(test_data):
+            print(i, hex(byte))
+        bin_data = "".join(bin(x)[2:].rjust(8) for x in test_data).replace(" ", "0")
+        print(bin_data, len(bin_data))
+        assert len(bin_data) % 8 == 0
+
+        while bin_data:
+            word = int(bin_data[:data_width])
+            bin_data = bin_data[data_width:]
+
+            tlast = not bin_data
+            lines += [",".join([f"{word:x}", "", "1" if tlast else "0"])]
+
+    with open(reference_file, "w") as fd:
+        fd.write("\n".join(lines))
+        fd.write("\n")
 
 
 def addAxiWidthConverterTests(entity):

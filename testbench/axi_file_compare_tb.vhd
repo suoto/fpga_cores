@@ -51,7 +51,8 @@ entity axi_file_compare_tb is
     input_file              : string;
     reference_file          : string;
     tdata_single_error_file : string;
-    tdata_two_errors_file   : string);
+    tdata_two_errors_file   : string;
+    tlast_error_file        : string);
 end axi_file_compare_tb;
 
 architecture axi_file_compare_tb of axi_file_compare_tb is
@@ -101,7 +102,8 @@ begin
   generic map (
     READER_NAME     => READER_NAME,
     ERROR_CNT_WIDTH => ERROR_CNT_WIDTH,
-    DATA_WIDTH      => DATA_WIDTH)
+    DATA_WIDTH      => DATA_WIDTH,
+    REPORT_SEVERITY => Warning)
   port map (
     -- Usual ports
     clk                => clk,
@@ -167,33 +169,39 @@ begin
     end procedure write_word;
 
     ------------------------------------------------------------------------------------
-    procedure write_data_from_file (
-      constant filename    : string;
-      constant tlast_every : integer := -1) is
-      file file_handler    : text;
-      variable L           : line;
-      variable data        : std_logic_vector(DATA_WIDTH - 1 downto 0) := (others => '0');
-      variable cnt         : natural := 0;
+    procedure write_data_from_file ( constant filename : string ) is
+      file file_handler : text;
+      variable L        : line;
+      variable data     : std_logic_vector(DATA_WIDTH - 1 downto 0) := (others => '0');
+      variable tkeep    : std_logic_vector(DATA_WIDTH/8 - 1 downto 0) := (others => '0');
+      variable last     : std_logic;
+      variable fields   : lines_t;
     begin
-        file_open(file_handler, filename, read_mode);
+      info("Driving compare input with data from '" & filename & "'");
+      file_open(file_handler, filename, read_mode);
 
-        while not endfile(file_handler) loop
-          readline(file_handler, L);
-          hread(L, data);
+      while not endfile(file_handler) loop
+        readline(file_handler, L);
+        fields := split(L.all, ",");
 
-          if tlast_every = -1 then
-            write_word(data, is_last => endfile(file_handler));
-          else
-            write_word(data, is_last => cnt = tlast_every);
-          end if;
+        hread(fields(0), data);
+        read(fields(2), last);
+        if last = '1' then
+          hread(fields(1), tkeep);
+          for byte in 0 to DATA_WIDTH/8 - 1 loop
+            if tkeep(byte) = '0' then
+              data(8*(byte + 1) - 1 downto 8*byte) := (others => 'U');
+            end if;
+          end loop;
+          write_word(data, is_last => True);
+        else
+          write_word(data, is_last => False);
+        end if;
+      end loop;
 
-          cnt := cnt + 1;
+      file_close(file_handler);
 
-        end loop;
-
-        file_close(file_handler);
-
-    end;
+    end procedure;
 
     ------------------------------------------------------------------------------------
     procedure test_no_errors_detected is
@@ -216,7 +224,7 @@ begin
       info("Starting tlast error");
       read_file(net, reader, input_file);
       info("Enqueued file");
-      write_data_from_file(reference_file, tlast_every => 1e9);
+      write_data_from_file(tlast_error_file);
       info("Wrote frame");
       wait_all_read(net, reader);
       info("Got reply");
@@ -299,34 +307,48 @@ begin
       tvalid_probability <= 1.0;
 
       if run("test_no_errors_detected_back_to_back") then
+        info("Starting 'test_no_errors_detected_back_to_back'");
         tvalid_probability <= 1.0;
         test_no_errors_detected;
+        info("Completed 'test_no_errors_detected_back_to_back'");
 
       elsif run("test_no_errors_detected_slow_write") then
+        info("Starting 'test_no_errors_detected_slow_write'");
         tvalid_probability <= 0.5;
         test_no_errors_detected;
+        info("Completed 'test_no_errors_detected_slow_write'");
 
       elsif run("test_tlast_error_back_to_back") then
+        info("Starting 'test_tlast_error_back_to_back'");
         tvalid_probability <= 1.0;
         test_tlast_error;
+        info("Completed 'test_tlast_error_back_to_back'");
 
       elsif run("test_tlast_error_slow_write") then
+        info("Starting 'test_tlast_error_slow_write'");
         tvalid_probability <= 0.4;
         test_tlast_error;
+        info("Completed 'test_tlast_error_slow_write'");
 
       elsif run("test_tdata_error_back_to_back") then
+        info("Starting 'test_tdata_error_back_to_back'");
         tvalid_probability <= 1.0;
         test_tdata_single_error;
         test_tdata_2_errors;
+        info("Completed 'test_tdata_error_back_to_back'");
 
       elsif run("test_tdata_error_slow_rate") then
+        info("Starting 'test_tdata_error_slow_rate'");
         tvalid_probability <= 0.8;
         test_tdata_single_error;
         test_tdata_2_errors;
+        info("Completed 'test_tdata_error_slow_rate'");
 
       elsif run("test_auto_reset") then
+        info("Starting 'test_auto_reset'");
         tvalid_probability <= 1.0;
         test_auto_reset;
+        info("Completed 'test_auto_reset'");
 
       end if;
 
