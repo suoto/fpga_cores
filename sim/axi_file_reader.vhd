@@ -21,6 +21,21 @@
 ---------------------------------
 -- Block name and description --
 --------------------------------
+-- Reads a file and writes to AXI-Stream interface. There's no restriction on the data
+-- width, but the file is read 1 byte at a time and then converted to data width.
+-- Conversion is big endian, so if the input file has:
+-- AB CD EF GH
+-- When data_width = 4, the output will be [A, B, C, D, E, F, G, H]
+-- When data_width = 8, the output will be [AB, CD, EF, GH]
+-- When data_width = 16, the output will be [ABCD, EFGH]
+--
+-- This works the same way for data width = 1, so if input file has [0x91, 0x82], the
+-- output will be:
+-- [1, 0, 0, 1,  --> i.e., 0x9
+--  0, 0, 0, 1,  --> i.e., 0x1
+--  1, 0, 0, 0,  --> i.e., 0x8
+--  0, 0, 1, 0]  --> i.e., 0x2
+--
 
 ---------------
 -- Libraries --
@@ -66,6 +81,7 @@ entity axi_file_reader is
     -- Data output
     m_tready           : in std_logic;
     m_tdata            : out std_logic_vector(DATA_WIDTH - 1 downto 0);
+    m_tkeep            : out std_logic_vector(DATA_WIDTH/8 - 1 downto 0);
     m_tid              : out std_logic_vector(TID_WIDTH - 1 downto 0);
     m_tvalid           : out std_logic;
     m_tlast            : out std_logic);
@@ -81,6 +97,7 @@ architecture axi_file_reader of axi_file_reader is
   -- Signals --
   -------------
   signal m_tdata_i      : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal m_tkeep_i      : std_logic_vector(DATA_WIDTH/8 - 1 downto 0);
   signal m_tid_i        : std_logic_vector(TID_WIDTH - 1 downto 0);
   signal m_tvalid_i     : std_logic;
   signal m_tvalid_wr    : std_logic;
@@ -105,6 +122,9 @@ begin
   axi_data_valid <= m_tvalid_i = '1' and m_tready = '1';
 
   m_tdata <= m_tdata_i when m_tvalid_i = '1' else (others => 'U');
+  m_tkeep <= m_tkeep_i       when m_tvalid_i and m_tlast_i     else
+             (others => '0') when m_tvalid_i and not m_tlast_i else
+             (others => 'U');
   m_tid   <= m_tid_i when m_tvalid_i = '1' else (others => 'U');
 
   ---------------
@@ -130,7 +150,6 @@ begin
     file file_handler : file_type;
 
     type std_logic_vector_ptr_t is access std_logic_vector;
-    variable bytes_read     : integer := 0;
 
     variable buffer_bit_cnt : natural := 0;
     variable data_buffer    : std_logic_vector(max(2*DATA_WIDTH, 8) - 1 downto 0);
@@ -142,8 +161,7 @@ begin
     begin
       -- Need to read bytes to decode them properly, make sure we have enough first
       read(file_handler, char);
-      byte           := std_logic_vector(to_unsigned(character'pos(char), 8));
-      bytes_read     := bytes_read + 1;
+      byte := std_logic_vector(to_unsigned(character'pos(char), 8));
       return byte;
     end function read_word_from_file;
 
@@ -153,33 +171,46 @@ begin
       variable result : std_logic_vector(word_width - 1 downto 0);
       variable word   : std_logic_vector(7 downto 0);
     begin
+      m_tkeep_i <= (others => '1');
       while buffer_bit_cnt < word_width loop
         word           := read_word_from_file;
         buffer_bit_cnt := buffer_bit_cnt + 8;
 
         data_buffer  := data_buffer(data_buffer'length - 8 - 1 downto 0) & word(7 downto 0);
 
-        -- trace(
-        --   logger,
-        --   sformat(
-        --    "buffer_bit_cnt=%2d | word=%r | data_buffer=%r || %b",
-        --     fo(buffer_bit_cnt),
-        --     fo(word),
-        --     fo(data_buffer),
-        --     fo(data_buffer)));
+        trace(
+          logger,
+          sformat(
+           "buffer_bit_cnt=%2d | word=%r | data_buffer=%r || %b || endfile = %s",
+            fo(buffer_bit_cnt),
+            fo(word),
+            fo(data_buffer),
+            fo(data_buffer),
+            fo(endfile(file_handler))));
 
+        exit when endfile(file_handler);
       end loop;
 
       -- Result is going to be the MSB of the valid section
-      result := data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width);
+      if buffer_bit_cnt >= data_width then
+        result := data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width);
+        -- Remove the result from the bit counter and buffer. Assign U's to the
+        -- bit buffer so that we don't get accidently valid outputs when
+        -- something goes wrong
+        data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width) := (others => 'U');
+      else
+        result(buffer_bit_cnt - 1 downto 0) := data_buffer(buffer_bit_cnt - 1 downto max(buffer_bit_cnt - data_width, 0));
+        m_tkeep_i                                        <= (others => '0');
+        m_tkeep_i((buffer_bit_cnt + 7) / 8 - 1 downto 0) <= (others => '1');
+      end if;
 
-      -- Remove the result from the bit counter and buffer. Assign U's to the
-      -- bit buffer so that we don't get accidently valid outputs when
-      -- something goes wrong
-      data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width) := (others => 'U');
-      buffer_bit_cnt := buffer_bit_cnt - word_width;
-
-      -- info(sformat("result = %r", fo(result)));
+      buffer_bit_cnt := max(buffer_bit_cnt - word_width, 0);
+      trace(logger, sformat("buffer_bit_cnt=%d, result = %r", fo(buffer_bit_cnt), fo(result)));
+      -- Only assert tlast when the file has been completely read and all data buffered
+      -- has been read
+      if endfile(file_handler) and buffer_bit_cnt = 0 then
+        m_tlast_i <= '1';
+      end if;
       return result;
 
     end function get_next_data;
@@ -238,8 +269,6 @@ begin
           receive(net, self, msg);
           cfg   := pop(msg);
 
-          bytes_read     := 0;
-
           info(logger, sformat( "Reading %s (requested by %s)", quote(cfg.filename.all), quote(name(msg.sender))));
 
           file_open(file_handler, cfg.filename.all, read_mode);
@@ -261,14 +290,9 @@ begin
         if cfg.tid /= NULL_VECTOR then
           m_tid_i <= cfg.tid;
         end if;
-        if axi_data_valid then
-          -- Only assert tlast when the file has been completely read and all data
-          -- buffered has been read
-          if endfile(file_handler) and buffer_bit_cnt = 0 then
-            m_tlast_i    <= '1';
-            reply_with_size;
-          end if;
-        end if;
+      end if;
+      if axi_data_valid and m_tlast_i = '1' then
+        reply_with_size;
       end if;
 
       -- Generate a tvalid enable with the configured probability

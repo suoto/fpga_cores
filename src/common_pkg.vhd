@@ -114,11 +114,10 @@ package body common_pkg is
   end function numbits;
 
   ------------------------------------------------------------------------------------
-  function mirror_bytes (
-      constant v           : std_logic_vector)
+  function mirror_bytes ( constant v : std_logic_vector )
   return std_logic_vector is
       constant byte_number : natural := v'length / 8;
-      variable result      : std_logic_vector(v'range);
+      variable result      : std_logic_vector(v'length - 1 downto 0);
   begin
       assert byte_number * 8 = v'length
           report "Can't swap bytes with a non-integer number of bytes. " &
@@ -126,7 +125,7 @@ package body common_pkg is
           severity Failure;
 
       for byte in 0 to byte_number - 1 loop
-          result((byte_number - byte) * 8 - 1 downto (byte_number - byte - 1) * 8) := v((byte + 1) * 8 - 1 downto byte * 8);
+          result((byte_number - byte) * 8 - 1 downto (byte_number - byte - 1) * 8) := v((byte + 1) * 8 + v'low - 1 downto byte * 8 + v'low);
       end loop;
       return result;
   end function mirror_bytes;

@@ -48,14 +48,18 @@ entity axi_stream_mux is
 end axi_stream_mux;
 
 architecture axi_stream_mux of axi_stream_mux is
-  signal selection_int : integer range 0 to INTERFACES - 1;
+  signal selection_int   : integer range 0 to INTERFACES - 1;
+  signal selection_valid : std_logic;
 begin
 
-  selection_int  <= to_integer(one_hot_to_decimal(selection_mask));
-  m_tdata        <= (others => 'U') when has_undefined(selection_mask) else s_tdata(selection_int);
+  -- Block data if selection mask is all 0s
+  selection_valid <= or(selection_mask);
 
-  m_tvalid       <= '0' when has_undefined(selection_mask) else s_tvalid(selection_int);
-  s_tready       <= selection_mask and (INTERFACES - 1 downto 0 => m_tready);
+  selection_int   <= to_integer(one_hot_to_decimal(selection_mask));
+  m_tdata         <= (others => 'U') when has_undefined(selection_mask) or selection_valid = '0' else s_tdata(selection_int);
+
+  m_tvalid        <= '0' when has_undefined(selection_mask) or selection_valid = '0' else s_tvalid(selection_int);
+  s_tready        <= selection_mask and (INTERFACES - 1 downto 0 => m_tready and selection_valid);
 
 end axi_stream_mux;
 

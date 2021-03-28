@@ -210,9 +210,10 @@ begin
   g_round_robin : if MODE = "ROUND_ROBIN" generate
     signal waiting      : std_logic_vector(INTERFACES - 1 downto 0);
   begin
-    selected_i <= selected_reg                 when not arbitrate         else
-                  keep_first_bit_set(waiting)  when or waiting            else
-                  (others => '1') when s_tvalid_i = (s_tvalid_i'range => '0') else -- Forward m_tready to all s_tready whenever there's no pending and no tvalid
+    selected_i <= selected_reg                 when not arbitrate                          else
+                  keep_first_bit_set(waiting)  when or waiting                             else
+                  -- Forward m_tready to all s_tready whenever there's no pending and no tvalid
+                  (others => '1')              when s_tvalid_i = (s_tvalid_i'range => '0') else
                   keep_first_bit_set(s_tvalid_i);
 
     process(clk, rst)
@@ -220,17 +221,15 @@ begin
       if rst = '1' then
         waiting      <= (others => '0');
       elsif rising_edge(clk) then
-
         if arbitrate = '1' then
-          -- Serve interfaces that are waiting first and when that's complete
-          -- serve from s_tvalid_i
+          -- Serve interfaces that are waiting first and when that's complete serve from
+          -- s_tvalid_i
           if or waiting then
             waiting <= waiting and not selected_i;
           else
             waiting <= s_tvalid_i and not selected_i;
           end if;
         end if;
-
       end if;
     end process;
   end generate g_round_robin;
