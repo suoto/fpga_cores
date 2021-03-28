@@ -42,8 +42,8 @@ entity axi_stream_debug is
     FRAME_LENGTH_WIDTH : integer := 8);
   port (
     -- Usual ports
-    clk             : in  std_logic;
-    rst             : in  std_logic;
+    clk                   : in  std_logic;
+    rst                   : in  std_logic;
     -- Control and status
     cfg_reset_min_max     : in  std_logic;
     cfg_block_data        : in std_logic;

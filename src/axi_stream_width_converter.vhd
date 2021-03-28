@@ -64,8 +64,10 @@ architecture axi_stream_width_converter of axi_stream_width_converter is
   ---------------
   constant INPUT_BYTE_WIDTH  : natural := (INPUT_DATA_WIDTH + 7) / 8;
   constant OUTPUT_BYTE_WIDTH : natural := (OUTPUT_DATA_WIDTH + 7) / 8;
-  -- TKEEP is not supported if tdata is not multiple of 8 bits
-  constant HANDLE_TKEEP      : boolean := INPUT_DATA_WIDTH mod 8 = 0 and not IGNORE_TKEEP;
+  -- TKEEP is only supported if tdata is multiple of 8 bits and wider than 8 bits
+  constant HANDLE_TKEEP      : boolean := not IGNORE_TKEEP and           -- Force no tkeep handling
+                                          INPUT_DATA_WIDTH mod 8 = 0 and -- tdata must be a multiple of 8 bits
+                                          INPUT_DATA_WIDTH > 8;          -- tdata must be wider than 8 bits
 
   ------------------
   -- Sub programs --
@@ -271,12 +273,10 @@ begin
           -- appropriately
           if bit_cnt <= OUTPUT_DATA_WIDTH and flush_req then
             m_tlast_i <= '1';
-            if HANDLE_TKEEP then
-                if OUTPUT_DATA_WIDTH < 8 then
-                m_tkeep <= (others => '1');
-              else
-                m_tkeep <= get_tkeep((bit_cnt + 7) / 8);
-              end if;
+            if OUTPUT_DATA_WIDTH < 8 then
+              m_tkeep <= (others => '1');
+            elsif HANDLE_TKEEP then
+              m_tkeep <= get_tkeep((bit_cnt + 7) / 8);
             end if;
           end if;
         end if;
@@ -293,7 +293,7 @@ begin
         dbg_flush_req <= flush_req;
 
         if rst = '1' then
-          s_tready_i <= '1';
+          s_tready_i <= '0';
           m_tvalid_i <= '0';
           m_tlast_i  <= '0';
         end if;
