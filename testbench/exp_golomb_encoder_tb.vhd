@@ -1,34 +1,22 @@
 --
--- FPGA Cores -- A(nother) HDL library
+-- FPGA core library
 --
 -- Copyright 2014-2016 by Andre Souto (suoto)
 --
--- This file is part of FPGA Cores.
--- 
--- FPGA Cores is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
--- 
--- In addition to the GNU General Public License terms and conditions,
--- under the section 7 - Additional Terms, include the following:
---    g) All files of this work contain lines identifying the original
---    author and release date. This line SHOULD NOT be removed or
---    changed for any reason unless explicitly allowed by the author in
---    the form of writing. Note that this seeks to prevent this work
---    from being misused. Misuse includes but doesn't limits to code
---    evaluation of candidates from employers. All remaining GNU
---    General Public License terms still apply.
+-- This source describes Open Hardware and is licensed under the CERN-OHL-W v2
 --
--- FPGA Cores is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
--- You should have received a copy of the GNU General Public License
--- along with FPGA Cores.  If not, see <http://www.gnu.org/licenses/>.
+-- You may redistribute and modify this documentation and make products using it
+-- under the terms of the CERN-OHL-W v2 (https:/cern.ch/cern-ohl).This
+-- documentation is distributed WITHOUT ANY EXPRESS OR IMPLIED WARRANTY,
+-- INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS FOR A
+-- PARTICULAR PURPOSE. Please see the CERN-OHL-W v2 for applicable conditions.
 --
--- Author: Andre Souto (github.com/suoto) [DO NOT REMOVE]
--- Date: 2016/04/18 [DO NOT REMOVE]
+-- Source location: https://github.com/suoto/fpga_cores
+--
+-- As per CERN-OHL-W v2 section 4.1, should You produce hardware based on these
+-- sources, You must maintain the Source Location visible on the external case
+-- of the FPGA Cores or other product you make using this documentation.
+
 ---------------
 -- Libraries --
 ---------------
