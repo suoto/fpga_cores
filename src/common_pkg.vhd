@@ -94,6 +94,7 @@ package common_pkg is
     constant data_width : natural) return string;
 
   function one_hot_to_decimal ( constant v : std_logic_vector) return unsigned;
+  function decimal_to_one_hot ( constant v : std_logic_vector ) return std_logic_vector;
   function has_undefined ( constant v : std_logic_vector ) return boolean;
   function has_undefined ( constant v : unsigned ) return boolean;
 
@@ -418,5 +419,13 @@ package body common_pkg is
     end loop;
     return mux;
   end;
+
+  function decimal_to_one_hot ( constant v : std_logic_vector ) return std_logic_vector is
+    variable result : std_logic_vector(2**v'length - 1 downto 0);
+  begin
+    result                          := (others => '0');
+    result(to_integer(unsigned(v))) := '1';
+    return result;
+  end function;
 
 end package body;
