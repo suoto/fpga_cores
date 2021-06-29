@@ -69,7 +69,7 @@ begin
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
-  s_axi_dv   <= '1' when s_tvalid = '1' and s_tready_i = '1' else '0';
+  s_axi_dv   <= s_tready_i and s_tvalid;
   m_axi_dv   <= m_tvalid_i and m_tready;
 
   -- Assert s_tready whenever we've sent data on all interfaces but use
@@ -92,7 +92,7 @@ begin
   begin
     if rst = '1' then
       interface_done <= (others => '0');
-    elsif clk'event and clk = '1' then
+    elsif rising_edge(clk) then
       interface_done <= interface_done or m_axi_dv;
 
       if s_axi_dv = '1' then
