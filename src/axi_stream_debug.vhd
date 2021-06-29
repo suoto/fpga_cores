@@ -100,21 +100,19 @@ begin
   -------------------
   -- Port mappings --
   -------------------
-  -- Use a 1 to 1 mux for the low level AXI flow control
-  axi_ctrl_u : entity work.axi_stream_mux
-    generic map (
-      INTERFACES => 1,
-      DATA_WIDTH => TDATA_WIDTH + TID_WIDTH + 1)
+  axi_flow_control_u : entity work.axi_stream_flow_control
+    generic map ( DATA_WIDTH => TDATA_WIDTH + TID_WIDTH + 1 )
     port map (
-      selection_mask(0) => enable,
+      -- Usual ports
+      enable   => enable,
 
-      s_tvalid(0) => s_tvalid,
-      s_tready(0) => s_tready_i,
-      s_tdata(0)  => s_tdata_agg,
+      s_tvalid => s_tvalid,
+      s_tready => s_tready_i,
+      s_tdata  => s_tdata_agg,
 
-      m_tvalid    => m_tvalid_i,
-      m_tready    => m_tready,
-      m_tdata     => m_tdata_agg);
+      m_tvalid => m_tvalid_i,
+      m_tready => m_tready,
+      m_tdata  => m_tdata_agg);
 
   ------------------------------
   -- Asynchronous assignments --
