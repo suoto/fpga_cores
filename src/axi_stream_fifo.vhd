@@ -138,12 +138,13 @@ begin
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
-  s_tready_i      <= '1' when ptr_diff < FIFO_DEPTH - 1 else '0';
-  s_axi_dv        <= '1' when s_tready_i = '1' and s_tvalid = '1' else '0';
-
   ram_wr_data_agg <= s_tlast & s_tdata;
 
-  ram_rd_en       <= '1' when ram_rd_full = '0' and ptr_diff /= 0 else '0';
+  s_tready_i  <= not full;
+  s_axi_dv    <= s_tready_i and s_tvalid;
+
+  -- Read when ram is not full and pointer diff is not 0
+  ram_rd_en   <= not ram_rd_full and or(ptr_diff);
 
   -- Assign internals
   s_tready    <= s_tready_i;
@@ -152,22 +153,18 @@ begin
   ram_wr_addr <= std_logic_vector(ram_wr_ptr(ram_wr_ptr'length - 2 downto 0));
   ram_rd_addr <= std_logic_vector(ram_rd_ptr(ram_rd_ptr'length - 2 downto 0));
 
-  entries  <= std_logic_vector(ptr_diff);
-  empty    <= ram_rd_empty when ptr_diff = 0 else '0';
-  full     <= '1' when ptr_diff = FIFO_DEPTH - 1 else '0';
+  entries     <= std_logic_vector(ptr_diff);
+  -- FIFO is empty when the output adapter is empty and ptr diff is 0
+  empty       <= ram_rd_empty and and(not ptr_diff);
+  -- Full when ptr_diff equals FIFO depth, i.e., delta is all 0s
+  full        <= and(not(ptr_diff - FIFO_DEPTH + 1));
 
   ---------------
   -- Processes --
   ---------------
-  wr_side_p : process(clk, rst)
+  wr_side_p : process(clk)
   begin
-    if rst = '1' then
-      ptr_diff   <= (others => '0');
-      ram_wr_ptr <= (others => '0');
-      ram_rd_ptr <= (others => '0');
-
-    elsif clk'event and clk = '1' then
-
+    if rising_edge(clk) then
       ram_rd_dv     <= '0';
       ram_rd_en_reg <= ram_rd_en;
 
@@ -205,6 +202,13 @@ begin
         ptr_diff <= ptr_diff - 1;
       end if;
 
+      if rst = '1' then
+        ptr_diff      <= (others => '0');
+        ram_wr_ptr    <= (others => '0');
+        ram_rd_ptr    <= (others => '0');
+        ram_rd_dv     <= '0';
+        ram_rd_en_reg <= '0';
+      end if;
     end if;
   end process;
 
