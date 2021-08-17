@@ -258,7 +258,7 @@ begin
 
     procedure test_round_robin_arb_sequence_0 is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+      constant expected : std_logic_array_t(0 to 7)(DATA_WIDTH downto 0) := (
         '0' & x"10", '1' & x"11",
         '0' & x"20", '1' & x"21",
         '0' & x"30", '1' & x"31",
@@ -297,7 +297,7 @@ begin
 
     procedure test_round_robin_arb_sequence_1 is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+      constant expected : std_logic_array_t(0 to 7)(DATA_WIDTH downto 0) := (
         '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
         '1' & x"00",
         '1' & x"10",
@@ -343,7 +343,7 @@ begin
 
     procedure test_round_robin_multiple_frames ( constant rd_probability : real ) is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+      constant expected : std_logic_array_t(0 to 31)(DATA_WIDTH downto 0) := (
         '0' & x"00", '0' & x"01", '0' & x"02", '1' & x"03",
         '0' & x"10", '0' & x"11", '0' & x"12", '1' & x"13",
         '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
@@ -406,7 +406,7 @@ begin
 
     procedure test_round_robin_uneven_rates ( constant rd_probability : real ) is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+      constant expected : std_logic_array_t(0 to 9)(DATA_WIDTH downto 0) := (
         '1' & x"10",
         '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
         '1' & x"30",
@@ -445,7 +445,7 @@ begin
 
     procedure test_interleaved_0 is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+      constant expected : std_logic_array_t(0 to 15)(DATA_WIDTH downto 0) := (
         '0' & x"00", '0' & x"01", '0' & x"02", '1' & x"03",
         '0' & x"10", '0' & x"11", '0' & x"12", '1' & x"13",
         '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
@@ -485,7 +485,7 @@ begin
 
     procedure test_interleaved_1 is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+      constant expected : std_logic_array_t(0 to 15)(DATA_WIDTH downto 0) := (
         '0' & x"00", '0' & x"01", '0' & x"02", '1' & x"03",
         '0' & x"10", '0' & x"11", '0' & x"12", '1' & x"13",
         '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
@@ -530,7 +530,7 @@ begin
 
     procedure test_absolute_0 is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+      constant expected : std_logic_array_t(0 to 15)(DATA_WIDTH downto 0) := (
         '0' & x"00", '0' & x"01", '0' & x"02", '1' & x"03",
         '0' & x"10", '0' & x"11", '0' & x"12", '1' & x"13",
         '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
@@ -568,7 +568,7 @@ begin
 
     procedure test_absolute_1 is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+      constant expected : std_logic_array_t(0 to 15)(DATA_WIDTH downto 0) := (
         '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
         '0' & x"00", '0' & x"01", '0' & x"02", '1' & x"03",
         '0' & x"10", '0' & x"11", '0' & x"12", '1' & x"13",
@@ -608,7 +608,7 @@ begin
 
     procedure test_absolute_2 is
       variable msg      : msg_t;
-      constant expected : std_logic_array_t(open)(DATA_WIDTH downto 0) := (
+      constant expected : std_logic_array_t(0 to 23)(DATA_WIDTH downto 0) := (
         '0' & x"20", '0' & x"21", '0' & x"22", '1' & x"23",
         '0' & x"24", '0' & x"25", '0' & x"26", '1' & x"27",
         '0' & x"30", '0' & x"31", '0' & x"32", '1' & x"33",
@@ -662,6 +662,7 @@ begin
   begin
 
     show(display_handler, debug);
+    show(display_handler, trace);
     test_runner_setup(runner, runner_cfg);
 
     while test_suite loop
