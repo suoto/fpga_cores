@@ -220,6 +220,7 @@ begin
 
       frame_count         <= (others => '0');
       word_count          <= (others => '0');
+      last_frame_length   <= (others => '0');
       max_frame_length    <= (others => '0');
       min_frame_length    <= (others => '1');
     elsif rising_edge(clk) then
