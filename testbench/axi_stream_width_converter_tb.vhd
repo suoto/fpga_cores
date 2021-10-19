@@ -116,9 +116,9 @@ begin
   -------------------
   dut : entity fpga_cores.axi_stream_width_converter
     generic map (
-      INPUT_DATA_WIDTH  => INPUT_DATA_WIDTH,
-      OUTPUT_DATA_WIDTH => OUTPUT_DATA_WIDTH,
-      AXI_TID_WIDTH     => AXI_TID_WIDTH)
+      INPUT_DATA_WIDTH    => INPUT_DATA_WIDTH,
+      OUTPUT_DATA_WIDTH   => OUTPUT_DATA_WIDTH,
+      AXI_TID_WIDTH       => AXI_TID_WIDTH)
     port map (
       -- Usual ports
       clk      => clk,

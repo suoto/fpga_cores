@@ -32,11 +32,10 @@ use work.common_pkg.all;
 ------------------------
 entity axi_stream_width_converter is
   generic (
-    INPUT_DATA_WIDTH  : natural     := 32;
-    OUTPUT_DATA_WIDTH : natural     := 16;
-    AXI_TID_WIDTH     : natural     := 0;
-    ENDIANNESS        : endianess_t := RIGHT_FIRST;
-    IGNORE_TKEEP      : boolean     := False);
+    INPUT_DATA_WIDTH    : natural := 32;
+    OUTPUT_DATA_WIDTH   : natural := 16;
+    AXI_TID_WIDTH       : natural := 0;
+    IGNORE_TKEEP        : boolean := False);
   port (
     -- Usual ports
     clk      : in  std_logic;
@@ -140,8 +139,6 @@ begin
   end generate g_pass_through; -- }}
 
   g_downsize : if INPUT_DATA_WIDTH > OUTPUT_DATA_WIDTH generate -- {{
-    signal s_tdata_adj   : std_logic_vector(8*INPUT_BYTE_WIDTH - 1 downto 0);
-    signal s_tkeep_adj   : std_logic_vector(INPUT_BYTE_WIDTH - 1 downto 0);
     signal dbg_tmp       : std_logic_vector(2*(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH) - 1 downto 0);
     signal dbg_bit_cnt   : unsigned(numbits(dbg_tmp'length) - 1 downto 0);
     signal dbg_flush_req : boolean := False;
@@ -192,11 +189,6 @@ begin
       m_tid <= (others => 'U');
     end generate;
 
-    s_tdata_adj <= (8*INPUT_BYTE_WIDTH - 1 downto INPUT_DATA_WIDTH => 'U') & s_tdata when ENDIANNESS = RIGHT_FIRST else
-                   mirror_bits(s_tdata) & (8*INPUT_BYTE_WIDTH - 1 downto INPUT_DATA_WIDTH => 'U');
-
-    s_tkeep_adj <= s_tkeep when ENDIANNESS = RIGHT_FIRST else mirror_bits(s_tkeep);
-
     ---------------
     -- Processes --
     ---------------
@@ -225,11 +217,11 @@ begin
           if s_tlast = '1' and HANDLE_TKEEP then
             -- FIXME: This does not look very synth friendly, check how this gets mapped and refactor if needed
             -- Last word, add the appropriate number of bits
-            for i in 0 to s_tkeep_adj'length - 1 loop
-              if s_tkeep_adj(i) = '1' then
-                tmp(8 + bit_cnt - 1 downto bit_cnt) := s_tdata_adj(8*(i + 1) - 1 downto 8*i);
+            for i in 0 to s_tkeep'length - 1 loop
+              if s_tkeep(i) = '1' then
+                tmp(8 + bit_cnt - 1 downto bit_cnt) := s_tdata(8*(i + 1) - 1 downto 8*i);
                 -- INPUT_DATA_WIDTH may or may not be a submultiple of 8
-                if i = s_tkeep_adj'length - 1 and (INPUT_DATA_WIDTH mod 8) /= 0 then
+                if i = s_tkeep'length - 1 and (INPUT_DATA_WIDTH mod 8) /= 0 then
                   bit_cnt := bit_cnt + (INPUT_DATA_WIDTH mod 8);
                 else
                   bit_cnt := bit_cnt + 8;
@@ -238,7 +230,7 @@ begin
             end loop;
 
           else
-            tmp(8*INPUT_BYTE_WIDTH + bit_cnt - 1 downto bit_cnt) := s_tdata_adj;
+            tmp(8*INPUT_BYTE_WIDTH + bit_cnt - 1 downto bit_cnt) := s_tdata;
             bit_cnt                                              := bit_cnt + INPUT_DATA_WIDTH;
           end if;
 
@@ -318,9 +310,7 @@ begin
   s_data_valid <= s_tready_i and s_tvalid and not rst;
   m_data_valid <= m_tready and m_tvalid_i and not rst;
 
-  m_tdata      <= (others => 'U')         when m_tvalid_i = '0'         else
-                  m_tdata_i               when ENDIANNESS = RIGHT_FIRST else
-                  mirror_bits(m_tdata_i);
+  m_tdata      <= m_tdata_i when m_tvalid_i = '1' else (others => 'U');
   s_tready     <= s_tready_i;
   m_tvalid     <= m_tvalid_i;
   m_tlast      <= m_tlast_i and m_tvalid_i;
