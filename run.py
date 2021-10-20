@@ -20,7 +20,6 @@
 
 "HDL Library test runner"
 
-# pylint: disable=bad-continuation
 # pylint: disable=missing-docstring
 
 import os.path as p
@@ -170,15 +169,23 @@ def addAxiFileCompareTests(entity):
     )
 
     if not p.exists(tdata_single_error_file):
-        ref_data = open(reference_file, "rb").read().split(b"\n")
+        with open(reference_file, "rb") as fd:
+            ref_data = fd.read().split(b"\n")
 
         with open(tdata_single_error_file, "wb") as fd:
             # Skip one, duplicate another so the size is the same
-            data = ref_data[:7] + [ref_data[8],] + ref_data[8:]
+            data = (
+                ref_data[:7]
+                + [
+                    ref_data[8],
+                ]
+                + ref_data[8:]
+            )
             fd.write(b"\n".join(data))
 
     if not p.exists(tdata_two_errors_file):
-        ref_data = open(reference_file, "rb").read().split(b"\n")
+        with open(reference_file, "rb") as fd:
+            ref_data = fd.read().split(b"\n")
 
         with open(tdata_two_errors_file, "wb") as fd:
             # Skip one, duplicate another so the size is the same
@@ -186,16 +193,18 @@ def addAxiFileCompareTests(entity):
                 ref_data[:7]
                 + [ref_data[8], ref_data[8]]
                 + ref_data[9:16]
-                + [ref_data[17],]
+                + [
+                    ref_data[17],
+                ]
                 + ref_data[17:]
             )
             fd.write(b"\n".join(data))
 
     if not p.exists(tlast_error_file):
-        ref_data = open(reference_file, "rb").read().strip().split(b"\n")
+        with open(reference_file, "rb") as fd:
+            ref_data = fd.read().strip().split(b"\n")
 
         with open(tlast_error_file, "wb") as fd:
-            # Skip one, duplicate another so the size is the same
             # Format is "tdata,tkeep,tlast", change tlast to 0
             last_entry = ref_data[-1].split(b",")
             data = ref_data[:-1] + [b",".join([last_entry[0], b"0", b"0"])]
@@ -287,8 +296,7 @@ def generateAxiFileReaderTestFile(test_file, reference_file, data_width, length)
         line = []
         tkeep = 0
         for i, byte in enumerate(test_data):
-            # TODO: Fix endianness (should be a generic or argument)
-            line.append(f"{byte:02x}")
+            line.insert(0, f"{byte:02x}")
             tlast = i == length - 1
             if (8 * (i + 1) % data_width) == 0:
                 if tlast:
@@ -305,15 +313,26 @@ def generateAxiFileReaderTestFile(test_file, reference_file, data_width, length)
         # Flatten the test data into a bit string and slice it with data_width
         for i, byte in enumerate(test_data):
             print(i, hex(byte))
-        bin_data = "".join(bin(x)[2:].rjust(8) for x in test_data).replace(" ", "0")
-        print(bin_data, len(bin_data))
-        assert len(bin_data) % 8 == 0
+        flattened_bin_data = ""
+        for byte in test_data:
+            # Convert integer into binary with the LSB to the left so index 0
+            # of the flattened array is index 0 of the first word
+            little_endian_word = "".join(reversed(bin(byte)[2:]))
+            # Adjust result of 'bin' to 8 bits width and append it to the flattened
+            # buffer
+            flattened_bin_data += little_endian_word + "0" * (
+                8 - len(little_endian_word)
+            )
 
-        while bin_data:
-            word = int(bin_data[:data_width])
-            bin_data = bin_data[data_width:]
+        print(flattened_bin_data, len(flattened_bin_data))
+        assert len(flattened_bin_data) % 8 == 0
 
-            tlast = not bin_data
+        lines = []
+        while flattened_bin_data:
+            word = int(flattened_bin_data[:data_width], 2)
+            flattened_bin_data = flattened_bin_data[data_width:]
+
+            tlast = not flattened_bin_data
             lines += [",".join([f"{word:x}", "", "1" if tlast else "0"])]
 
     with open(reference_file, "w") as fd:
@@ -324,11 +343,15 @@ def generateAxiFileReaderTestFile(test_file, reference_file, data_width, length)
 def addAxiWidthConverterTests(entity):
     # Only add equal widths once
     entity.add_config(
-        name="same_widths", generics=dict(INPUT_DATA_WIDTH=32, OUTPUT_DATA_WIDTH=32,),
+        name="same_widths",
+        generics=dict(
+            INPUT_DATA_WIDTH=32,
+            OUTPUT_DATA_WIDTH=32,
+        ),
     )
 
     for input_data_width in {1, 8, 24, 32, 128}:
-        for output_data_width in {1, 8, 24, 32, 128} - {input_data_width}:
+        for output_data_width in {1, 3, 8, 24, 32, 128} - {input_data_width}:
             if output_data_width >= input_data_width:
                 continue
             entity.add_config(

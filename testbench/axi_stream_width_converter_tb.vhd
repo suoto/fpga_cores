@@ -81,7 +81,6 @@ architecture axi_stream_width_converter_tb of axi_stream_width_converter_tb is
     return frame;
   end;
 
-
   -------------
   -- Signals --
   -------------
@@ -217,7 +216,7 @@ begin
         info(sformat("Writing frame %d", fo(i)));
         test_frame(
           id => rand.RandSlv(AXI_TID_WIDTH),
-          data => random(rand.RandInt(INPUT_BYTE_WIDTH*OUTPUT_BYTE_WIDTH) + 1)
+          data => random(4*rand.RandInt(INPUT_BYTE_WIDTH*OUTPUT_BYTE_WIDTH) + 1)
         );
       end loop;
 
@@ -266,7 +265,7 @@ begin
           for base_width in 0 to max(INPUT_BYTE_WIDTH, OUTPUT_BYTE_WIDTH) - 1 loop
             test_frame(
               id => rand.RandSlv(AXI_TID_WIDTH),
-              data => random(base_width + 1)
+              data => random(2*base_width + 1)
             );
           end loop;
         end loop;

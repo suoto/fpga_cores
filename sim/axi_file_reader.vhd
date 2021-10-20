@@ -22,19 +22,11 @@
 --------------------------------
 -- Reads a file and writes to AXI-Stream interface. There's no restriction on the data
 -- width, but the file is read 1 byte at a time and then converted to data width.
--- Conversion is big endian, so if the input file has:
+-- Conversion is little endian, so if the input file has:
 -- AB CD EF GH
--- When data_width = 4, the output will be [A, B, C, D, E, F, G, H]
--- When data_width = 8, the output will be [AB, CD, EF, GH]
--- When data_width = 16, the output will be [ABCD, EFGH]
---
--- This works the same way for data width = 1, so if input file has [0x91, 0x82], the
--- output will be:
--- [1, 0, 0, 1,  --> i.e., 0x9
---  0, 0, 0, 1,  --> i.e., 0x1
---  1, 0, 0, 0,  --> i.e., 0x8
---  0, 0, 1, 0]  --> i.e., 0x2
---
+-- When data_width = 4, the output will be [H, G, F, E, D, C, B, A]
+-- When data_width = 8, the output will be [HG, FE, DC, BA]
+-- etc
 
 ---------------
 -- Libraries --
@@ -172,10 +164,9 @@ begin
     begin
       m_tkeep_i <= (others => '1');
       while buffer_bit_cnt < word_width loop
-        word           := read_word_from_file;
-        buffer_bit_cnt := buffer_bit_cnt + 8;
-
-        data_buffer  := data_buffer(data_buffer'length - 8 - 1 downto 0) & word(7 downto 0);
+        word                                                  := read_word_from_file;
+        data_buffer(buffer_bit_cnt + 7 downto buffer_bit_cnt) := word(7 downto 0);
+        buffer_bit_cnt                                        := buffer_bit_cnt + 8;
 
         trace(
           logger,
@@ -192,13 +183,15 @@ begin
 
       -- Result is going to be the MSB of the valid section
       if buffer_bit_cnt >= data_width then
-        result := data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width);
+        -- result := data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width);
+        result := data_buffer(data_width - 1 downto 0);
         -- Remove the result from the bit counter and buffer. Assign U's to the
         -- bit buffer so that we don't get accidently valid outputs when
         -- something goes wrong
-        data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width) := (others => 'U');
+        -- data_buffer(buffer_bit_cnt - 1 downto buffer_bit_cnt - data_width) := (others => 'U');
+        data_buffer := (data_width - 1 downto 0 => 'U') & data_buffer(data_buffer'length - 1 downto data_width);
       else
-        result(buffer_bit_cnt - 1 downto 0) := data_buffer(buffer_bit_cnt - 1 downto max(buffer_bit_cnt - data_width, 0));
+        result(buffer_bit_cnt - 1 downto 0)              := data_buffer(buffer_bit_cnt - 1 downto 0);
         m_tkeep_i                                        <= (others => '0');
         m_tkeep_i((buffer_bit_cnt + 7) / 8 - 1 downto 0) <= (others => '1');
       end if;

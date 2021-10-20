@@ -26,7 +26,6 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.common_pkg.all;
-
 ------------------------
 -- Entity declaration --
 ------------------------
@@ -71,19 +70,6 @@ architecture axi_stream_width_converter of axi_stream_width_converter is
   ------------------
   -- Sub programs --
   ------------------
-  -- When s_tlast is high, tkeep will flag how many bytes are actually valid
-  function count_ones ( constant v : std_logic_vector ) return natural is
-    variable cnt : natural := 0;
-  begin
-    for i in v'range loop
-      if v(i) = '1' then
-        cnt := cnt + 1;
-      end if;
-    end loop;
-
-    return cnt;
-  end;
-
   -- Sets the appropriate tkeep bits so that it representes the specified number of bytes,
   -- where bytes are in the LSB of tdata
   function get_tkeep ( constant valid_bytes : natural ) return std_logic_vector is
@@ -98,6 +84,43 @@ architecture axi_stream_width_converter of axi_stream_width_converter is
     end loop;
     return result;
   end;
+
+  -- function tkeep_to_byte_count ( constant tkeep : std_logic_vector ) return unsigned is
+  --   variable candidate : std_logic_vector(tkeep'length - 1 downto 0) := (others => '0');
+  -- begin
+  --   candidate(0) := '1';
+
+  --   for i in 0 to INPUT_BYTE_WIDTH - 1 loop
+  --     if tkeep = candidate then
+  --       -- (INPUT_BYTE_WIDTH - 1 downto i + 1 => '0') & (i downto 0 => '1') then
+  --       return to_unsigned(i + 1, numbits(2*INPUT_BYTE_WIDTH));
+  --     end if;
+
+  --     candidate := candidate(tkeep'length - 2 downto 0) & '1';
+  --   end loop;
+  --   return (numbits(2*INPUT_BYTE_WIDTH) - 1 downto 0 => 'U');
+  -- end function;
+
+  function tkeep_to_byte_count ( constant tkeep : std_logic_vector ) return unsigned is
+    variable result : unsigned(numbits(2*INPUT_BYTE_WIDTH) - 1 downto 0) := (others => '0');
+  begin
+    -- When tkeep is all ones we have INPUT_BYTE_WIDTH valid bytes
+    if tkeep = (tkeep'range => '1') then
+      result := result or to_unsigned(INPUT_BYTE_WIDTH, numbits(2*INPUT_BYTE_WIDTH));
+    end if;
+    -- Check for intermediate values
+    for i in 0 to INPUT_BYTE_WIDTH - 2 loop
+      if tkeep = (INPUT_BYTE_WIDTH - 1 downto i + 1 => '0') & (i downto 0 => '1') then
+        result := result or to_unsigned(i + 1, numbits(2*INPUT_BYTE_WIDTH));
+      end if;
+    end loop;
+
+    -- If result is all zeros we failed to convert, so return unknown instead
+    if and(not result) then
+      return (numbits(2*INPUT_BYTE_WIDTH) - 1 downto 0 => 'U');
+    end if;
+    return result;
+  end function;
 
   -----------
   -- Types --
@@ -139,10 +162,28 @@ begin
   end generate g_pass_through; -- }}
 
   g_downsize : if INPUT_DATA_WIDTH > OUTPUT_DATA_WIDTH generate -- {{
-    signal dbg_tmp       : std_logic_vector(2*(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH) - 1 downto 0);
-    signal dbg_bit_cnt   : unsigned(numbits(dbg_tmp'length) - 1 downto 0);
-    signal dbg_flush_req : boolean := False;
+    signal bit_buffer          : std_logic_vector(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH - 1 downto 0);
+    signal size                : unsigned(numbits(bit_buffer'length) - 0 downto 0);
+    signal flush_req           : boolean;
+    signal input_valid_bytes   : unsigned(numbits(2*INPUT_BYTE_WIDTH) - 1 downto 0);
+    signal input_valid_bits    : integer range 0 to INPUT_DATA_WIDTH;
+
+    -- Debug only stuff to see how bit buffer and size change within the process block
+    signal dbg_write_bit_buffer : std_logic_vector(bit_buffer'range);
+    signal dbg_write_size       : natural range 0 to bit_buffer'length;
+    signal dbg_read_bit_buffer  : std_logic_vector(bit_buffer'range);
+    signal dbg_read_size        : natural range 0 to bit_buffer'length;
+
+    signal bit_buffer_next : std_logic_array_t(0 to OUTPUT_DATA_WIDTH)(bit_buffer'range);
+
   begin
+
+    -- Calculate where s_tdata should be assigned in the buffer
+    g_bit_buffer_next : for i in 0 to OUTPUT_DATA_WIDTH generate
+      bit_buffer_next(i) <= (bit_buffer'length - 1 downto INPUT_DATA_WIDTH + i => 'U')
+                            & s_tdata
+                            & bit_buffer(i - 1 downto 0);
+    end generate;
 
     -------------------
     -- Port mappings --
@@ -189,21 +230,30 @@ begin
       m_tid <= (others => 'U');
     end generate;
 
+    -- Generate the number of bytes valid depending on the value of TKEEP
+    input_valid_bytes <= tkeep_to_byte_count(s_tkeep) when s_tvalid and s_tlast else (others => 'U');
+    input_valid_bits  <= to_integer(input_valid_bytes & "000") when s_tlast = '1' and HANDLE_TKEEP else
+                         INPUT_DATA_WIDTH;
+
     ---------------
     -- Processes --
     ---------------
     process(clk)
-      variable tmp       : std_logic_vector(2*(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH) - 1 downto 0);
-      variable bit_cnt   : natural range 0 to tmp'length - 1;
-      variable flush_req : boolean := False;
+      variable tmp_bit_buffer : std_logic_vector(bit_buffer'range);
+      variable tmp_size       : natural range 0 to tmp_bit_buffer'length;
+      variable tmp_flush_req  : boolean;
     begin
       if rising_edge(clk) then
 
+        tmp_bit_buffer := bit_buffer;
+        tmp_size       := to_integer(size);
+        tmp_flush_req  := flush_req;
+
         -- De-assert tvalid when data in being sent and no more data, except when we're
         -- flushing the output buffer
-        if m_tready = '1' and (bit_cnt >= OUTPUT_DATA_WIDTH or flush_req) then
+        if m_tready = '1' and (tmp_size >= OUTPUT_DATA_WIDTH or tmp_flush_req) then
           if m_tlast_i = '1' then
-            flush_req := False;
+            tmp_flush_req := False;
           end if;
           m_tvalid_i <= '0';
           m_tlast_i  <= '0';
@@ -213,62 +263,52 @@ begin
         if s_data_valid = '1' then
           s_tready_i <= '0'; -- Each incoming word will generate at least 1 output word
 
-          -- Need to assign data before bit_cnt (it's a variable)
-          if s_tlast = '1' and HANDLE_TKEEP then
-            -- FIXME: This does not look very synth friendly, check how this gets mapped and refactor if needed
-            -- Last word, add the appropriate number of bits
-            for i in 0 to s_tkeep'length - 1 loop
-              if s_tkeep(i) = '1' then
-                tmp(8 + bit_cnt - 1 downto bit_cnt) := s_tdata(8*(i + 1) - 1 downto 8*i);
-                -- INPUT_DATA_WIDTH may or may not be a submultiple of 8
-                if i = s_tkeep'length - 1 and (INPUT_DATA_WIDTH mod 8) /= 0 then
-                  bit_cnt := bit_cnt + (INPUT_DATA_WIDTH mod 8);
-                else
-                  bit_cnt := bit_cnt + 8;
-                end if;
-              end if;
-            end loop;
+          -- Add the incoming data to the relevant bit buffer
+          -- Need to assign data before tmp_size (it's a variable)
+          assert tmp_size <= OUTPUT_DATA_WIDTH;
+          tmp_bit_buffer := bit_buffer_next(tmp_size);
+          tmp_size       := tmp_size + input_valid_bits;
 
-          else
-            tmp(8*INPUT_BYTE_WIDTH + bit_cnt - 1 downto bit_cnt) := s_tdata;
-            bit_cnt                                              := bit_cnt + INPUT_DATA_WIDTH;
-          end if;
+          dbg_write_bit_buffer <= tmp_bit_buffer;
+          dbg_write_size       <= tmp_size;
 
           -- Upon receiving the last input word, clear the flush request
           if s_tlast = '1' then
-            flush_req := True;
+            tmp_flush_req := True;
           end if;
 
         end if;
 
         if m_data_valid = '1' then
           -- Consume the data we wrote
-          tmp     := (OUTPUT_DATA_WIDTH - 1 downto 0 => 'U') & tmp(tmp'length - 1 downto OUTPUT_DATA_WIDTH);
-          m_tkeep <= (others => '0');
+          tmp_bit_buffer := (OUTPUT_DATA_WIDTH - 1 downto 0 => 'U') & tmp_bit_buffer(tmp_bit_buffer'length - 1 downto OUTPUT_DATA_WIDTH);
+          m_tkeep        <= (others => '0');
 
           -- Clear up for the next frame
           if m_tlast_i = '1' then
-            bit_cnt   := 0;
-            flush_req := False;
+            tmp_size      := 0;
+            tmp_flush_req := False;
           else
-            bit_cnt := bit_cnt - OUTPUT_DATA_WIDTH;
+            tmp_size      := tmp_size - OUTPUT_DATA_WIDTH;
           end if;
 
+          dbg_read_bit_buffer <= tmp_bit_buffer;
+          dbg_read_size       <= tmp_size;
         end if;
 
-        if bit_cnt >= OUTPUT_DATA_WIDTH or flush_req then
+        if tmp_size >= OUTPUT_DATA_WIDTH or tmp_flush_req then
           m_tvalid_i <= '1';
-          m_tdata_i  <= tmp(OUTPUT_DATA_WIDTH - 1 downto 0);
+          m_tdata_i  <= tmp_bit_buffer(OUTPUT_DATA_WIDTH - 1 downto 0);
           m_tkeep    <= (others => '0');
 
           -- Work out if the next word will be the last and fill in the bit mask
           -- appropriately
-          if bit_cnt <= OUTPUT_DATA_WIDTH and flush_req then
+          if tmp_size <= OUTPUT_DATA_WIDTH and tmp_flush_req then
             m_tlast_i <= '1';
             if OUTPUT_DATA_WIDTH < 8 then
               m_tkeep <= (others => '1');
             elsif HANDLE_TKEEP then
-              m_tkeep <= get_tkeep((bit_cnt + 7) / 8);
+              m_tkeep <= get_tkeep((tmp_size + 7) / 8);
             end if;
           end if;
         end if;
@@ -276,18 +316,22 @@ begin
         -- Input should always be ready if there's room for data to be received, unless
         -- we're flushing the buffer. In this case, accepting more data will mess up with
         -- the tracking of how much data we still have to write
-        if (tmp'length - bit_cnt > INPUT_DATA_WIDTH) and not flush_req then
+        if tmp_bit_buffer'length - tmp_size >= INPUT_DATA_WIDTH and not tmp_flush_req then
           s_tready_i <= '1';
         end if;
 
-        dbg_tmp       <= tmp;
-        dbg_bit_cnt   <= to_unsigned(bit_cnt, dbg_bit_cnt'length);
-        dbg_flush_req <= flush_req;
+        bit_buffer       <= tmp_bit_buffer;
+        size <= to_unsigned(tmp_size, size'length);
+        flush_req <= tmp_flush_req;
 
         if rst = '1' then
-          s_tready_i <= '0';
-          m_tvalid_i <= '0';
-          m_tlast_i  <= '0';
+          s_tready_i     <= '0';
+          m_tvalid_i     <= '0';
+          m_tlast_i      <= '0';
+          dbg_write_size <= 0;
+          dbg_read_size  <= 0;
+          size           <= (others => '0');
+          flush_req      <= False;
         end if;
       end if;
     end process;
