@@ -107,7 +107,8 @@ begin
   -- Asynchronous assignments --
   ------------------------------
   m_tvalid       <= m_tvalid_i;
-  m_tvalid_i     <= '1' when m_tvalid_en = '1' and m_tvalid_wr = '1' else '0';
+  m_tvalid_i     <= '1' when m_tvalid_en = '1' and m_tvalid_wr = '1' else
+                    '0' when m_tready or rst;
 
   m_tlast        <= m_tlast_i;
   axi_data_valid <= m_tvalid_i = '1' and m_tready = '1';
