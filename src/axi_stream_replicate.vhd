@@ -52,13 +52,14 @@ architecture axi_stream_replicate of axi_stream_replicate is
   -------------
   -- Signals --
   -------------
-  signal s_axi_dv       : std_logic;
-  signal m_axi_dv       : std_logic_vector(INTERFACES - 1 downto 0);
+  signal s_tdata_i  : std_logic_vector(TDATA_WIDTH - 1 downto 0);
+  signal s_tready_i : std_logic;
+  signal m_tvalid_i : std_logic_vector(INTERFACES - 1 downto 0);
 
-  signal s_tready_i     : std_logic;
-  signal m_tvalid_i     : std_logic_vector(INTERFACES - 1 downto 0);
+  signal s_axi_dv   : std_logic;
+  signal m_axi_dv   : std_logic_vector(INTERFACES - 1 downto 0);
 
-  signal interface_done : std_logic_vector(INTERFACES - 1 downto 0);
+  signal dbg_count  : integer_vector_t(0 to INTERFACES - 1);
 
 begin
 
@@ -72,15 +73,11 @@ begin
   s_axi_dv   <= s_tready_i and s_tvalid;
   m_axi_dv   <= m_tvalid_i and m_tready;
 
-  -- Assert s_tready whenever we've sent data on all interfaces but use
-  -- m_axi_dv to allow back to back transfers
-  s_tready_i <= and(interface_done or m_axi_dv);
-
-  m_tvalid_i <= (INTERFACES - 1 downto 0 => s_tvalid) and not interface_done;
-
   g_tdata : for i in 0 to INTERFACES - 1 generate
-    m_tdata(i) <= s_tdata when m_tvalid_i(i) = '1' else (others => 'U');
+    m_tdata(i) <= s_tdata_i when m_tvalid_i(i) else (others => 'U');
   end generate;
+
+  s_tready_i <= and(m_tvalid_i and m_tready) or and(not m_tvalid_i);
 
   s_tready   <= s_tready_i;
   m_tvalid   <= m_tvalid_i;
@@ -91,14 +88,33 @@ begin
   process(clk, rst)
   begin
     if rst = '1' then
-      interface_done <= (others => '0');
+      m_tvalid_i <= (others => '0');
     elsif rising_edge(clk) then
-      interface_done <= interface_done or m_axi_dv;
+      -- Deassert tvalid of interfaces that have accepted data
+      m_tvalid_i <= m_tvalid_i and not m_tready;
 
-      if s_axi_dv = '1' then
-        interface_done <= (others => '0');
+      -- Drive data to all interfaces
+      if s_axi_dv then
+        m_tvalid_i <= (others => '1');
+        s_tdata_i  <= s_tdata;
       end if;
     end if;
   end process;
+
+  -- Simulation only debug
+  -- synthesis translate_off
+  process(clk, rst)
+  begin
+    if rst then
+      dbg_count <= (others => 0);
+    elsif rising_edge(clk) then
+      for i in 0 to INTERFACES - 1 loop
+        if m_axi_dv(i) then
+          dbg_count(i) <= dbg_count(i) + 1;
+        end if;
+      end loop;
+    end if;
+  end process;
+  -- synthesis translate_on
 
 end axi_stream_replicate;

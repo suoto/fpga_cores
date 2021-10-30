@@ -183,7 +183,7 @@ begin
 
       walk(16);
 
-      set_timeout(runner, 2 us);
+      set_timeout(runner, 3 us);
 
       if run("test_all_ready") then
         cfg_rd_probability <= (others => 1.0);
