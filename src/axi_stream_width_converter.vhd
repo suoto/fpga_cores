@@ -162,11 +162,11 @@ begin
   end generate g_pass_through; -- }}
 
   g_downsize : if INPUT_DATA_WIDTH > OUTPUT_DATA_WIDTH generate -- {{
-    signal bit_buffer          : std_logic_vector(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH - 1 downto 0);
-    signal size                : unsigned(numbits(bit_buffer'length) - 0 downto 0);
-    signal flush_req           : boolean;
-    signal input_valid_bytes   : unsigned(numbits(2*INPUT_BYTE_WIDTH) - 1 downto 0);
-    signal input_valid_bits    : integer range 0 to INPUT_DATA_WIDTH;
+    signal bit_buffer           : std_logic_vector(INPUT_DATA_WIDTH + OUTPUT_DATA_WIDTH - 1 downto 0);
+    signal size                 : unsigned(numbits(bit_buffer'length) - 0 downto 0);
+    signal flush_req            : boolean;
+    signal input_valid_bytes    : unsigned(numbits(2*INPUT_BYTE_WIDTH) - 1 downto 0);
+    signal input_valid_bits     : integer range 0 to INPUT_DATA_WIDTH;
 
     -- Debug only stuff to see how bit buffer and size change within the process block
     signal dbg_write_bit_buffer : std_logic_vector(bit_buffer'range);
@@ -174,7 +174,7 @@ begin
     signal dbg_read_bit_buffer  : std_logic_vector(bit_buffer'range);
     signal dbg_read_size        : natural range 0 to bit_buffer'length;
 
-    signal bit_buffer_next : std_logic_array_t(0 to OUTPUT_DATA_WIDTH)(bit_buffer'range);
+    signal bit_buffer_next      : std_logic_array_t(0 to OUTPUT_DATA_WIDTH)(bit_buffer'range);
 
   begin
 
