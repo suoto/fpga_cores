@@ -97,6 +97,9 @@ package common_pkg is
   function has_undefined ( constant v : std_logic_vector ) return boolean;
   function has_undefined ( constant v : unsigned ) return boolean;
 
+
+  function get_table_entry_width ( v : std_logic_array_t ) return integer;
+
 end common_pkg;
 
 package body common_pkg is
@@ -426,5 +429,13 @@ package body common_pkg is
     result(to_integer(unsigned(v))) := '1';
     return result;
   end function;
+
+  -- Gets the width of the elements in an array
+  function get_table_entry_width ( v : std_logic_array_t ) return integer is
+    constant element : std_logic_vector := v(v'low);
+  begin
+    return element'length;
+  end;
+
 
 end package body;

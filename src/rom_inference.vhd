@@ -43,14 +43,14 @@ entity rom_inference is
     clk    : in  std_logic;
     clken  : in  std_logic;
     addr   : in  std_logic_vector(numbits(ROM_DATA'length) - 1 downto 0);
-    rddata : out std_logic_vector(ROM_DATA(0)'length - 1 downto 0));
+    rddata : out std_logic_vector(get_table_entry_width(ROM_DATA) - 1 downto 0));
 end rom_inference;
 
 architecture rom_inference of rom_inference is
 
   constant ROM : std_logic_array_t := ROM_DATA;
   constant ADDR_WIDTH : natural := numbits(ROM'length);
-  constant DATA_WIDTH : natural := ROM(0)'length;
+  constant DATA_WIDTH : natural := get_table_entry_width(ROM_DATA);
 
   attribute ROM_STYLE : string;
   constant RESOLVED_ROM_TYPE : string := get_ram_style(ROM_TYPE, ADDR_WIDTH, DATA_WIDTH);
