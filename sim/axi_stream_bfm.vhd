@@ -64,7 +64,7 @@ entity axi_stream_bfm is
     m_tdata  : out std_logic_vector(TDATA_WIDTH - 1 downto 0);
     m_tuser  : out std_logic_vector(TUSER_WIDTH - 1 downto 0);
     m_tkeep  : out std_logic_vector((TDATA_WIDTH + 7) / 8 - 1 downto 0) := (others => '0');
-    m_tid    : out std_logic_vector(TID_WIDTH - 1 downto 0) := (others => '0');
+    m_tid    : out std_logic_vector(TID_WIDTH - 1 downto 0) := (others => 'U');
     m_tvalid : out std_logic;
     m_tlast  : out std_logic);
 end axi_stream_bfm;
@@ -132,7 +132,7 @@ begin
       constant data : std_logic_vector(TDATA_WIDTH_ADJUSTED - 1 downto 0);
       constant user : std_logic_vector(TUSER_WIDTH - 1 downto 0);
       constant mask : std_logic_vector(DATA_BYTE_WIDTH - 1 downto 0);
-      variable id   : std_logic_vector(TID_WIDTH - 1 downto 0);
+      constant id   : std_logic_vector(TID_WIDTH - 1 downto 0);
       constant last : boolean := False) is
     begin
       if not wr_en then
@@ -165,7 +165,6 @@ begin
       constant tid         : std_logic_vector(TID_WIDTH - 1 downto 0)
    ) is
       variable write_user  : std_logic_vector(TUSER_WIDTH - 1 downto 0);
-      variable write_id    : std_logic_vector(TID_WIDTH - 1 downto 0);
       variable word        : std_logic_vector(TDATA_WIDTH_ADJUSTED - 1 downto 0);
       variable word_index  : natural := 0;
       variable byte        : natural;
@@ -190,8 +189,6 @@ begin
         sformat("Writing frame with %d bytes (id=%r)", fo(bytes'length), fo(tid))
       );
 
-      write_id := tid;
-
       for i in 0 to bytes'length - 1 loop
         byte  := i mod DATA_BYTE_WIDTH;
 
@@ -206,14 +203,13 @@ begin
           end if;
 
           if i /= bytes'length - 1 then
-            write(word, write_user, (others => '0'), write_id, False);
+            write(word, write_user, (others => '0'), tid, False);
           else
-            write(word, write_user, infer_mask(word), write_id, True);
+            write(word, write_user, infer_mask(word), tid, True);
           end if;
 
           word       := (others => 'U');
           write_user := (others => 'U');
-          write_id   := (others => 'U');
         end if;
       end loop;
 

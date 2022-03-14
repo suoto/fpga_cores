@@ -146,7 +146,6 @@ begin
     constant logger         : logger_t         := get_logger("main");
     constant expected_queue : actor_t          := find("expected_queue");
     variable input_stream   : axi_stream_bfm_t := create_bfm;
-    variable remainder      : integer          := 0;
     variable frame_count    : integer          := 0;
 
     procedure walk(constant steps : natural) is
@@ -169,40 +168,21 @@ begin
     end function random_frame;
 
     procedure run_test ( constant frame_length, slice_frame_length : natural ) is
-      constant data   : std_logic_array_t := random_frame(frame_length, TDATA_WIDTH);
-      variable msg    : msg_t;
+      constant data      : std_logic_array_t := random_frame(frame_length, TDATA_WIDTH);
+      variable remainder : integer;
+      variable msg       : msg_t;
     begin
 
-      -- Force flushing when the internal counter is smaller than the new slice_frame length
-      if remainder >= slice_frame_length then
+      info(logger, sformat("Slicing %d beats into %d", fo(frame_length), fo(slice_frame_length)));
+
+      remainder := frame_length;
+
+      for i in 0 to frame_length / slice_frame_length - 1 loop
         info(
           logger,
           sformat(
-            "[Frame count: %d] Remainder: %d but slice_frame length is %d, forcing flush of remaining beats",
+            "[Frame count: %d] Inserting frame with length is %d",
             fo(frame_count),
-            fo(remainder),
-            fo(slice_frame_length)
-          )
-        );
-
-        msg := new_msg;
-        -- Need to add 1 to the expected frame lenght because the frame will
-        -- only be marked as done when the new one starts
-        push(msg, remainder + 1);
-        send(net, expected_queue, msg);
-        frame_count := frame_count + 1;
-        remainder   := -1;
-      end if;
-
-      remainder := remainder + frame_length;
-
-      while remainder > slice_frame_length - 1 loop
-        info(
-          logger,
-          sformat(
-            "[Frame count: %d] Remainder: %d => Inserting frame with length is %d",
-            fo(frame_count),
-            fo(remainder),
             fo(slice_frame_length)
           )
         );
@@ -211,8 +191,22 @@ begin
         push(msg, slice_frame_length);
         send(net, expected_queue, msg);
         frame_count := frame_count + 1;
-        remainder   := remainder - slice_frame_length;
       end loop;
+
+      if frame_length mod slice_frame_length /= 0 then
+        info(
+          logger,
+          sformat(
+            "[Frame count: %d] Inserting frame with length is %d",
+            fo(frame_count),
+            fo(frame_length mod slice_frame_length)
+          )
+        );
+        msg := new_msg;
+        push(msg, frame_length mod slice_frame_length);
+        send(net, expected_queue, msg);
+        frame_count := frame_count + 1;
+      end if;
 
       axi_bfm_write(net,
         bfm         => input_stream,

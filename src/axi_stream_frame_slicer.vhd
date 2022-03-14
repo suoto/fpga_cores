@@ -78,7 +78,7 @@ begin
   m_tdata   <= s_tdata;
 
   -- m_tlast_i <= '1' when length_count = unsigned(frame_length) - 1 else '0';
-  m_tlast_i <= '0' when length_count < unsigned(frame_length) - 1 else '1';
+  m_tlast_i <= s_tlast when length_count < unsigned(frame_length) - 1 else '1';
   m_tlast   <= m_tlast_i when s_tvalid else 'U';
 
   ---------------
