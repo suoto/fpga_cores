@@ -167,43 +167,45 @@ begin
         return frame;
     end function random_frame;
 
-    procedure run_test ( constant frame_length, slice_frame_length : natural ) is
-      constant data      : std_logic_array_t := random_frame(frame_length, TDATA_WIDTH);
-      variable remainder : integer;
-      variable msg       : msg_t;
+    procedure run_test is
+      constant frame_length        : integer := rand.RandInt(64);
+      constant sliced_frame_length : integer := rand.RandInt(frame_length);
+      constant data                : std_logic_array_t := random_frame(frame_length, TDATA_WIDTH);
+      variable remainder           : integer;
+      variable msg                 : msg_t;
     begin
 
-      info(logger, sformat("Slicing %d beats into %d", fo(frame_length), fo(slice_frame_length)));
+      info(logger, sformat("Slicing %d beats into %d", fo(frame_length), fo(sliced_frame_length)));
 
       remainder := frame_length;
 
-      for i in 0 to frame_length / slice_frame_length - 1 loop
+      for i in 0 to frame_length / sliced_frame_length - 1 loop
         info(
           logger,
           sformat(
             "[Frame count: %d] Inserting frame with length is %d",
             fo(frame_count),
-            fo(slice_frame_length)
+            fo(sliced_frame_length)
           )
         );
 
         msg := new_msg;
-        push(msg, slice_frame_length);
+        push(msg, sliced_frame_length);
         send(net, expected_queue, msg);
         frame_count := frame_count + 1;
       end loop;
 
-      if frame_length mod slice_frame_length /= 0 then
+      if frame_length mod sliced_frame_length /= 0 then
         info(
           logger,
           sformat(
             "[Frame count: %d] Inserting frame with length is %d",
             fo(frame_count),
-            fo(frame_length mod slice_frame_length)
+            fo(frame_length mod sliced_frame_length)
           )
         );
         msg := new_msg;
-        push(msg, frame_length mod slice_frame_length);
+        push(msg, frame_length mod sliced_frame_length);
         send(net, expected_queue, msg);
         frame_count := frame_count + 1;
       end if;
@@ -211,7 +213,7 @@ begin
       axi_bfm_write(net,
         bfm         => input_stream,
         data        => data,
-        tid         => std_logic_vector(to_unsigned(slice_frame_length, FRAME_LENGTH_WIDTH)),
+        tid         => std_logic_vector(to_unsigned(sliced_frame_length, FRAME_LENGTH_WIDTH)),
         probability => tvalid_probability);
 
       info(
@@ -245,14 +247,14 @@ begin
         tready_probability <= 1.0;
 
         for i in 0 to 1023 loop
-          run_test(frame_length => rand.RandInt(64) + 1, slice_frame_length => rand.RandInt(64) + 1);
+          run_test;
         end loop;
       elsif run("slow_master") then
         for i in 0 to 15 loop
           tvalid_probability <= rand.RandReal(1.0);
 
           for j in 0 to 63 loop
-            run_test(frame_length => rand.RandInt(64) + 1, slice_frame_length => rand.RandInt(64) + 1);
+            run_test;
           end loop;
         end loop;
       elsif run("slow_slave") then
@@ -260,7 +262,7 @@ begin
           tready_probability <= rand.RandReal(1.0);
 
           for j in 0 to 63 loop
-            run_test(frame_length => rand.RandInt(64) + 1, slice_frame_length => rand.RandInt(64) + 1);
+            run_test;
           end loop;
         end loop;
       elsif run("slow_master_and_slave") then
@@ -269,7 +271,7 @@ begin
           tready_probability <= rand.RandReal(1.0);
 
           for j in 0 to 63 loop
-            run_test(frame_length => rand.RandInt(64) + 1, slice_frame_length => rand.RandInt(64) + 1);
+            run_test;
           end loop;
         end loop;
       end if;
