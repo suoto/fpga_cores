@@ -168,8 +168,8 @@ begin
     end function random_frame;
 
     procedure run_test is
-      constant frame_length        : integer := rand.RandInt(64);
-      constant sliced_frame_length : integer := rand.RandInt(frame_length);
+      constant frame_length        : integer := rand.RandInt(64) + 1;
+      constant sliced_frame_length : integer := rand.RandInt(frame_length) + 1;
       constant data                : std_logic_array_t := random_frame(frame_length, TDATA_WIDTH);
       variable remainder           : integer;
       variable msg                 : msg_t;
