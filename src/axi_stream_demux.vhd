@@ -47,17 +47,10 @@ entity axi_stream_demux is
 
     m_tvalid       : out std_logic_vector(INTERFACES - 1 downto 0);
     m_tready       : in  std_logic_vector(INTERFACES - 1 downto 0);
-    m_tdata        : out std_logic_array_t(INTERFACES - 1 downto 0)(DATA_WIDTH - 1 downto 0)
-
-  );
+    m_tdata        : out std_logic_array_t(INTERFACES - 1 downto 0)(DATA_WIDTH - 1 downto 0));
 end axi_stream_demux;
 
 architecture axi_stream_demux of axi_stream_demux is
-
-  -----------
-  -- Types --
-  -----------
-  type din_t is array (natural range <>) of std_logic_vector(DATA_WIDTH - 1 downto 0);
 
   -------------
   -- Signals --
@@ -67,19 +60,15 @@ architecture axi_stream_demux of axi_stream_demux is
 
 begin
 
-  -------------------
-  -- Port mappings --
-  -------------------
-
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
-  selection_int  <= to_integer(one_hot_to_decimal(selection_mask));
+  selection_int <= to_integer(one_hot_to_decimal(selection_mask));
 
-  m_tvalid   <= m_tvalid_i;
-  m_tvalid_i <= (INTERFACES - 1 downto 0 => s_tvalid) and selection_mask;
+  m_tvalid      <= m_tvalid_i;
+  m_tvalid_i    <= (INTERFACES - 1 downto 0 => s_tvalid) and selection_mask;
 
-  s_tready <= m_tready(selection_int);
+  s_tready      <= m_tready(selection_int);
 
   g_mtdata : for i in 0 to INTERFACES - 1 generate
     m_tdata(i) <= (others => 'U') when m_tvalid_i(i) = '0' else s_tdata;
