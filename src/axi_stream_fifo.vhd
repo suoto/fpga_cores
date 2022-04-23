@@ -1,7 +1,7 @@
 --
 -- FPGA core library
 --
--- Copyright 2014 by Andre Souto (suoto)
+-- Copyright 2014-2022 by Andre Souto (suoto)
 --
 -- This source describes Open Hardware and is licensed under the CERN-OHL-W v2
 --
@@ -96,7 +96,7 @@ begin
   -------------------
   ram_u : entity work.ram_inference
     generic map (
-      ADDR_WIDTH   => numbits(FIFO_DEPTH),
+      DEPTH        => FIFO_DEPTH,
       DATA_WIDTH   => DATA_WIDTH + 1,
       RAM_TYPE     => RAM_TYPE,
       OUTPUT_DELAY => 1)

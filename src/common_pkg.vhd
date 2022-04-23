@@ -1,7 +1,7 @@
 --
 -- FPGA core library
 --
--- Copyright 2014 by Andre Souto (suoto)
+-- Copyright 2014-2022 by Andre Souto (suoto)
 --
 -- This source describes Open Hardware and is licensed under the CERN-OHL-W v2
 --
@@ -394,6 +394,9 @@ package body common_pkg is
 
   function has_undefined ( constant v : std_logic_vector ) return boolean is
   begin
+    -- This is only relevant in simulation
+    if not IS_SIMULATION then return False; end if;
+
     for i in v'range loop
       if v(i) = 'U' or v(i) = 'X' then
         return True;

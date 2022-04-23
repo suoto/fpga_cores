@@ -1,7 +1,7 @@
 --
 -- FPGA core library
 --
--- Copyright 2014 by Andre Souto (suoto)
+-- Copyright 2014-2022 by Andre Souto (suoto)
 --
 -- This source describes Open Hardware and is licensed under the CERN-OHL-W v2
 --
@@ -36,37 +36,38 @@ use work.common_pkg.all;
 ------------------------
 entity ram_inference is
   generic (
-    ADDR_WIDTH   : natural := 16;
-    DATA_WIDTH   : natural := 16;
-    RAM_TYPE     : ram_type_t := auto;
-    OUTPUT_DELAY : natural := 1);
+    DEPTH         : natural := 16;
+    DATA_WIDTH    : natural := 16;
+    RAM_TYPE      : ram_type_t := auto;
+    INITIAL_VALUE : std_logic_array_t(0 to DEPTH - 1)(DATA_WIDTH - 1 downto 0) := (others => (others => '0'));
+    OUTPUT_DELAY  : natural := 1);
   port (
     -- Port A
     clk_a     : in  std_logic;
     clken_a   : in  std_logic;
     wren_a    : in  std_logic;
-    addr_a    : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);
+    addr_a    : in  std_logic_vector(numbits(DEPTH) - 1 downto 0);
     wrdata_a  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
     rddata_a  : out std_logic_vector(DATA_WIDTH - 1 downto 0);
 
     -- Port B
     clk_b     : in  std_logic;
     clken_b   : in  std_logic;
-    addr_b    : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);
+    addr_b    : in  std_logic_vector(numbits(DEPTH) - 1 downto 0);
     rddata_b  : out std_logic_vector(DATA_WIDTH - 1 downto 0));
 end ram_inference;
 
 architecture ram_inference of ram_inference is
 
-  -----------
-  -- Types --
-  -----------
-  type data_array_t is array (natural range <>) of std_logic_vector(DATA_WIDTH - 1 downto 0);
+  ---------------
+  -- Constants --
+  ---------------
+  constant ADDR_WIDTH  : integer := numbits(DEPTH);
 
   -------------
   -- Signals --
   -------------
-  signal ram                 : data_array_t(0 to 2**ADDR_WIDTH - 1);
+  signal ram                 : std_logic_array_t(0 to DEPTH - 1)(DATA_WIDTH - 1 downto 0) := INITIAL_VALUE;
 
   signal rddata_a_async      : std_logic_vector(DATA_WIDTH - 1 downto 0);
   signal rddata_a_sync       : std_logic_vector(DATA_WIDTH - 1 downto 0);

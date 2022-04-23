@@ -1,7 +1,7 @@
 --
 -- FPGA core library
 --
--- Copyright 2020 by Andre Souto (suoto)
+-- Copyright 2020-2022 by Andre Souto (suoto)
 --
 -- This source describes Open Hardware and is licensed under the CERN-OHL-W v2
 --
@@ -31,17 +31,17 @@ use work.common_pkg.all;
 ------------------------
 entity pipeline_context_ram is
   generic (
-    ADDR_WIDTH : natural    := 16;
+    DEPTH      : natural    := 16;
     DATA_WIDTH : natural    := 16;
     RAM_TYPE   : ram_type_t := auto);
   port (
     clk         : in  std_logic;
     -- Checkout request interface
     en_in       : in  std_logic;
-    addr_in     : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);
+    addr_in     : in  std_logic_vector(numbits(DEPTH) - 1 downto 0);
     -- Data checkout output
     en_out      : out std_logic;
-    addr_out    : out std_logic_vector(ADDR_WIDTH - 1 downto 0);
+    addr_out    : out std_logic_vector(numbits(DEPTH) - 1 downto 0);
     context_out : out std_logic_vector(DATA_WIDTH - 1 downto 0);
     -- Updated data input
     context_in  : in  std_logic_vector(DATA_WIDTH - 1 downto 0));
@@ -49,6 +49,7 @@ end pipeline_context_ram;
 
 architecture pipeline_context_ram of pipeline_context_ram is
 
+  constant ADDR_WIDTH : integer := numbits(DEPTH);
   -----------
   -- Types --
   -----------
@@ -71,7 +72,7 @@ begin
   -------------------
   ram_u : entity work.ram_inference
     generic map (
-      ADDR_WIDTH   => ADDR_WIDTH,
+      DEPTH        => DEPTH,
       DATA_WIDTH   => DATA_WIDTH,
       RAM_TYPE     => RAM_TYPE,
       -- TODO: Adjust the pipeline to handle OUTPUT_DELAY = 2 to get better timing on

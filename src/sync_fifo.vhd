@@ -1,7 +1,7 @@
 --
 -- FPGA core library
 --
--- Copyright 2016 by Andre Souto (suoto)
+-- Copyright 2016-2022 by Andre Souto (suoto)
 --
 -- This source describes Open Hardware and is licensed under the CERN-OHL-W v2
 --
@@ -85,7 +85,7 @@ begin
   -------------------
   mem : entity work.ram_inference
     generic map (
-      ADDR_WIDTH   => numbits(DEPTH),
+      DEPTH        => DEPTH,
       DATA_WIDTH   => DATA_WIDTH,
       RAM_TYPE     => RAM_TYPE,
       OUTPUT_DELAY => EXTRA_OUTPUT_DELAY)
@@ -115,7 +115,7 @@ begin
 
   rd_dv_async <= inc_rd_ptr;
 
-  -- Set thesholds
+  -- Set thresholds
   upper      <= '1' when ptr_diff >= UPPER_TRESHOLD else '0';
   lower      <= '1' when ptr_diff <= LOWER_TRESHOLD else '0';
 

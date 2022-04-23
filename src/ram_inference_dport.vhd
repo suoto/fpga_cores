@@ -1,7 +1,7 @@
 --
 -- FPGA core library
 --
--- Copyright 2014-2016 by Andre Souto (suoto)
+-- Copyright 2014-2022 by Andre Souto (suoto)
 --
 -- This source describes Open Hardware and is licensed under the CERN-OHL-W v2
 --
@@ -26,15 +26,17 @@
 -- Libraries --
 ---------------
 library ieee;
-    use ieee.std_logic_1164.all;  
-    use ieee.numeric_std.all;
+use ieee.std_logic_1164.all;  
+use ieee.numeric_std.all;
+
+use work.common_pkg.all;
 
 ------------------------
 -- Entity declaration --
 ------------------------
 entity ram_inference_dport is
     generic (
-        ADDR_WIDTH   : natural := 16;
+        DEPTH        : natural := 16;
         DATA_WIDTH   : natural := 16;
         OUTPUT_DELAY : natural := 1);
     port (
@@ -42,7 +44,7 @@ entity ram_inference_dport is
         clk_a     : in  std_logic;
         clken_a   : in  std_logic;
         wren_a    : in  std_logic;
-        addr_a    : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);
+        addr_a    : in  std_logic_vector(numbits(DEPTH) - 1 downto 0);
         wrdata_a  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
         rddata_a  : out std_logic_vector(DATA_WIDTH - 1 downto 0);
 
@@ -50,7 +52,7 @@ entity ram_inference_dport is
         clk_b     : in  std_logic;
         clken_b   : in  std_logic;
         wren_b    : in  std_logic;
-        addr_b    : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);
+        addr_b    : in  std_logic_vector(numbits(DEPTH) - 1 downto 0);
         wrdata_b  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
         rddata_b  : out std_logic_vector(DATA_WIDTH - 1 downto 0));
 end ram_inference_dport;
@@ -65,7 +67,7 @@ architecture ram_inference_dport of ram_inference_dport is
     -------------
     -- Signals --
     -------------
-    shared variable ram : data_type(2**ADDR_WIDTH - 1 downto 0);
+    shared variable ram : data_type(DEPTH - 1 downto 0);
     signal rddata_a_i   : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal rddata_b_i   : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
