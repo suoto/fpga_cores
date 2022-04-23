@@ -1,7 +1,7 @@
 --
 -- FPGA core library
 --
--- Copyright 2019 by Andre Souto (suoto)
+-- Copyright 2022 by Andre Souto (suoto)
 --
 -- This source describes Open Hardware and is licensed under the CERN-OHL-W v2
 --
@@ -42,8 +42,8 @@ entity axi_stream_credit is
     rst              : in  std_logic;
 
     credit_return_en : in  std_logic;
-    credit_return    : in  std_logic_vector(numbits(CREDITS) - 1 downto 0);
-    credits_available: out std_logic_vector(numbits(CREDITS) - 1 downto 0);
+    credit_return    : in  std_logic_vector(numbits(CREDITS + 1) - 1 downto 0);
+    credits_available: out std_logic_vector(numbits(CREDITS + 1) - 1 downto 0);
 
     -- AXI slave input
     s_tvalid         : in  std_logic;
@@ -58,14 +58,16 @@ end axi_stream_credit;
 
 architecture axi_stream_credit of axi_stream_credit is
 
+  constant CREDITS_WIDTH : integer := numbits(CREDITS + 1);
+
   -------------
   -- Signals --
   -------------
   signal s_tready_i             : std_logic;
   signal enable                 : std_logic;
   signal s_data_valid           : std_logic;
-  signal credits_available_i    : unsigned(numbits(CREDITS) - 1 downto 0);
-  signal credits_available_next : unsigned(numbits(CREDITS) - 1 downto 0);
+  signal credits_available_ff   : unsigned(CREDITS_WIDTH - 1 downto 0);
+  signal credits_available_next : unsigned(CREDITS_WIDTH - 1 downto 0);
 
 begin
 
@@ -91,10 +93,12 @@ begin
   ------------------------------
   s_data_valid      <= s_tvalid and s_tready_i;
 
-  enable            <= or(credits_available_i);
+  enable            <= '1' when or(credits_available_ff) else
+                       '1' when credit_return_en = '1' and unsigned(credit_return) > 0 else
+                       '0';
 
   s_tready          <= s_tready_i;
-  credits_available <= std_logic_vector(credits_available_i);
+  credits_available <= std_logic_vector(credits_available_ff(numbits(CREDITS + 1) - 1 downto 0));
 
   ---------------
   -- Processes --
@@ -102,16 +106,16 @@ begin
   process(clk, rst)
   begin
     if rst = '1' then
-      credits_available_i <= to_unsigned(CREDITS - 1, numbits(CREDITS));
+      credits_available_ff <= to_unsigned(CREDITS, credits_available_ff'length);
     elsif rising_edge(clk) then
-      credits_available_i <= credits_available_next;
+      credits_available_ff <= credits_available_next;
     end if;
   end process;
 
-  credits_available_next <= credits_available_i - 1 when s_data_valid and not credit_return_en else
-                            credits_available_i + unsigned(credit_return) when not s_data_valid and credit_return_en else
-                            credits_available_i + unsigned(credit_return) - 1 when s_data_valid and credit_return_en else
-                            credits_available_i;
-
+  credits_available_next
+    <= credits_available_ff - 1                           when     s_data_valid and not credit_return_en else
+       credits_available_ff + unsigned(credit_return)     when not s_data_valid and     credit_return_en else
+       credits_available_ff + unsigned(credit_return) - 1 when     s_data_valid and     credit_return_en else
+       credits_available_ff;
 
 end axi_stream_credit;
