@@ -81,6 +81,9 @@ architecture ram_inference of ram_inference is
   constant RESOLVED_RAM_TYPE : string := get_ram_style(RAM_TYPE, ADDR_WIDTH, DATA_WIDTH);
   attribute RAM_STYLE of ram : signal is RESOLVED_RAM_TYPE;
 
+  signal addr_a_valid : std_logic;
+  signal addr_b_valid : std_logic;
+
 begin
 
   assert OUTPUT_DELAY /= 0 or RESOLVED_RAM_TYPE /= "bram"
@@ -119,8 +122,8 @@ begin
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
-  rddata_a_async <= ram(to_integer(unsigned(addr_a)));
-  rddata_b_async <= ram(to_integer(unsigned(addr_b)));
+  rddata_a_async <= ram(to_integer(unsigned(addr_a))) when addr_a_valid else (others => 'U');
+  rddata_b_async <= ram(to_integer(unsigned(addr_b))) when addr_b_valid else (others => 'U');
 
   rddata_a <= rddata_a_async when OUTPUT_DELAY = 0 else
               rddata_a_sync when OUTPUT_DELAY = 1 else
@@ -130,6 +133,8 @@ begin
               rddata_b_sync when OUTPUT_DELAY = 1 else
               rddata_b_delay;
 
+  addr_a_valid <= '1' when unsigned(addr_a) < DEPTH and not has_undefined(addr_a) else '0';
+  addr_b_valid <= '1' when unsigned(addr_b) < DEPTH and not has_undefined(addr_b) else '0';
 
   ---------------
   -- Processes --
@@ -138,9 +143,16 @@ begin
   begin
     if clk_a'event and clk_a = '1' then
       if clken_a = '1' then
-        rddata_a_sync <= ram(to_integer(unsigned(addr_a)));
+        if addr_a_valid then
+          rddata_a_sync <= ram(to_integer(unsigned(addr_a)));
+        else
+          rddata_a_sync <= (others => 'U');
+        end if;
         if wren_a = '1' then
           ram(to_integer(unsigned(addr_a))) <= wrdata_a;
+          assert addr_a_valid
+            report "Can't write to undefined address or write address out of range"
+            severity Error;
         end if;
       end if;
     end if;
@@ -150,7 +162,11 @@ begin
   begin
     if clk_b'event and clk_b = '1' then
       if clken_b = '1' then
-        rddata_b_sync <= ram(to_integer(unsigned(addr_b)));
+        if addr_b_valid then
+          rddata_b_sync <= ram(to_integer(unsigned(addr_b)));
+        else
+          rddata_b_sync <= (others => 'U');
+        end if;
       end if;
     end if;
   end process;
