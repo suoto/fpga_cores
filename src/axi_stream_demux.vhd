@@ -68,7 +68,7 @@ begin
   m_tvalid      <= m_tvalid_i;
   m_tvalid_i    <= (INTERFACES - 1 downto 0 => s_tvalid) and selection_mask;
 
-  s_tready      <= m_tready(selection_int);
+  s_tready      <= m_tready(selection_int) and or(selection_mask);
 
   g_mtdata : for i in 0 to INTERFACES - 1 generate
     m_tdata(i) <= (others => 'U') when m_tvalid_i(i) = '0' else s_tdata;
