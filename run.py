@@ -27,12 +27,13 @@ import random
 import re
 import struct
 
-from vunit import VUnit  # type: ignore
+from vunit.ui import VUnit  # type: ignore
+from vunit.vunit_cli import VUnitCLI  # type: ignore
 
 ROOT = p.abspath(p.dirname(__file__))
 
 
-class GhdlPragmaHandler:
+class GhdlPragmaHandler:  # pylint: disable=too-few-public-methods
     """
     Removes code between arbitraty pragmas
     -- ghdl translate_off
@@ -56,7 +57,21 @@ class GhdlPragmaHandler:
 
 
 def main():
-    cli = VUnit.from_argv()
+    cli = VUnitCLI()
+    cli.parser.add_argument(
+        "--seed",
+        action="store",
+        help="Random seed for the tests",
+        type=int,
+        default=random.randint(-1 << 31, 1 << 31),  # VHDL integer range
+    )
+
+    args = cli.parse_args()
+
+    print(f"Seed: {args.seed}")
+
+    cli = VUnit.from_args(args=args)
+
     cli.add_osvvm()
     cli.enable_location_preprocessing()
     cli.add_com()
@@ -79,7 +94,7 @@ def main():
         p.join(ROOT, "src", "exponential_golomb", "*.vhd")
     )
 
-    addTests(cli)
+    addTests(cli, args.seed)
 
     cli.set_compile_option("modelsim.vcom_flags", ["-explicit"])
 
@@ -99,16 +114,27 @@ def main():
     cli.main()
 
 
-def addTests(cli):
-    addAsyncFifoTests(cli.library("tb").entity("async_fifo_tb"))
-    addAxiStreamDelayTests(cli.library("tb").entity("axi_stream_delay_tb"))
-    addAxiFileReaderTests(cli.library("tb").entity("axi_file_reader_tb"))
-    addAxiFileCompareTests(cli.library("tb").entity("axi_file_compare_tb"))
-    addAxiWidthConverterTests(cli.library("tb").entity("axi_stream_width_converter_tb"))
-    addAxiArbiterTests(cli.library("tb").entity("axi_stream_arbiter_tb"))
+def addTests(cli, seed):
+    addAsyncFifoTests(cli.library("tb").entity("async_fifo_tb"), seed)
+    addAxiStreamDelayTests(cli.library("tb").entity("axi_stream_delay_tb"), seed)
+    addAxiFileReaderTests(cli.library("tb").entity("axi_file_reader_tb"), seed)
+    addAxiFileCompareTests(cli.library("tb").entity("axi_file_compare_tb"), seed)
+    addAxiWidthConverterTests(
+        cli.library("tb").entity("axi_stream_width_converter_tb"), seed
+    )
+    addAxiArbiterTests(cli.library("tb").entity("axi_stream_arbiter_tb"), seed)
+
+    # Add seed to other testbenches
+    for entity in (
+        cli.library("tb").entity("axi_stream_frame_slicer_tb"),
+        cli.library("tb").entity("axi_stream_frame_padder_tb"),
+        cli.library("tb").entity("axi_stream_frame_fifo_tb"),
+        cli.library("tb").entity("axi_stream_replicate_tb"),
+    ):
+        entity.add_config(name="with_seed", generics=dict(seed=seed))
 
 
-def addAsyncFifoTests(entity):
+def addAsyncFifoTests(entity, seed):
     clk_period_list = (4, 11)
 
     for wr_clk_period in clk_period_list:
@@ -135,17 +161,20 @@ def addAsyncFifoTests(entity):
                         RD_CLK_PERIOD_NS=rd_clk_period,
                         WR_EN_RANDOM=wr_rand,
                         RD_EN_RANDOM=rd_rand,
+                        SEED=seed,
                     ),
                 )
 
 
-def addAxiStreamDelayTests(entity):
+def addAxiStreamDelayTests(entity, seed):
     "Parametrizes the delays for the AXI stream delay test"
     for delay in (1, 2, 8):
-        entity.add_config(name=f"delay={delay}", generics={"DELAY_CYCLES": delay})
+        entity.add_config(
+            name=f"delay={delay}", generics=dict(DELAY_CYCLES=delay, SEED=seed)
+        )
 
 
-def addAxiFileCompareTests(entity):
+def addAxiFileCompareTests(entity, seed):
     "Parametrizes the AXI file compare testbench"
     test_file = p.join(ROOT, "vunit_out", "file_compare_input.bin")
     reference_file = p.join(ROOT, "vunit_out", "file_compare_reference_ok.bin")
@@ -218,11 +247,12 @@ def addAxiFileCompareTests(entity):
             tdata_single_error_file=tdata_single_error_file,
             tdata_two_errors_file=tdata_two_errors_file,
             tlast_error_file=tlast_error_file,
+            seed=seed,
         ),
     )
 
 
-def addAxiFileReaderTests(entity):
+def addAxiFileReaderTests(entity, seed):
     "Parametrizes the AXI file reader testbench"
     # Dict with data_width: {lengths in bytes}
     configs = {
@@ -258,7 +288,9 @@ def addAxiFileReaderTests(entity):
 
         entity.add_config(
             name=f"multiple,data_width={data_width}",
-            generics={"DATA_WIDTH": data_width, "test_cfg": "|".join(all_configs)},
+            generics=dict(
+                DATA_WIDTH=data_width, test_cfg="|".join(all_configs), seed=seed
+            ),
         )
 
 
@@ -280,7 +312,7 @@ def generateAxiFileReaderTestFile(test_file, reference_file, data_width, length)
     print("- data_width:     ", data_width, "bits")
     print("- length:         ", length, "bytes")
 
-    test_data = tuple([random.randint(0, 255) for _ in range(length)])
+    test_data = tuple(random.randint(0, 255) for _ in range(length))
 
     print("- test_data:      ", test_data)
 
@@ -340,13 +372,14 @@ def generateAxiFileReaderTestFile(test_file, reference_file, data_width, length)
         fd.write("\n")
 
 
-def addAxiWidthConverterTests(entity):
+def addAxiWidthConverterTests(entity, seed):
     # Only add equal widths once
     entity.add_config(
         name="same_widths",
         generics=dict(
             INPUT_DATA_WIDTH=32,
             OUTPUT_DATA_WIDTH=32,
+            seed=seed,
         ),
     )
 
@@ -360,27 +393,34 @@ def addAxiWidthConverterTests(entity):
                 generics=dict(
                     INPUT_DATA_WIDTH=input_data_width,
                     OUTPUT_DATA_WIDTH=output_data_width,
+                    seed=seed,
                 ),
             )
 
 
-def addAxiArbiterTests(entity):
+def addAxiArbiterTests(entity, seed):
     for test in entity.get_tests():
         for register_inputs in (True, False):
             if test.name.startswith("test_round_robin"):
                 test.add_config(
                     name=f"mode=ROUND_ROBIN,register_inputs={register_inputs}",
-                    generics=dict(MODE="ROUND_ROBIN", REGISTER_INPUTS=register_inputs),
+                    generics=dict(
+                        MODE="ROUND_ROBIN", REGISTER_INPUTS=register_inputs, seed=seed
+                    ),
                 )
             if test.name.startswith("test_interleaved"):
                 test.add_config(
                     name=f"mode=INTERLEAVED,register_inputs={register_inputs}",
-                    generics=dict(MODE="INTERLEAVED", REGISTER_INPUTS=register_inputs),
+                    generics=dict(
+                        MODE="INTERLEAVED", REGISTER_INPUTS=register_inputs, seed=seed
+                    ),
                 )
             if test.name.startswith("test_absolute"):
                 test.add_config(
                     name=f"mode=ABSOLUTE,register_inputs={register_inputs}",
-                    generics=dict(MODE="ABSOLUTE", REGISTER_INPUTS=register_inputs),
+                    generics=dict(
+                        MODE="ABSOLUTE", REGISTER_INPUTS=register_inputs, seed=seed
+                    ),
                 )
 
 

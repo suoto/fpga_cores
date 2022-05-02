@@ -41,7 +41,10 @@ use fpga_cores.axi_pkg.all;
 use fpga_cores.common_pkg.all;
 
 entity axi_stream_replicate_tb is
-  generic ( runner_cfg : string );
+  generic (
+    runner_cfg : string;
+    seed       : integer
+  );
 end axi_stream_replicate_tb;
 
 architecture axi_stream_replicate_tb of axi_stream_replicate_tb is
@@ -70,7 +73,8 @@ begin
   axi_master_bfm_u : entity fpga_cores_sim.axi_stream_bfm
     generic map (
       NAME        => "axi_master_bfm_u",
-      TDATA_WIDTH => DATA_WIDTH
+      TDATA_WIDTH => DATA_WIDTH,
+      SEED        => SEED
     )
     port map (
       -- Usual ports
@@ -173,6 +177,7 @@ begin
 
     show(display_handler, debug);
     test_runner_setup(runner, runner_cfg);
+    random_gen.InitSeed(SEED);
 
     rst <= '1';
     walk(16);

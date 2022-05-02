@@ -46,6 +46,7 @@ use fpga_cores.common_pkg.all;
 entity axi_file_compare is
   generic (
     READER_NAME     : string;
+    SEED            : integer := 0;
     ERROR_CNT_WIDTH : natural := 8;
     REPORT_SEVERITY : severity_level := Error;
     -- axi_file_reader config
@@ -153,6 +154,8 @@ begin
 
   begin
     if rst = '1' then
+      tready_rand.InitSeed(READER_NAME & integer'image(SEED) & time'image(now));
+
       s_tready_i        <= '0';
 
       tdata_error_cnt_i <= (others => '0');

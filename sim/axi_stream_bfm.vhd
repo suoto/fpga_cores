@@ -52,6 +52,7 @@ use work.axi_stream_bfm_pkg.all;
 entity axi_stream_bfm is
   generic (
     NAME        : string := AXI_STREAM_MASTER_DEFAULT_NAME;
+    SEED        : integer := 0;
     TDATA_WIDTH : natural := 16;
     TUSER_WIDTH : natural := 0;
     TID_WIDTH   : natural := 0);
@@ -273,15 +274,18 @@ begin
 
   end process; -- }} -------------------------------------------------------------------
 
-  duty_cycle_p : process(clk, rst) -- {{ -----------------------------------------------
+  duty_cycle_p : process -- {{ ---------------------------------------------------------
     variable rand : RandomPType;
   begin
-    if rst = '1' then
-      rand.InitSeed(name);
-      wr_en <= False;
-    elsif rising_edge(clk) then
+    rand.InitSeed(NAME & integer'image(SEED));
+    wait until not rst;
+    while True loop
+      wait until rising_edge(clk);
       wr_en <= rand.RandReal(1.0) < cfg_probability;
-    end if;
+      if rst = '1' then
+        wr_en <= False;
+      end if;
+    end loop;
   end process; -- }} -------------------------------------------------------------------
 
 end axi_stream_bfm;

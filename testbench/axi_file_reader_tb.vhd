@@ -49,7 +49,8 @@ entity axi_file_reader_tb is
   generic (
     runner_cfg : string;
     DATA_WIDTH : integer;
-    test_cfg   : string);
+    test_cfg   : string;
+    SEED       : integer);
 end axi_file_reader_tb;
 
 architecture axi_file_reader_tb of axi_file_reader_tb is
@@ -125,8 +126,9 @@ begin
   -------------------
   dut : entity fpga_cores_sim.axi_file_reader
     generic map (
-      READER_NAME    => READER_NAME,
-      DATA_WIDTH     => DATA_WIDTH)
+      READER_NAME => READER_NAME,
+      DATA_WIDTH  => DATA_WIDTH,
+      SEED        => SEED)
     port map (
       -- Usual ports
       clk                => clk,
@@ -340,6 +342,7 @@ begin
         info("Forcing file close due to reset");
         file_close(file_handler);
         file_status := closed;
+        tready_rand.InitSeed("s_tready_gen" & integer'image(SEED) & time'image(now));
       end if;
 
       s_tready <= '0';

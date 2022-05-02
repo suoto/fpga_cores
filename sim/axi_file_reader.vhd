@@ -59,6 +59,7 @@ use work.testbench_utils_pkg.all;
 entity axi_file_reader is
   generic (
     READER_NAME : string;
+    SEED        : integer := 0;
     DATA_WIDTH  : integer := 1;
     TID_WIDTH   : natural := 0);
   port (
@@ -218,84 +219,89 @@ begin
 
   begin
 
-    if rst = '1' then
-      m_tvalid_wr <= '0';
-      m_tlast_i   <= '0';
-      m_tdata_i   <= (others => 'U');
-      m_tid_i     <= (others => 'U');
-      completed   <= '0';
-      -- bit_list.reset;
-      if file_status /= closed then
-          file_status := closed;
-          file_close(file_handler);
-      end if;
-    else
+    -- Initialze random seed
+    tvalid_rand.InitSeed(SEED);
 
-      -- Clear out AXI stuff when data has been transferred only
-      if axi_data_valid then
-        completed    <= '0';
-        m_tvalid_wr  <= '0';
-        m_tlast_i    <= '0';
-        m_tdata_i    <= (others => 'U');
-        m_tid_i      <= (others => 'U');
-        word_cnt     := word_cnt + 1;
-        dbg_word_cnt <= dbg_word_cnt + 1;
-
-        if m_tlast_i = '1' then
-          file_close(file_handler);
-          file_status  := closed;
-
-          info(
-            logger,
-            sformat("Read %d words from %s", fo(word_cnt), quote(cfg.filename.all)));
-
-          completed      <= '1';
-          dbg_word_cnt   <= 0;
-          word_cnt       := 0;
-          buffer_bit_cnt := 0;
-        end if;
-      end if;
-
-      -- If the file hasn't been opened, wait we get a msg with the file name
-      if file_status /= opened  then
-        if has_message(self) then
-          receive(net, self, msg);
-          cfg   := pop(msg);
-
-          info(logger, sformat( "Reading %s (requested by %s)", quote(cfg.filename.all), quote(name(msg.sender))));
-
-          file_open(file_handler, cfg.filename.all, read_mode);
-          file_status  := opened;
-
-          m_tdata_next := get_next_data(DATA_WIDTH);
+    while True loop
+      if rst = '1' then
+        m_tvalid_wr <= '0';
+        m_tlast_i   <= '0';
+        m_tdata_i   <= (others => 'U');
+        m_tid_i     <= (others => 'U');
+        completed   <= '0';
+        -- bit_list.reset;
+        if file_status /= closed then
+            file_status := closed;
+            file_close(file_handler);
         end if;
       else
-        -- If the file has been opened, read the next word whenever the previous one is
-        -- valid
+
+        -- Clear out AXI stuff when data has been transferred only
         if axi_data_valid then
-          m_tdata_next := get_next_data(DATA_WIDTH);
+          completed    <= '0';
+          m_tvalid_wr  <= '0';
+          m_tlast_i    <= '0';
+          m_tdata_i    <= (others => 'U');
+          m_tid_i      <= (others => 'U');
+          word_cnt     := word_cnt + 1;
+          dbg_word_cnt <= dbg_word_cnt + 1;
+
+          if m_tlast_i = '1' then
+            file_close(file_handler);
+            file_status  := closed;
+
+            info(
+              logger,
+              sformat("Read %d words from %s", fo(word_cnt), quote(cfg.filename.all)));
+
+            completed      <= '1';
+            dbg_word_cnt   <= 0;
+            word_cnt       := 0;
+            buffer_bit_cnt := 0;
+          end if;
+        end if;
+
+        -- If the file hasn't been opened, wait we get a msg with the file name
+        if file_status /= opened  then
+          if has_message(self) then
+            receive(net, self, msg);
+            cfg   := pop(msg);
+
+            info(logger, sformat( "Reading %s (requested by %s)", quote(cfg.filename.all), quote(name(msg.sender))));
+
+            file_open(file_handler, cfg.filename.all, read_mode);
+            file_status  := opened;
+
+            m_tdata_next := get_next_data(DATA_WIDTH);
+          end if;
+        else
+          -- If the file has been opened, read the next word whenever the previous one is
+          -- valid
+          if axi_data_valid then
+            m_tdata_next := get_next_data(DATA_WIDTH);
+          end if;
+        end if;
+
+        if file_status = opened then
+          m_tvalid_wr <= '1';
+          m_tdata_i   <= m_tdata_next;
+          if cfg.tid /= NULL_VECTOR then
+            m_tid_i <= cfg.tid;
+          end if;
+        end if;
+        if axi_data_valid and m_tlast_i = '1' then
+          reply_with_size;
+        end if;
+
+        -- Generate a tvalid enable with the configured probability
+        m_tvalid_en <= '0';
+        if tvalid_rand.RandReal(1.0) <= tvalid_probability then
+          m_tvalid_en <= '1';
         end if;
       end if;
 
-      if file_status = opened then
-        m_tvalid_wr <= '1';
-        m_tdata_i   <= m_tdata_next;
-        if cfg.tid /= NULL_VECTOR then
-          m_tid_i <= cfg.tid;
-        end if;
-      end if;
-      if axi_data_valid and m_tlast_i = '1' then
-        reply_with_size;
-      end if;
-
-      -- Generate a tvalid enable with the configured probability
-      m_tvalid_en <= '0';
-      if tvalid_rand.RandReal(1.0) <= tvalid_probability then
-        m_tvalid_en <= '1';
-      end if;
-    end if;
-
-    wait until rising_edge(clk);
+      wait until rising_edge(clk);
+    end loop;
 
   end process;
 

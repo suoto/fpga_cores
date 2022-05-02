@@ -41,7 +41,10 @@ use fpga_cores.axi_pkg.all;
 use fpga_cores.common_pkg.all;
 
 entity axi_stream_frame_fifo_tb is
-  generic (runner_cfg : string);
+  generic (
+    runner_cfg : string;
+    seed       : integer
+  );
 end axi_stream_frame_fifo_tb;
 
 architecture axi_stream_frame_fifo_tb of axi_stream_frame_fifo_tb is
@@ -91,7 +94,9 @@ begin
     signal tdata : std_logic_vector(DATA_WIDTH + 8 - 1 downto 0);
   begin
     axi_master_bfm_u : entity fpga_cores_sim.axi_stream_bfm
-      generic map ( TDATA_WIDTH => DATA_WIDTH + 8 )
+      generic map (
+        TDATA_WIDTH => DATA_WIDTH + 8,
+        SEED        => SEED)
       port map (
         -- Usual ports
         clk        => clk,
@@ -343,8 +348,9 @@ begin
 
     -- Start both wr and rd data random generators with the same seed so we get the same
     -- sequence
-    wr_data_gen.InitSeed("some_seed");
-    rd_data_gen.InitSeed("some_seed");
+    wr_data_gen.InitSeed("data_gen" & integer'image(SEED));
+    rd_data_gen.InitSeed("data_gen" & integer'image(SEED));
+    random_gen.InitSeed(SEED);
 
     show(display_handler, debug);
     test_runner_setup(runner, runner_cfg);

@@ -41,7 +41,10 @@ library fpga_cores_sim;
 use fpga_cores_sim.axi_stream_bfm_pkg.all;
 
 entity axi_stream_frame_slicer_tb is
-    generic ( RUNNER_CFG   : string);
+    generic (
+      RUNNER_CFG : string;
+      SEED       : integer
+    );
 end axi_stream_frame_slicer_tb;
 
 architecture axi_stream_frame_slicer_tb of axi_stream_frame_slicer_tb is
@@ -93,7 +96,8 @@ begin
     generic map (
       TDATA_WIDTH => TDATA_WIDTH,
       TUSER_WIDTH => 0,
-      TID_WIDTH   => FRAME_LENGTH_WIDTH)
+      TID_WIDTH   => FRAME_LENGTH_WIDTH,
+      SEED        => SEED)
     port map (
       -- Usual ports
       clk      => clk,
@@ -233,6 +237,7 @@ begin
     -- same sequence
     master_gen.InitSeed("some_seed");
     slave_gen.InitSeed("some_seed");
+    rand.InitSeed(SEED);
 
     -- show(display_handler, debug);
     -- hide(get_logger("axi_stream_master_bfm"), display_handler, (Trace, Debug, Info), True);
@@ -287,9 +292,11 @@ begin
     wait;
   end process;
 
-  axi_slave_p : process(clk)
+  axi_slave_p : process(clk, rst)
   begin
-    if rising_edge(clk) then
+    if rst then
+      axi_slave.tready <= '0';
+    elsif rising_edge(clk) then
       axi_slave.tready <= '0';
 
       if rand.RandReal(1.0) < tready_probability then

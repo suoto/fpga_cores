@@ -42,7 +42,8 @@ entity axi_stream_arbiter_tb is
   generic (
     runner_cfg      : string;
     REGISTER_INPUTS : boolean;
-    MODE            : string   := "" -- ROUND_ROBIN, INTERLEAVED, ABSOLUTE
+    MODE            : string   := ""; -- ROUND_ROBIN, INTERLEAVED, ABSOLUTE
+    SEED            : integer
   );
 end axi_stream_arbiter_tb;
 
@@ -51,8 +52,6 @@ architecture axi_stream_arbiter_tb of axi_stream_arbiter_tb is
   constant CLK_PERIOD        : time := 5 ns;
   constant INTERFACES        : positive := 4;
   constant DATA_WIDTH        : integer := 8;
-
-  shared variable random_gen : RandomPType;
 
   signal clk                : std_logic := '0';
   signal rst                : std_logic;
@@ -77,8 +76,8 @@ begin
   axi_master_0_bfm_u : entity fpga_cores_sim.axi_stream_bfm
     generic map (
       NAME        => "axi_master_0_bfm_u",
-      TDATA_WIDTH => DATA_WIDTH
-    )
+      TDATA_WIDTH => DATA_WIDTH,
+      SEED        => SEED)
     port map (
       -- Usual ports
       clk        => clk,
@@ -92,8 +91,8 @@ begin
   axi_master_1_bfm_u : entity fpga_cores_sim.axi_stream_bfm
     generic map (
       NAME        => "axi_master_1_bfm_u",
-      TDATA_WIDTH => DATA_WIDTH
-    )
+      TDATA_WIDTH => DATA_WIDTH,
+      SEED        => SEED)
     port map (
       -- Usual ports
       clk        => clk,
@@ -107,8 +106,8 @@ begin
   axi_master_2_bfm_u : entity fpga_cores_sim.axi_stream_bfm
     generic map (
       NAME        => "axi_master_2_bfm_u",
-      TDATA_WIDTH => DATA_WIDTH
-    )
+      TDATA_WIDTH => DATA_WIDTH,
+      SEED        => SEED)
     port map (
       -- Usual ports
       clk        => clk,
@@ -122,8 +121,8 @@ begin
   axi_master_3_bfm_u : entity fpga_cores_sim.axi_stream_bfm
     generic map (
       NAME        => "axi_master_3_bfm_u",
-      TDATA_WIDTH => DATA_WIDTH
-    )
+      TDATA_WIDTH => DATA_WIDTH,
+      SEED        => SEED)
     port map (
       -- Usual ports
       clk        => clk,
@@ -763,8 +762,10 @@ begin
   end process;
 
   rd_en_randomize : process
+    variable random_gen : RandomPType;
   begin
     s_axi.tready <= '0';
+    random_gen.InitSeed("rd_en_randomize" & integer'image(SEED) & time'image(now));
     wait until rst = '0';
 
     while True loop

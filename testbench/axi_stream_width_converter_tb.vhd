@@ -44,7 +44,8 @@ entity axi_stream_width_converter_tb is
   generic (
     RUNNER_CFG        : string;
     INPUT_DATA_WIDTH  : natural := 24;
-    OUTPUT_DATA_WIDTH : natural := 16);
+    OUTPUT_DATA_WIDTH : natural := 16;
+    SEED              : integer);
 end axi_stream_width_converter_tb;
 
 architecture axi_stream_width_converter_tb of axi_stream_width_converter_tb is
@@ -140,7 +141,8 @@ begin
   axi_stream_write : entity fpga_cores_sim.axi_stream_bfm
     generic map (
       TDATA_WIDTH => INPUT_DATA_WIDTH,
-      TID_WIDTH   => AXI_TID_WIDTH)
+      TID_WIDTH   => AXI_TID_WIDTH,
+      SEED        => SEED)
     port map (
       -- Usual ports
       clk      => clk,
@@ -225,7 +227,7 @@ begin
 
 
   begin
-    rand.InitSeed("some_seed");
+    rand.InitSeed("main" & integer'image(SEED));
 
     test_runner_setup(runner, RUNNER_CFG);
     show(display_handler, debug);
@@ -424,6 +426,7 @@ begin
     variable rand : RandomPType;
   begin
     if rst = '1' then
+      rand.InitSeed("duty_cycle_p" & integer'image(SEED) & time'image(now));
       s_tready <= '0';
     elsif rising_edge(clk) then
       s_tready <= '0';

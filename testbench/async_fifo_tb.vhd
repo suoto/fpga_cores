@@ -42,7 +42,8 @@ entity async_fifo_tb is
         wr_clk_period_ns : natural := 4;
         rd_clk_period_ns : natural := 16;
         WR_EN_RANDOM     : integer := 10;
-        RD_EN_RANDOM     : integer := 10);
+        RD_EN_RANDOM     : integer := 10;
+        SEED             : integer);
 end async_fifo_tb;
 
 architecture async_fifo_tb of async_fifo_tb is
@@ -152,6 +153,7 @@ begin
         -- we get the same sequence
         wr_data_gen.InitSeed("some_seed");
         rd_data_gen.InitSeed("some_seed");
+        random_gen.InitSeed(SEED);
 
         -- checker_init(display_format => verbose,
         --              file_name      => join(output_path(runner_cfg), "error.csv"),

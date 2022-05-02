@@ -41,7 +41,10 @@ library fpga_cores_sim;
 use fpga_cores_sim.axi_stream_bfm_pkg.all;
 
 entity axi_stream_frame_padder_tb is
-    generic ( RUNNER_CFG   : string);
+    generic (
+      RUNNER_CFG : string;
+      SEED       : integer
+    );
 end axi_stream_frame_padder_tb;
 
 architecture axi_stream_frame_padder_tb of axi_stream_frame_padder_tb is
@@ -199,6 +202,7 @@ begin
     -- same sequence
     master_gen.InitSeed("some_seed");
     slave_gen.InitSeed("some_seed");
+    rand.InitSeed(SEED);
 
     -- show(display_handler, debug);
     -- hide(get_logger("axi_stream_master_bfm"), display_handler, (Trace, Debug, Info), True);
@@ -323,9 +327,11 @@ begin
     end loop;
   end process;
 
-  axi_tready_p : process(clk)
+  axi_tready_p : process(clk, rst)
   begin
-    if rising_edge(clk) then
+    if rst then
+      axi_slave.tready <= '0';
+    elsif rising_edge(clk) then
       axi_slave.tready <= '0';
       if rand.RandReal(1.0) < tready_probability then
         axi_slave.tready <= '1';

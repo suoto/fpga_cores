@@ -51,7 +51,8 @@ entity axi_file_compare_tb is
     reference_file          : string;
     tdata_single_error_file : string;
     tdata_two_errors_file   : string;
-    tlast_error_file        : string);
+    tlast_error_file        : string;
+    SEED                    : integer);
 end axi_file_compare_tb;
 
 architecture axi_file_compare_tb of axi_file_compare_tb is
@@ -102,6 +103,7 @@ begin
     READER_NAME     => READER_NAME,
     ERROR_CNT_WIDTH => ERROR_CNT_WIDTH,
     DATA_WIDTH      => DATA_WIDTH,
+    SEED            => SEED,
     REPORT_SEVERITY => Warning)
   port map (
     -- Usual ports
@@ -272,6 +274,7 @@ begin
       variable rand : RandomPType;
       variable data : std_logic_vector(DATA_WIDTH - 1 downto 0);
     begin
+      rand.InitSeed("test_auto_reset" & integer'image(SEED) & time'image(now));
       -- Setup the AXI reader first to avoid glitches on m_tvalid
       for iter in 0 to 9 loop
         read_file(net, reader, input_file);
@@ -364,6 +367,7 @@ begin
     variable tvalid_rand : RandomPType;
   begin
     m_tvalid_en <= '0';
+    tvalid_rand.InitSeed("tvalid_rnd_gen" & integer'image(SEED) & time'image(now));
     wait until rst = '0';
     while True loop
       wait until rising_edge(clk);

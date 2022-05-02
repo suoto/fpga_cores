@@ -38,7 +38,8 @@ library fpga_cores;
 entity axi_stream_delay_tb is
     generic (
         RUNNER_CFG   : string;
-        DELAY_CYCLES : integer := 1);
+        DELAY_CYCLES : integer := 1;
+        SEED         : integer);
 end axi_stream_delay_tb;
 
 architecture axi_stream_delay_tb of axi_stream_delay_tb is
@@ -74,7 +75,6 @@ architecture axi_stream_delay_tb of axi_stream_delay_tb is
 
     shared variable master_gen : RandomPType;
     shared variable slave_gen  : RandomPType;
-    shared variable rand       : RandomPType;
 
     signal tvalid_probability  : real := 1.0;
     signal tready_probability  : real := 1.0;
@@ -221,45 +221,51 @@ begin
         wait;
     end process;
 
-    axi_slave_p : process(clk)
+    axi_slave_p : process(clk, rst)
+      variable rand : RandomPType;
     begin
-        if rising_edge(clk) then
-            s_tready <= '0';
+      if rst then
+        rand.InitSeed("axi_slave_p" & integer'image(seed) & time'image(now));
+      elsif rising_edge(clk) then
+        s_tready <= '0';
 
-            if rand.RandReal(1.0) < tready_probability then
-                s_tready <= '1';
-            end if;
-
-            if s_tready = '1' and s_tvalid = '1' then
-                info(sformat("Received %r", fo(s_tdata)));
-                check_equal(s_tdata, slave_gen.RandSlv(TDATA_WIDTH));
-            end if;
-
+        if rand.RandReal(1.0) < tready_probability then
+          s_tready <= '1';
         end if;
+
+        if s_tready = '1' and s_tvalid = '1' then
+          info(sformat("Received %r", fo(s_tdata)));
+          check_equal(s_tdata, slave_gen.RandSlv(TDATA_WIDTH));
+        end if;
+
+      end if;
     end process;
 
-    tvalid_rnd_gen : process(clk)
+    tvalid_rnd_gen : process(clk, rst)
+      variable rand : RandomPType;
     begin
-        if rising_edge(clk) then
-            m_tvalid_en <= '0';
-            if rand.RandReal(1.0) < tvalid_probability then
-                m_tvalid_en <= '1';
-            end if;
-
-            if m_data_valid then
-                wr_cnt <= wr_cnt + 1;
-            end if;
-            if s_data_valid then
-                rd_cnt <= rd_cnt + 1;
-            end if;
-
-            if rst = '1' then
-                m_tvalid_en <= '0';
-                wr_cnt      <= 0;
-                rd_cnt      <= 0;
-            end if;
-
+      if rst then
+        rand.InitSeed("tvalid_rnd_gen" & integer'image(seed) & time'image(now));
+      elsif rising_edge(clk) then
+        m_tvalid_en <= '0';
+        if rand.RandReal(1.0) < tvalid_probability then
+          m_tvalid_en <= '1';
         end if;
+
+        if m_data_valid then
+          wr_cnt <= wr_cnt + 1;
+        end if;
+        if s_data_valid then
+          rd_cnt <= rd_cnt + 1;
+        end if;
+
+        if rst = '1' then
+          m_tvalid_en <= '0';
+          wr_cnt      <= 0;
+          rd_cnt      <= 0;
+        end if;
+
+      end if;
     end process;
 
 end axi_stream_delay_tb;
