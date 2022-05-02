@@ -41,8 +41,6 @@ package testbench_utils_pkg is
 
   subtype byte_array_t is std_logic_array_t(open)(7 downto 0);
 
-  shared variable rand   : RandomPType;
-
   impure function counter ( constant length : integer ) return byte_array_t;
   impure function random ( constant length : integer ) return byte_array_t;
 
@@ -58,6 +56,8 @@ package testbench_utils_pkg is
 end testbench_utils_pkg;
 
 package body testbench_utils_pkg is
+
+  shared variable rand   : RandomPType;
 
   procedure push(msg : msg_t; value : std_logic_array_t) is
   begin
