@@ -1,7 +1,7 @@
 --
 -- FPGA core library
 --
--- Copyright 2014-2016 by Andre Souto (suoto)
+-- Copyright 2014-2022 by Andre Souto (suoto)
 --
 -- This source describes Open Hardware and is licensed under the CERN-OHL-W v2
 --
