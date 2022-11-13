@@ -397,11 +397,9 @@ package body common_pkg is
     -- This is only relevant in simulation
     if not IS_SIMULATION then return False; end if;
 
-    for i in v'range loop
-      if v(i) = 'U' or v(i) = 'X' then
-        return True;
-      end if;
-    end loop;
+    if xor(v) = 'U' then return True; end if;
+    if xor(v) = 'X' then return True; end if;
+
     return False;
   end;
 
