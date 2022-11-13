@@ -47,18 +47,21 @@ entity axi_stream_mux is
 end axi_stream_mux;
 
 architecture axi_stream_mux of axi_stream_mux is
-  signal selection_int   : integer range 0 to INTERFACES - 1;
-  signal selection_valid : std_logic;
+  signal m_tdata_mux : std_logic_vector(DATA_WIDTH - 1 downto 0);
 begin
 
-  -- Block data if selection mask is all 0s
-  selection_valid <= or(selection_mask);
+  s_tready        <= selection_mask and (INTERFACES - 1 downto 0 => m_tready);
+  m_tdata         <= (others => 'U') when has_undefined(selection_mask) or or(selection_mask) = '0' else m_tdata_mux;
+  m_tvalid        <= '0'             when has_undefined(selection_mask) or or(selection_mask) = '0' else or(s_tvalid and selection_mask);
 
-  selection_int   <= to_integer(one_hot_to_decimal(selection_mask));
-  m_tdata         <= (others => 'U') when has_undefined(selection_mask) or selection_valid = '0' else s_tdata(selection_int);
-
-  m_tvalid        <= '0' when has_undefined(selection_mask) or selection_valid = '0' else s_tvalid(selection_int);
-  s_tready        <= selection_mask and (INTERFACES - 1 downto 0 => m_tready and selection_valid);
+  process(s_tdata, selection_mask)
+    variable result : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  begin
+    result := (others => '0');
+    for i in 0 to INTERFACES - 1 loop
+      result := result or ( s_tdata(i) and ( DATA_WIDTH - 1 downto 0 => selection_mask( i ) ) );
+    end loop;
+    m_tdata_mux <= result;
+  end process;
 
 end axi_stream_mux;
-
