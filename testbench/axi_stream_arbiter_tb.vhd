@@ -672,8 +672,9 @@ begin
       rst <= '0';
       walk(16);
 
-      set_timeout(runner, 1 us);
+      set_timeout(runner, 2 us);
 
+      info(logger, "Running '" & active_test_case & "'");
       if run("test_round_robin_base_sequence") then
         test_round_robin_base_sequence(frames_per_interface => 4);
       elsif run("test_round_robin_arb_sequence_0") then
