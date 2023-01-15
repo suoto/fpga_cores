@@ -302,13 +302,10 @@ package body common_pkg is
     variable lsb    : integer := 0;
     variable msb    : integer := 0;
   begin
+
     assert sum(widths) = v'length
       report "Conflicting widths: sum(widths) = " & integer'image(sum(widths)) &
              " but v'length is " & integer'image(v'length)
-      severity Failure;
-
-    assert widths(index) + lsb <= v'length
-      report "Width vector " & to_string(widths) & " can't address a vector whose width is " & integer'image(v'length)
       severity Failure;
 
     if index > 0 then
@@ -319,7 +316,14 @@ package body common_pkg is
       end if;
     end if;
 
+    -- Account for v not starting at 0
+    lsb := lsb + v'low;
+
     msb := lsb + widths(index);
+
+    assert widths(index) + lsb <= v'length + v'low
+      report "Width vector " & to_string(widths) & " can't address a vector whose width is " & integer'image(v'length)
+      severity Failure;
 
     if v'ascending then
       return v(lsb to msb - 1);
