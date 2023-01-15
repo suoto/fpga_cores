@@ -34,8 +34,8 @@ library ieee;
 ------------------------
 entity axi_stream_delay is
     generic (
-        DELAY_CYCLES : positive := 1;
-        TDATA_WIDTH  : integer  := 8);
+        DELAY_CYCLES : natural := 0;
+        TDATA_WIDTH  : integer := 8);
     port (
         -- Usual ports
         clk     : in  std_logic;
