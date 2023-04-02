@@ -160,8 +160,9 @@ begin
     signal tdata_agg_out : std_logic_vector(ADDR_WIDTH + TAG_WIDTH - 1 downto 0);
   begin
 
-    tdata_agg_in                        <= ram_rd_tag & ram_rd_addr;
-    (ram_rd_sync_tag, ram_rd_sync_addr) <= tdata_agg_out;
+    tdata_agg_in     <= ram_rd_tag & ram_rd_addr;
+    ram_rd_sync_addr <= tdata_agg_out(ADDR_WIDTH - 1 downto 0);
+    ram_rd_sync_tag  <= tdata_agg_out(ADDR_WIDTH + TAG_WIDTH - 1 downto ADDR_WIDTH);
 
     ram_rd_delay_u : entity work.axi_stream_delay
       generic map (
@@ -243,8 +244,9 @@ begin
         m_tready => rd_out_tready,
         m_tdata  => tdata_agg_out);
 
-    (rd_out_tag, rd_out_data, rd_out_addr) <= tdata_agg_out;
-
+    rd_out_addr <= tdata_agg_out(ADDR_WIDTH - 1 downto 0);
+    rd_out_data <= tdata_agg_out(ADDR_WIDTH + DATA_WIDTH - 1 downto ADDR_WIDTH);
+    rd_out_tag  <= tdata_agg_out(ADDR_WIDTH + DATA_WIDTH + TAG_WIDTH - 1 downto ADDR_WIDTH + DATA_WIDTH);
   end block;
 
 end axi_stream_ram;
