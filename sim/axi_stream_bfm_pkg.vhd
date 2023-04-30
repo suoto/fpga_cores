@@ -76,7 +76,7 @@ package axi_stream_bfm_pkg is
   return axi_stream_bfm_t;
 
   procedure axi_bfm_write (
-    signal   net         : inout std_logic;
+    signal   net         : inout network_t;
     variable bfm         : inout axi_stream_bfm_t;
     constant data        : std_logic_array_t;
     constant tid         : std_logic_vector := null_vector;
@@ -84,7 +84,7 @@ package axi_stream_bfm_pkg is
     constant blocking    : boolean := True);
 
   procedure axi_bfm_write (
-    signal   net         : inout std_logic;
+    signal   net         : inout network_t;
     variable bfm         : inout axi_stream_bfm_t;
     constant data        : data_tuple_array_t;
     constant tid         : std_logic_vector := null_vector;
@@ -92,7 +92,7 @@ package axi_stream_bfm_pkg is
     constant blocking    : boolean := True);
 
   procedure join (
-    signal   net : inout std_logic;
+    signal   net : inout network_t;
     variable bfm : inout axi_stream_bfm_t );
 
 end axi_stream_bfm_pkg;
@@ -187,7 +187,7 @@ package body axi_stream_bfm_pkg is
   end;
 
   procedure wait_reply (
-    signal   net : inout std_logic;
+    signal   net : inout network_t;
     variable bfm : inout axi_stream_bfm_t ) is
     variable msg : msg_t := new_msg(sender => bfm.sender);
   begin
@@ -206,7 +206,7 @@ package body axi_stream_bfm_pkg is
   end;
 
   procedure join (
-    signal   net : inout std_logic;
+    signal   net : inout network_t;
     variable bfm : inout axi_stream_bfm_t ) is
   begin
 
@@ -226,7 +226,7 @@ package body axi_stream_bfm_pkg is
   end;
 
   procedure axi_bfm_write (
-    signal   net         : inout std_logic;
+    signal   net         : inout network_t;
     variable bfm         : inout axi_stream_bfm_t;
     constant data        : std_logic_array_t;
     constant tid         : std_logic_vector := null_vector;
@@ -256,7 +256,7 @@ package body axi_stream_bfm_pkg is
   end;
 
   procedure axi_bfm_write (
-    signal   net         : inout std_logic;
+    signal   net         : inout network_t;
     variable bfm         : inout axi_stream_bfm_t;
     constant data        : data_tuple_array_t;
     constant tid         : std_logic_vector := null_vector;
