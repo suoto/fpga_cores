@@ -27,20 +27,7 @@ CONTAINER="ghdl/vunit:llvm"
 # This will be run inside the container
 RUN_COMMAND="
 set -e
-
-PATH_TO_THIS_SCRIPT=\$(readlink -f \"\$(dirname \$0)\")
-
-pushd \$PATH_TO_THIS_SCRIPT/..
-
-addgroup $USER --gid $(id -g) > /dev/null 2>&1
-
-adduser --disabled-password \
-  --gid $(id -g)            \
-  --uid $UID                \
-  --home /home/$USER $USER > /dev/null 2>&1
-
-# Run test with GHDL
-su -l $USER -c \"cd /project && ./run.py $* \"
+cd /project && ./run.py \$*
 "
 
 # Need to add some variables so that uploading coverage from witihin the
@@ -51,5 +38,6 @@ docker run                                                 \
   --net=host                                               \
   --env="DISPLAY"                                          \
   --volume="$HOME/.Xauthority:/root/.Xauthority:rw"        \
+  --user "$(id -u):$(id -g)"                               \
   $CONTAINER /bin/bash -c "$RUN_COMMAND"
 
