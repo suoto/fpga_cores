@@ -75,7 +75,7 @@ def main():
     cli.add_osvvm()
     cli.enable_location_preprocessing()
     cli.add_com()
-    if cli.get_simulator_name() == "ghdl":
+    if cli.get_simulator_name() in ("ghdl", "nvc"):
         cli.add_preprocessor(GhdlPragmaHandler())
 
     cli.add_library("fpga_cores").add_source_files(p.join(ROOT, "src", "*.vhd"))
@@ -102,6 +102,7 @@ def main():
     #  cli.set_compile_option("ghdl.a_flags", ["-frelaxed-rules"])
     #  cli.set_compile_option("ghdl.a_flags", ["-frelaxed-rules", "-O0", "-g"])
     cli.set_compile_option("ghdl.a_flags", ["-frelaxed-rules", "-O2", "-g"])
+    cli.set_compile_option("nvc.a_flags", ["--relaxed"])
 
     # Make components not bound (error 3473) an error
     cli.set_sim_option("modelsim.vsim_flags", ["-error", "3473", '-voptargs="+acc=n"'])
