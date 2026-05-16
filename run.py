@@ -70,8 +70,9 @@ def main():
 
     print(f"Seed: {args.seed}")
 
-    cli = VUnit.from_args(args=args)
+    cli = VUnit.from_args(args=args, compile_builtins=False)
 
+    cli.add_vhdl_builtins()
     cli.add_osvvm()
     cli.enable_location_preprocessing()
     cli.add_com()
