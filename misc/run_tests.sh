@@ -27,7 +27,7 @@ CONTAINER="ghdl/vunit:llvm"
 # This will be run inside the container
 RUN_COMMAND="
 set -e
-cd /project && ./run.py \$*
+cd /project && ./run.py $*
 "
 
 # Need to add some variables so that uploading coverage from witihin the
