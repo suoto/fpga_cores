@@ -35,7 +35,7 @@ library ieee;
 entity axi_stream_delay is
     generic (
         DELAY_CYCLES : natural := 0;
-        TDATA_WIDTH  : integer := 8);
+        TDATA_WIDTH  : integer);
     port (
         -- Usual ports
         clk     : in  std_logic;
@@ -71,25 +71,21 @@ begin
     -------------------
     -- Port mappings --
     -------------------
-    g_skid_buffers : for i in 0 to DELAY_CYCLES - 1 generate
-        dut : entity work.skidbuffer
-            generic map (
-                OPT_LOWPOWER    => False,
-                OPT_OUTREG      => True,
-                OPT_PASSTHROUGH => False,
-                DW              => TDATA_WIDTH)
+    g_forward_slices : for i in 0 to DELAY_CYCLES - 1 generate
+        dut : entity work.axi_stream_forward_slice
+            generic map ( TDATA_WIDTH => TDATA_WIDTH )
             port map (
-                i_clk    => clk,
-                i_reset  => rst,
+                clk      => clk,
+                rst      => rst,
 
-                i_valid  => tvalid_pipe(i),
-                o_ready  => tready_pipe(i),
-                i_data   => tdata_pipe(i),
+                s_tvalid => tvalid_pipe(i),
+                s_tready => tready_pipe(i),
+                s_tdata  => tdata_pipe(i),
 
-                o_valid => tvalid_pipe(i + 1),
-                i_ready => tready_pipe(i + 1),
-                o_data  => tdata_pipe(i + 1));
-    end generate g_skid_buffers;
+                m_tvalid => tvalid_pipe(i + 1),
+                m_tready => tready_pipe(i + 1),
+                m_tdata  => tdata_pipe(i + 1));
+    end generate g_forward_slices;
 
     ------------------------------
     -- Asynchronous assignments --
