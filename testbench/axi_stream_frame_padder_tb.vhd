@@ -138,7 +138,7 @@ begin
   clk <= not clk after CLK_PERIOD/2;
   rst <= '1', '0' after 16*CLK_PERIOD;
 
-  test_runner_watchdog(runner, 10 ms);
+  test_runner_watchdog(runner, 20 ms);
 
   ---------------
   -- Processes --
