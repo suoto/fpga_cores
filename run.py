@@ -119,6 +119,7 @@ def main():
 def addTests(cli, seed):
     addAsyncFifoTests(cli.library("tb").entity("async_fifo_tb"), seed)
     addAxiStreamDelayTests(cli.library("tb").entity("axi_stream_delay_tb"), seed)
+    addAxiStreamFifoTests(cli.library("tb").entity("axi_stream_fifo_tb"), seed)
     addAxiFileReaderTests(cli.library("tb").entity("axi_file_reader_tb"), seed)
     addAxiFileCompareTests(cli.library("tb").entity("axi_file_compare_tb"), seed)
     addAxiWidthConverterTests(
@@ -173,6 +174,17 @@ def addAxiStreamDelayTests(entity, seed):
     for delay in (1, 2, 8):
         entity.add_config(
             name=f"delay={delay}", generics=dict(DELAY_CYCLES=delay, SEED=seed)
+        )
+
+
+def addAxiStreamFifoTests(entity, seed):
+    for fifo_depth in (2, 15, 16, 17, 64):
+        entity.add_config(
+            name=f"depth={fifo_depth}",
+            generics=dict(
+                FIFO_DEPTH=fifo_depth,
+                SEED=seed,
+            ),
         )
 
 
