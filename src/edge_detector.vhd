@@ -38,7 +38,6 @@ entity edge_detector is
   port (
     -- Usual ports
     clk     : in  std_logic;
-    clken   : in  std_logic;
 
     -- 
     din     : in  std_logic;
@@ -71,7 +70,6 @@ begin
         DATA_WIDTH  => 1)
       port map (
         clk     => clk,
-        clken   => clken,
 
         din(0)  => din,
         dout(0) => din_i);
@@ -83,7 +81,6 @@ begin
       DATA_WIDTH   => 3)
     port map (
       clk     => clk,
-      clken   => clken,
 
       din(0)  => rising_i,
       din(1)  => falling_i,
@@ -110,9 +107,7 @@ begin
   process(clk)
   begin
     if clk'event and clk = '1' then
-      if clken = '1' then
-        din_d <= din_i;
-      end if;
+      din_d <= din_i;
     end if;
   end process;
 

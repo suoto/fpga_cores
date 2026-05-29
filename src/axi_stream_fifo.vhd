@@ -103,7 +103,6 @@ begin
     port map (
       -- Port A
       clk_a     => clk,
-      clken_a   => '1',
       wren_a    => s_axi_dv,
       addr_a    => ram_wr_addr,
       wrdata_a  => ram_wr_data_agg,
@@ -111,7 +110,6 @@ begin
 
       -- Port B
       clk_b     => clk,
-      clken_b   => '1',
       addr_b    => ram_rd_addr,
       rddata_b  => ram_rd_data_agg);
 

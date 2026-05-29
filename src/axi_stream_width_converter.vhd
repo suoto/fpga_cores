@@ -208,7 +208,6 @@ begin
         port map (
           -- Write port
           clk     => clk,
-          clken   => '1',
           rst     => rst,
 
           -- Status

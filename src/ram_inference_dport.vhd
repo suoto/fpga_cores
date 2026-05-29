@@ -26,7 +26,7 @@
 -- Libraries --
 ---------------
 library ieee;
-use ieee.std_logic_1164.all;  
+use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.common_pkg.all;
@@ -42,7 +42,6 @@ entity ram_inference_dport is
     port (
         -- Port A
         clk_a     : in  std_logic;
-        clken_a   : in  std_logic;
         wren_a    : in  std_logic;
         addr_a    : in  std_logic_vector(numbits(DEPTH) - 1 downto 0);
         wrdata_a  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
@@ -50,7 +49,6 @@ entity ram_inference_dport is
 
         -- Port B
         clk_b     : in  std_logic;
-        clken_b   : in  std_logic;
         wren_b    : in  std_logic;
         addr_b    : in  std_logic_vector(numbits(DEPTH) - 1 downto 0);
         wrdata_b  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
@@ -86,7 +84,6 @@ begin
             DATA_WIDTH   => DATA_WIDTH)
         port map (
             clk     => clk_a,
-            clken   => clken_a,
 
             din     => rddata_a_i,
             dout    => rddata_a);
@@ -97,7 +94,6 @@ begin
             DATA_WIDTH   => DATA_WIDTH)
         port map (
             clk     => clk_b,
-            clken   => clken_b,
 
             din     => rddata_b_i,
             dout    => rddata_b);
@@ -107,26 +103,22 @@ begin
     ---------------
     port_a : process(clk_a)
     begin
-        if clk_a'event and clk_a = '1' then
-            if clken_a = '1' then
-                if wren_a = '1' then
-                    ram(to_integer(unsigned(addr_a))) := wrdata_a;
-                end if;
-                rddata_a_i <= ram(to_integer(unsigned(addr_a)));
-            end if;
+      if clk_a'event and clk_a = '1' then
+        if wren_a = '1' then
+          ram(to_integer(unsigned(addr_a))) := wrdata_a;
         end if;
+        rddata_a_i <= ram(to_integer(unsigned(addr_a)));
+      end if;
     end process;
 
     port_b : process(clk_b)
     begin
-        if clk_b'event and clk_b = '1' then
-            if clken_b = '1' then
-                if wren_b = '1' then
-                    ram(to_integer(unsigned(addr_b))) := wrdata_b;
-                end if;
-                rddata_b_i <= ram(to_integer(unsigned(addr_b)));
-            end if;
+      if clk_b'event and clk_b = '1' then
+        if wren_b = '1' then
+          ram(to_integer(unsigned(addr_b))) := wrdata_b;
         end if;
+        rddata_b_i <= ram(to_integer(unsigned(addr_b)));
+      end if;
     end process;
 
 end ram_inference_dport;

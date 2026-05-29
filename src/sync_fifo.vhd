@@ -42,7 +42,6 @@ entity sync_fifo is
   port (
     -- Write port
     clk     : in  std_logic;        -- Write clock
-    clken   : in  std_logic := '1'; -- Write clock enable
     rst     : in  std_logic;        -- Write side asynchronous reset
 
     -- Status
@@ -92,7 +91,6 @@ begin
     port map (
       -- Port A
       clk_a    => clk,
-      clken_a  => clken,
       wren_a   => wr_en,
       addr_a   => std_logic_vector(wr_ptr),
       wrdata_a => wr_data,
@@ -100,7 +98,6 @@ begin
 
       -- Port B
       clk_b    => clk,
-      clken_b  => clken,
       addr_b   => std_logic_vector(rd_ptr),
       rddata_b => rd_data);
 
@@ -110,8 +107,8 @@ begin
   full_i     <= '1' when ptr_diff = DEPTH - 1 else '0';
   empty_i    <= '1' when ptr_diff = 0 else '0';
 
-  inc_wr_ptr <= wr_en when clken = '1' and full_i = '0' else '0';
-  inc_rd_ptr <= rd_en when clken = '1' and empty_i = '0' else '0';
+  inc_wr_ptr <= wr_en when full_i = '0' else '0';
+  inc_rd_ptr <= rd_en when empty_i = '0' else '0';
 
   rd_dv_async <= inc_rd_ptr;
 
@@ -142,26 +139,23 @@ begin
       ptr_diff  <= (others => '0');
       rd_dv_reg <= '0';
     elsif clk'event and clk = '1' then
-      if clken = '1' then
+      rd_dv_reg <= '0';
 
-        rd_dv_reg <= '0';
-
-        if inc_wr_ptr = '1' and inc_rd_ptr = '0' then
-          ptr_diff <= ptr_diff + 1;
-        elsif inc_wr_ptr = '0' and inc_rd_ptr = '1' then
-          ptr_diff <= ptr_diff - 1;
-        end if;
-
-        if inc_wr_ptr = '1' then
-          wr_ptr <= wr_ptr + 1;
-        end if;
-
-        if inc_rd_ptr = '1' then
-          rd_dv_reg <= '1';
-          rd_ptr    <= rd_ptr + 1;
-        end if;
-
+      if inc_wr_ptr = '1' and inc_rd_ptr = '0' then
+        ptr_diff <= ptr_diff + 1;
+      elsif inc_wr_ptr = '0' and inc_rd_ptr = '1' then
+        ptr_diff <= ptr_diff - 1;
       end if;
+
+      if inc_wr_ptr = '1' then
+        wr_ptr <= wr_ptr + 1;
+      end if;
+
+      if inc_rd_ptr = '1' then
+        rd_dv_reg <= '1';
+        rd_ptr    <= rd_ptr + 1;
+      end if;
+
     end if;
   end process;
 
@@ -169,16 +163,14 @@ begin
     variable notified : boolean := False;
   begin
     if rising_edge(clk) then
-      if clken = '1' and rst = '0' then
-        if full_i = '1' and wr_en = '1' then
-          if not notified then
-            report "FIFO overflow"
-            severity Warning;
-          end if;
-          notified := True;
-        else
-          notified := False;
+      if full_i = '1' and wr_en = '1' then
+        if not notified then
+          report "FIFO overflow"
+          severity Warning;
         end if;
+        notified := True;
+      else
+        notified := False;
       end if;
     end if;
   end process;

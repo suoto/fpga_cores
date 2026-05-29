@@ -19,7 +19,7 @@
 
 
 library ieee;
-    use ieee.std_logic_1164.all;  
+    use ieee.std_logic_1164.all;
 
 -- Synchronizes a pulse between different clock domains
 entity pulse_sync is
@@ -28,11 +28,9 @@ entity pulse_sync is
     port (
         -- Usual ports
         src_clk     : in  std_logic;
-        src_clken   : in  std_logic;
         src_pulse   : in  std_logic;
 
-        dst_clk     : in  std_logic; 
-        dst_clken   : in  std_logic;
+        dst_clk     : in  std_logic;
         dst_pulse   : out std_logic);
 end pulse_sync;
 
@@ -55,27 +53,24 @@ begin
         port map (
             -- Usual ports
             clk     => dst_clk,
-            clken   => dst_clken,
-    
-            -- 
+
+            --
             din     => pulse_toggle,
             -- Edges detected
-            rising  => open, 
-            falling => open, 
+            rising  => open,
+            falling => open,
             toggle  => dst_pulse);
-    
+
     ---------------
     -- Processes --
     ---------------
     process(src_clk)
     begin
-        if src_clk'event and src_clk = '1' then
-            if src_clken = '1' then
-                if src_pulse = '1' then
-                    pulse_toggle <= not pulse_toggle;
-                end if;
-            end if;
+      if src_clk'event and src_clk = '1' then
+        if src_pulse = '1' then
+          pulse_toggle <= not pulse_toggle;
         end if;
+      end if;
     end process;
 
 end pulse_sync;

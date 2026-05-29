@@ -41,7 +41,6 @@ entity rom_inference is
     OUTPUT_DELAY : natural := 1);
   port (
     clk    : in  std_logic;
-    clken  : in  std_logic;
     addr   : in  std_logic_vector(numbits(ROM_DATA'length) - 1 downto 0);
     rddata : out std_logic_vector(get_table_entry_width(ROM_DATA) - 1 downto 0));
 end rom_inference;
@@ -81,7 +80,6 @@ begin
         EXTRACT_SHREG => False)
       port map (
         clk     => clk,
-        clken   => clken,
 
         din     => rddata_sync,
         dout    => rddata_delay);
@@ -106,12 +104,10 @@ begin
   port_a : process(clk)
   begin
     if clk'event and clk = '1' then
-      if clken = '1' then
-        if addr_uns >= ROM'low and addr_uns <= ROM'high then
-          rddata_sync <= ROM(to_integer(addr_uns));
-        else
-          rddata_sync <= (others => 'U');
-        end if;
+      if addr_uns >= ROM'low and addr_uns <= ROM'high then
+        rddata_sync <= ROM(to_integer(addr_uns));
+      else
+        rddata_sync <= (others => 'U');
       end if;
     end if;
   end process;

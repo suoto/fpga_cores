@@ -142,14 +142,12 @@ begin
     port map (
       -- Port A
       clk_a     => clk,
-      clken_a   => '1',
       wren_a    => wr_tvalid,
       addr_a    => wr_addr,
       wrdata_a  => wr_data_in,
       rddata_a  => wr_data_out,
       -- Port B
       clk_b     => clk,
-      clken_b   => '1',
       addr_b    => ram_rd_addr,
       rddata_b  => ram_rd_sync_data);
 
@@ -207,7 +205,6 @@ begin
         EXTRA_OUTPUT_DELAY => 0)
       port map (
         clk     => clk,
-        clken   => '1',
         rst     => rst,
 
         -- Status

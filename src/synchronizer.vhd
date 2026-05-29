@@ -19,7 +19,7 @@
 
 
 library ieee;
-    use ieee.std_logic_1164.all;  
+    use ieee.std_logic_1164.all;
 
 -- Synchronizes a data bus between different clock domains
 entity synchronizer is
@@ -29,8 +29,6 @@ entity synchronizer is
     port (
         -- Usual ports
         clk     : in  std_logic;
-        clken   : in  std_logic := '1';
-
         -- Block specifics
         din     : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
         dout    : out std_logic_vector(DATA_WIDTH - 1 downto 0));
@@ -59,8 +57,8 @@ architecture synchronizer of synchronizer is
     attribute shreg_extract : string;
     attribute shreg_extract of din_sr : signal is "no";
 
-    -- Disable X propagation during timing simulation. In the event of 
-    -- a timing violation, the previous value is retained on the output instead 
+    -- Disable X propagation during timing simulation. In the event of
+    -- a timing violation, the previous value is retained on the output instead
     -- of going unknown (see Xilinx UG625)
     attribute ASYNC_REG : string;
     attribute ASYNC_REG of din_sr : signal is "TRUE";
@@ -81,11 +79,9 @@ begin
     ---------------
     process(clk)
     begin
-        if clk'event and clk = '1' then
-            if clken = '1' then
-                din_sr <= din_sr(SYNC_STAGES - 2 downto 0) & din;
-            end if;
-        end if;
+      if clk'event and clk = '1' then
+        din_sr <= din_sr(SYNC_STAGES - 2 downto 0) & din;
+      end if;
     end process;
 
 

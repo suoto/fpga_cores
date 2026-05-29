@@ -81,7 +81,6 @@ begin
     port map (
       -- Port A
       clk_a     => clk,
-      clken_a   => '1',
       wren_a    => en_sr(1),
       addr_a    => addr_sr(1),
       wrdata_a  => context_in,
@@ -89,7 +88,6 @@ begin
 
       -- Port B
       clk_b     => clk,
-      clken_b   => '1',
       addr_b    => addr_in,
       rddata_b  => ram_rddata);
 

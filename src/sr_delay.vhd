@@ -29,7 +29,6 @@ entity sr_delay is
     EXTRACT_SHREG : boolean := True);
   port (
     clk     : in  std_logic;
-    clken   : in  std_logic;
 
     din     : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
     dout    : out std_logic_vector(DATA_WIDTH - 1 downto 0));
@@ -99,9 +98,7 @@ begin
     process(clk)
     begin
       if clk'event and clk = '1' then
-        if clken = '1' then
-          din_sr  <= din_sr(DELAY_CYCLES - 2 downto 0) & din;
-        end if;
+        din_sr  <= din_sr(DELAY_CYCLES - 2 downto 0) & din;
       end if;
     end process;
   end generate non_zero_delay_p;
