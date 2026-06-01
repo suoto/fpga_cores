@@ -64,30 +64,21 @@ architecture axi_stream_fifo of axi_stream_fifo is
   -- Signals --
   -------------
   signal s_axi_dv        : std_logic;
+  signal m_axi_dv        : std_logic;
 
   signal ram_wr_ptr      : unsigned(numbits(FIFO_DEPTH) downto 0);
   signal ram_wr_data_agg : std_logic_vector(DATA_WIDTH downto 0);
 
-  signal ram_rd_en       : std_logic;
-  signal ram_rd_en_reg   : std_logic;
   signal ram_rd_ptr      : unsigned(numbits(FIFO_DEPTH) downto 0);
   signal ram_rd_data_agg : std_logic_vector(DATA_WIDTH downto 0);
 
   signal ptr_diff        : unsigned(numbits(FIFO_DEPTH) downto 0);
-
-  -- AXI stream master adapter interface
-  signal ram_rd_full     : std_logic;
-  signal ram_rd_empty    : std_logic;
-  signal ram_rd_dv       : std_logic;
-  signal ram_rd_tdata    : std_logic_vector(DATA_WIDTH - 1 downto 0);
-  signal ram_rd_tlast    : std_logic;
 
   -- Internals
   signal m_tvalid_i      : std_logic;
   signal s_tready_i      : std_logic;
   signal ram_wr_addr     : std_logic_vector(numbits(FIFO_DEPTH) - 1 downto 0);
   signal ram_rd_addr     : std_logic_vector(numbits(FIFO_DEPTH) - 1 downto 0);
-
 
 begin
 
@@ -99,7 +90,7 @@ begin
       DEPTH        => FIFO_DEPTH,
       DATA_WIDTH   => DATA_WIDTH + 1,
       RAM_TYPE     => RAM_TYPE,
-      OUTPUT_DELAY => 1)
+      OUTPUT_DELAY => 0)
     port map (
       -- Port A
       clk_a     => clk,
@@ -113,26 +104,6 @@ begin
       addr_b    => ram_rd_addr,
       rddata_b  => ram_rd_data_agg);
 
-  output_adapter_u : entity work.axi_stream_master_adapter
-    generic map (
-      MAX_SKEW_CYCLES => 2,
-      TDATA_WIDTH     => DATA_WIDTH)
-    port map (
-      -- Usual ports
-      clk      => clk,
-      reset    => rst,
-      -- wanna-be AXI interface
-      wr_en    => ram_rd_dv,
-      wr_full  => ram_rd_full,
-      wr_empty => ram_rd_empty,
-      wr_data  => ram_rd_tdata,
-      wr_last  => ram_rd_tlast,
-      -- AXI master
-      m_tvalid => m_tvalid_i,
-      m_tready => m_tready,
-      m_tdata  => m_tdata ,
-      m_tlast  => m_tlast);
-
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
@@ -140,9 +111,10 @@ begin
 
   s_tready_i  <= not full;
   s_axi_dv    <= s_tready_i and s_tvalid;
+  m_axi_dv    <= m_tready and m_tvalid_i;
 
   -- Read when ram is not full and pointer diff is not 0
-  ram_rd_en   <= not ram_rd_full and or(ptr_diff);
+  m_tvalid_i   <= or(ptr_diff);
 
   -- Assign internals
   s_tready    <= s_tready_i;
@@ -153,9 +125,12 @@ begin
 
   entries     <= std_logic_vector(ptr_diff);
   -- FIFO is empty when the output adapter is empty and ptr diff is 0
-  empty       <= ram_rd_empty and and(not ptr_diff);
+  empty       <= and(not ptr_diff);
   -- Full when ptr_diff equals FIFO depth, i.e., delta is all 0s
   full        <= and(not(ptr_diff - FIFO_DEPTH + 1));
+
+  m_tdata <= ram_rd_data_agg(DATA_WIDTH - 1 downto 0) when m_tvalid else (others => 'U');
+  m_tlast <= ram_rd_data_agg(DATA_WIDTH)              when m_tvalid else 'U';
 
   ---------------
   -- Processes --
@@ -163,9 +138,6 @@ begin
   wr_side_p : process(clk)
   begin
     if rising_edge(clk) then
-      ram_rd_dv     <= '0';
-      ram_rd_en_reg <= ram_rd_en;
-
       -- Handle write pointer increment (FIFO_DEPTH is not necessarily a power of 2)
       if s_axi_dv = '1' then
         if ram_wr_ptr = FIFO_DEPTH - 1 then
@@ -175,8 +147,12 @@ begin
         end if;
       end if;
 
+      -- if m_tready = '1' then
+      --   m_tvalid_i <= '0';
+      -- end if;
+
       -- Handle read pointer increment (FIFO_DEPTH is not necessarily a power of 2)
-      if ram_rd_en = '1' then
+      if m_axi_dv = '1' then
         if ram_rd_ptr = FIFO_DEPTH - 1 then
           ram_rd_ptr <= (others => '0');
         else
@@ -184,19 +160,11 @@ begin
         end if;
       end if;
 
-      -- Data takes 1 cycle to come out after we've updated the pointer, catch it when it
-      -- does
-      if ram_rd_en_reg = '1' then
-        ram_rd_dv   <= '1';
-        ram_rd_tdata <= ram_rd_data_agg(DATA_WIDTH - 1 downto 0);
-        ram_rd_tlast <= ram_rd_data_agg(DATA_WIDTH);
-      end if;
-
       -- Calculate the pointer difference without using the actual pointers; FIFO_DEPTH is
       -- not necessarily a power of 2
-      if s_axi_dv = '1' and ram_rd_en = '0' then
+      if s_axi_dv = '1' and m_axi_dv = '0' then
         ptr_diff <= ptr_diff + 1;
-      elsif s_axi_dv = '0' and ram_rd_en = '1' then
+      elsif s_axi_dv = '0' and m_axi_dv = '1' then
         ptr_diff <= ptr_diff - 1;
       end if;
 
@@ -204,8 +172,6 @@ begin
         ptr_diff      <= (others => '0');
         ram_wr_ptr    <= (others => '0');
         ram_rd_ptr    <= (others => '0');
-        ram_rd_dv     <= '0';
-        ram_rd_en_reg <= '0';
       end if;
     end if;
   end process;

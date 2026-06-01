@@ -129,7 +129,7 @@ begin
   ------------------------------
   clk <= not clk after CLK_PERIOD/2;
 
-  test_runner_watchdog(runner, 100 us);
+  test_runner_watchdog(runner, 1 ms);
 
   ---------------
   -- Processes --
@@ -215,13 +215,13 @@ begin
     show(display_handler, debug);
     test_runner_setup(runner, runner_cfg);
 
+    rst <= '1';
+    walk(16);
+    rst <= '0';
+    walk(16);
+
     while test_suite loop
       cfg_rd_probability <= 0.0;
-
-      rst <= '1';
-      walk(16);
-      rst <= '0';
-      walk(16);
 
       set_timeout(runner, 100 us);
 
