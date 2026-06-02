@@ -63,51 +63,56 @@ architecture axi_stream_fifo of axi_stream_fifo is
   -------------
   -- Signals --
   -------------
-  signal s_axi_dv        : std_logic;
-  signal m_axi_dv        : std_logic;
+  signal s_axi_dv    : std_logic;
+  signal m_axi_dv    : std_logic;
 
-  signal ram_wr_ptr      : unsigned(numbits(FIFO_DEPTH) downto 0);
-  signal ram_wr_data_agg : std_logic_vector(DATA_WIDTH downto 0);
-
-  signal ram_rd_ptr      : unsigned(numbits(FIFO_DEPTH) downto 0);
-  signal ram_rd_data_agg : std_logic_vector(DATA_WIDTH downto 0);
-
-  signal ptr_diff        : unsigned(numbits(FIFO_DEPTH) downto 0);
+  signal ram_wr_ptr  : unsigned(numbits(FIFO_DEPTH) downto 0);
+  signal ram_rd_ptr  : unsigned(numbits(FIFO_DEPTH) downto 0);
+  signal ptr_diff    : unsigned(numbits(FIFO_DEPTH) downto 0);
 
   -- Internals
-  signal m_tvalid_i      : std_logic;
-  signal s_tready_i      : std_logic;
-  signal ram_wr_addr     : std_logic_vector(numbits(FIFO_DEPTH) - 1 downto 0);
-  signal ram_rd_addr     : std_logic_vector(numbits(FIFO_DEPTH) - 1 downto 0);
+  signal m_tvalid_i  : std_logic;
+  signal s_tready_i  : std_logic;
+  signal ram_wr_addr : std_logic_vector(numbits(FIFO_DEPTH) - 1 downto 0);
+  signal ram_rd_addr : std_logic_vector(numbits(FIFO_DEPTH) - 1 downto 0);
 
 begin
 
   -------------------
   -- Port mappings --
   -------------------
-  ram_u : entity work.ram_inference
-    generic map (
-      DEPTH        => FIFO_DEPTH,
-      DATA_WIDTH   => DATA_WIDTH + 1,
-      RAM_TYPE     => RAM_TYPE,
-      OUTPUT_DELAY => 0)
-    port map (
-      -- Port A
-      clk_a     => clk,
-      wren_a    => s_axi_dv,
-      addr_a    => ram_wr_addr,
-      wrdata_a  => ram_wr_data_agg,
-      rddata_a  => open,
+  ram_block : block
+    signal ram_wr_data_agg : std_logic_vector(DATA_WIDTH downto 0);
+    signal ram_rd_data_agg : std_logic_vector(DATA_WIDTH downto 0);
+  begin
+    ram_wr_data_agg <= s_tlast & s_tdata;
 
-      -- Port B
-      clk_b     => clk,
-      addr_b    => ram_rd_addr,
-      rddata_b  => ram_rd_data_agg);
+    ram_u : entity work.ram_inference
+      generic map (
+        DEPTH        => FIFO_DEPTH,
+        DATA_WIDTH   => DATA_WIDTH + 1,
+        RAM_TYPE     => RAM_TYPE,
+        OUTPUT_DELAY => 0)
+      port map (
+        -- Port A
+        clk_a     => clk,
+        wren_a    => s_axi_dv,
+        addr_a    => ram_wr_addr,
+        wrdata_a  => ram_wr_data_agg,
+        rddata_a  => open,
+
+        -- Port B
+        clk_b     => clk,
+        addr_b    => ram_rd_addr,
+        rddata_b  => ram_rd_data_agg);
+
+    m_tdata <= ram_rd_data_agg(DATA_WIDTH - 1 downto 0) when m_tvalid else (others => 'U');
+    m_tlast <= ram_rd_data_agg(DATA_WIDTH)              when m_tvalid else 'U';
+  end block ram_block;
 
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
-  ram_wr_data_agg <= s_tlast & s_tdata;
 
   s_tready_i  <= not full;
   s_axi_dv    <= s_tready_i and s_tvalid;
@@ -128,9 +133,6 @@ begin
   empty       <= and(not ptr_diff);
   -- Full when ptr_diff equals FIFO depth, i.e., delta is all 0s
   full        <= and(not(ptr_diff - FIFO_DEPTH + 1));
-
-  m_tdata <= ram_rd_data_agg(DATA_WIDTH - 1 downto 0) when m_tvalid else (others => 'U');
-  m_tlast <= ram_rd_data_agg(DATA_WIDTH)              when m_tvalid else 'U';
 
   ---------------
   -- Processes --
