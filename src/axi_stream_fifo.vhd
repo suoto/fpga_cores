@@ -132,7 +132,7 @@ begin
   -- FIFO is empty when the output adapter is empty and ptr diff is 0
   empty       <= and(not ptr_diff);
   -- Full when ptr_diff equals FIFO depth, i.e., delta is all 0s
-  full        <= and(not(ptr_diff - FIFO_DEPTH + 1));
+  full        <= '1' when ptr_diff = FIFO_DEPTH else '0';
 
   ---------------
   -- Processes --
