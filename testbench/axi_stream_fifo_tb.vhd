@@ -234,8 +234,8 @@ begin
 
       elsif run("test_back_to_back") then
         test_data_integrity(
-          number_of_frames => 8,
-          length           => 4,
+          number_of_frames => 16,
+          length           => FIFO_DEPTH/2,
           wr_probability   => 1.0,
           rd_probability   => 1.0);
 
@@ -248,8 +248,8 @@ begin
 
       elsif run("test_slow_reader") then
         test_data_integrity(
-          number_of_frames => 8,
-          length           => 4,
+          number_of_frames => 32,
+          length           => max(FIFO_DEPTH/4, 1),
           wr_probability   => 1.0,
           rd_probability   => 0.5);
 
@@ -262,8 +262,8 @@ begin
 
       elsif run("test_slow_both") then
         test_data_integrity(
-          number_of_frames => 8,
-          length           => 4,
+          number_of_frames => 32,
+          length           => max(FIFO_DEPTH/4, 1),
           wr_probability   => 0.5,
           rd_probability   => 0.5);
 
