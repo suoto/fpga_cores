@@ -37,7 +37,7 @@ use work.common_pkg.all;
 entity rom_inference is
   generic (
     ROM_DATA     : std_logic_array_t;
-    ROM_TYPE     : ram_type_t := auto;
+    ROM_TYPE     : string := "auto";
     OUTPUT_DELAY : natural := 1);
   port (
     clk    : in  std_logic;
@@ -52,8 +52,7 @@ architecture rom_inference of rom_inference is
   constant DATA_WIDTH : natural := get_table_entry_width(ROM_DATA);
 
   attribute ROM_STYLE : string;
-  constant RESOLVED_ROM_TYPE : string := get_ram_style(ROM_TYPE, ADDR_WIDTH, DATA_WIDTH);
-  attribute ROM_STYLE of ROM : constant is RESOLVED_ROM_TYPE;
+  attribute ROM_STYLE of ROM : constant is ROM_TYPE;
 
   -------------
   -- Signals --
@@ -65,8 +64,12 @@ architecture rom_inference of rom_inference is
 
 begin
 
-  assert OUTPUT_DELAY /= 0 or RESOLVED_ROM_TYPE /= "bram"
-    report "Can't use ROM_TYPE " & quote(RESOLVED_ROM_TYPE) & " with output delay set to " & integer'image(OUTPUT_DELAY)
+  assert is_valid(ROM_TYPE)
+    report "Invalid ROM_TYPE: " & quote(ROM_TYPE)
+    severity Warning;
+
+  assert OUTPUT_DELAY /= 0 or ROM_TYPE /= "bram"
+    report "Can't use ROM_TYPE " & quote(ROM_TYPE) & " with output delay set to " & integer'image(OUTPUT_DELAY)
     severity Failure;
 
   ------------------

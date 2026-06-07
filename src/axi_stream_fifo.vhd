@@ -18,23 +18,17 @@
 -- of the FPGA Cores or other product you make using this documentation.
 
 
----------------
--- Libraries --
----------------
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.common_pkg.all;
 
-------------------------
--- Entity declaration --
-------------------------
 entity axi_stream_fifo is
   generic (
-    FIFO_DEPTH : natural    := 1;
-    DATA_WIDTH : natural    := 1;
-    RAM_TYPE   : ram_type_t := auto);
+    FIFO_DEPTH : positive := 10;
+    DATA_WIDTH : positive := 8;
+    RAM_TYPE   : string   := "auto"); -- only types with 0 output delay are accepted (distributed, registers)
   port (
     -- Usual ports
     clk     : in  std_logic;
@@ -58,11 +52,7 @@ entity axi_stream_fifo is
     m_tlast  : out std_logic);
 end axi_stream_fifo;
 
-architecture axi_stream_fifo of axi_stream_fifo is
-
-  -------------
-  -- Signals --
-  -------------
+architecture fast of axi_stream_fifo is
   signal s_axi_dv    : std_logic;
   signal m_axi_dv    : std_logic;
 
@@ -71,16 +61,11 @@ architecture axi_stream_fifo of axi_stream_fifo is
   signal ptr_diff    : unsigned(numbits(FIFO_DEPTH) downto 0);
 
   -- Internals
-  signal m_tvalid_i  : std_logic;
-  signal s_tready_i  : std_logic;
   signal ram_wr_addr : std_logic_vector(numbits(FIFO_DEPTH) - 1 downto 0);
   signal ram_rd_addr : std_logic_vector(numbits(FIFO_DEPTH) - 1 downto 0);
 
 begin
 
-  -------------------
-  -- Port mappings --
-  -------------------
   ram_block : block
     signal ram_wr_data_agg : std_logic_vector(DATA_WIDTH downto 0);
     signal ram_rd_data_agg : std_logic_vector(DATA_WIDTH downto 0);
@@ -106,24 +91,18 @@ begin
         addr_b    => ram_rd_addr,
         rddata_b  => ram_rd_data_agg);
 
-    m_tdata <= ram_rd_data_agg(DATA_WIDTH - 1 downto 0) when m_tvalid else (others => 'U');
-    m_tlast <= ram_rd_data_agg(DATA_WIDTH)              when m_tvalid else 'U';
+    m_tdata <= ram_rd_data_agg(DATA_WIDTH - 1 downto 0) when m_tvalid else (others => 'X');
+    m_tlast <= ram_rd_data_agg(DATA_WIDTH)              when m_tvalid else 'X';
   end block ram_block;
 
-  ------------------------------
-  -- Asynchronous assignments --
-  ------------------------------
-
-  s_tready_i  <= not full;
-  s_axi_dv    <= s_tready_i and s_tvalid;
-  m_axi_dv    <= m_tready and m_tvalid_i;
+  s_axi_dv    <= s_tready and s_tvalid;
+  m_axi_dv    <= m_tready and m_tvalid;
 
   -- Read when ram is not full and pointer diff is not 0
-  m_tvalid_i   <= or(ptr_diff);
+  m_tvalid    <= or(ptr_diff);
 
-  -- Assign internals
-  s_tready    <= s_tready_i;
-  m_tvalid    <= m_tvalid_i;
+  s_tready    <= not full;
+
   -- GHDL fails with bound check error if this is wired directly
   ram_wr_addr <= std_logic_vector(ram_wr_ptr(ram_wr_ptr'length - 2 downto 0));
   ram_rd_addr <= std_logic_vector(ram_rd_ptr(ram_rd_ptr'length - 2 downto 0));
@@ -134,10 +113,7 @@ begin
   -- Full when ptr_diff equals FIFO depth, i.e., delta is all 0s
   full        <= '1' when ptr_diff = FIFO_DEPTH else '0';
 
-  ---------------
-  -- Processes --
-  ---------------
-  wr_side_p : process(clk)
+  process(clk)
   begin
     if rising_edge(clk) then
       -- Handle write pointer increment (FIFO_DEPTH is not necessarily a power of 2)
@@ -148,10 +124,6 @@ begin
           ram_wr_ptr <= ram_wr_ptr + 1;
         end if;
       end if;
-
-      -- if m_tready = '1' then
-      --   m_tvalid_i <= '0';
-      -- end if;
 
       -- Handle read pointer increment (FIFO_DEPTH is not necessarily a power of 2)
       if m_axi_dv = '1' then
@@ -178,4 +150,4 @@ begin
     end if;
   end process;
 
-end axi_stream_fifo;
+end fast;

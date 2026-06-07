@@ -38,7 +38,7 @@ entity ram_inference is
   generic (
     DEPTH         : natural := 16;
     DATA_WIDTH    : natural := 16;
-    RAM_TYPE      : ram_type_t := auto;
+    RAM_TYPE      : string := "auto";
     INITIAL_VALUE : std_logic_array_t(0 to DEPTH - 1)(DATA_WIDTH - 1 downto 0) := (others => (others => '0'));
     OUTPUT_DELAY  : natural := 1);
   port (
@@ -57,11 +57,6 @@ end ram_inference;
 
 architecture ram_inference of ram_inference is
 
-  ---------------
-  -- Constants --
-  ---------------
-  constant ADDR_WIDTH  : integer := numbits(DEPTH);
-
   -------------
   -- Signals --
   -------------
@@ -75,14 +70,17 @@ architecture ram_inference of ram_inference is
   signal rddata_b_sync       : std_logic_vector(DATA_WIDTH - 1 downto 0);
   signal rddata_b_delay      : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
-  attribute RAM_STYLE : string;
-  constant RESOLVED_RAM_TYPE : string := get_ram_style(RAM_TYPE, ADDR_WIDTH, DATA_WIDTH);
-  attribute RAM_STYLE of ram : signal is RESOLVED_RAM_TYPE;
+  attribute RAM_STYLE        : string;
+  attribute RAM_STYLE of ram : signal is RAM_TYPE;
 
 begin
 
-  assert OUTPUT_DELAY /= 0 or RESOLVED_RAM_TYPE /= "bram"
-    report "Can't use RAM_TYPE " & quote(RESOLVED_RAM_TYPE) & " with output delay set to " & integer'image(OUTPUT_DELAY)
+  assert is_valid(RAM_TYPE)
+    report "Invalid RAM_TYPE: " & quote(RAM_TYPE)
+    severity Warning;
+
+  assert OUTPUT_DELAY /= 0 or RAM_TYPE /= "bram"
+    report "Can't use RAM_TYPE " & quote(RAM_TYPE) & " with output delay set to " & integer'image(OUTPUT_DELAY)
     severity Failure;
 
   -------------------

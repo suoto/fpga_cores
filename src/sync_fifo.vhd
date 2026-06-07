@@ -33,7 +33,7 @@ use work.common_pkg.all;
 entity sync_fifo is
   generic (
     -- FIFO configuration
-    RAM_TYPE           : ram_type_t := auto;
+    RAM_TYPE           : string := "auto";
     DEPTH              : natural := 512;    -- FIFO length in number of positions
     DATA_WIDTH         : natural := 8;      -- Data width
     UPPER_TRESHOLD     : natural := 510;    -- FIFO level to assert upper

@@ -199,7 +199,7 @@ begin
       tid_fifo_u : entity work.sync_fifo
         generic map (
           -- FIFO configuration
-          RAM_TYPE           => lut,
+          RAM_TYPE           => "distributed",
           DEPTH              => 4,
           DATA_WIDTH         => AXI_TID_WIDTH,
           UPPER_TRESHOLD     => 3,

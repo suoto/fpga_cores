@@ -40,7 +40,7 @@ entity axi_stream_ram is
     TAG_WIDTH     : natural := 0;
     INITIAL_VALUE : std_logic_array_t(0 to DEPTH - 1)(DATA_WIDTH - 1 downto 0) := (others => (others => '0'));
     OUTPUT_DELAY  : natural := 0;
-    RAM_TYPE      : ram_type_t := auto);
+    RAM_TYPE      : string := "auto");
   port (
     clk           : in  std_logic;
     rst           : in  std_logic;
@@ -199,7 +199,7 @@ begin
     -- credits mechanism should prevent this FIFO from overflowing
     output_fifo_u : entity work.sync_fifo
       generic map (
-        RAM_TYPE           => lut,
+        RAM_TYPE           => "distributed",
         DEPTH              => RAM_LATENCY + 1,
         DATA_WIDTH         => ADDR_WIDTH + DATA_WIDTH + TAG_WIDTH,
         EXTRA_OUTPUT_DELAY => 0)

@@ -33,7 +33,7 @@ entity pipeline_context_ram is
   generic (
     DEPTH      : natural    := 16;
     DATA_WIDTH : natural    := 16;
-    RAM_TYPE   : ram_type_t := auto);
+    RAM_TYPE   : string := "auto");
   port (
     clk         : in  std_logic;
     -- Checkout request interface
