@@ -76,6 +76,7 @@ architecture sync_fifo of sync_fifo is
 
   signal full_i      : std_logic;
   signal empty_i     : std_logic;
+  signal rd_data_i   : std_logic_vector(DATA_WIDTH - 1 downto 0); -- Fifo read data
 
 begin
 
@@ -99,7 +100,7 @@ begin
       -- Port B
       clk_b    => clk,
       addr_b   => std_logic_vector(rd_ptr),
-      rddata_b => rd_data);
+      rddata_b => rd_data_i);
 
   ------------------------------
   -- Asynchronous assignments --
@@ -127,6 +128,8 @@ begin
   g_rd_dv_reg : if EXTRA_OUTPUT_DELAY /= 0 generate
     rd_dv <= rd_dv_reg;
   end generate;
+
+  rd_data <= rd_data_i when rd_dv = '1' else (others => 'X');
 
   ---------------
   -- Processes --

@@ -95,7 +95,7 @@ begin
     s_tready       <= tready_pipe(0);
 
     m_tvalid                  <= tvalid_pipe(DELAY_CYCLES);
-    m_tdata                   <= tdata_pipe(DELAY_CYCLES);
+    m_tdata                   <= tdata_pipe(DELAY_CYCLES) when m_tvalid = '1' else (others => 'X');
     tready_pipe(DELAY_CYCLES) <= m_tready;
 
 end axi_stream_delay;
