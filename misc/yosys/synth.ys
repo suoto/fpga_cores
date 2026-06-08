@@ -20,7 +20,7 @@ ghdl --std=08                                                             \
                     src/axi_stream_frame_padder.vhd                       \
                     src/axi_stream_forward_slice.vhd                      \
                     src/axi_stream_flow_control.vhd                       \
-                    src/axi_stream_fifo.vhd                               \
+                    src/axi_stream_fifo_simple.vhd                               \
                     src/axi_stream_frame_fifo.vhd                         \
                     src/axi_stream_demux.vhd                              \
                     src/axi_stream_delay.vhd                              \

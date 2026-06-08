@@ -1,0 +1,153 @@
+--
+-- FPGA core library
+--
+-- Copyright 2014-2022 by Andre Souto (suoto)
+--
+-- This source describes Open Hardware and is licensed under the CERN-OHL-W v2
+--
+-- You may redistribute and modify this documentation and make products using it
+-- under the terms of the CERN-OHL-W v2 (https:/cern.ch/cern-ohl).This
+-- documentation is distributed WITHOUT ANY EXPRESS OR IMPLIED WARRANTY,
+-- INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS FOR A
+-- PARTICULAR PURPOSE. Please see the CERN-OHL-W v2 for applicable conditions.
+--
+-- Source location: https://github.com/suoto/fpga_cores
+--
+-- As per CERN-OHL-W v2 section 4.1, should You produce hardware based on these
+-- sources, You must maintain the Source Location visible on the external case
+-- of the FPGA Cores or other product you make using this documentation.
+
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+use work.common_pkg.all;
+
+entity axi_stream_fifo_simple is
+  generic (
+    FIFO_DEPTH : positive := 10;
+    DATA_WIDTH : positive := 8;
+    RAM_TYPE   : string   := "auto"); -- only types with 0 output delay are accepted (distributed, registers)
+  port (
+    -- Usual ports
+    clk     : in  std_logic;
+    rst     : in  std_logic;
+
+    -- status
+    entries  : out std_logic_vector(numbits(FIFO_DEPTH) downto 0);
+    empty    : out std_logic;
+    full     : out std_logic;
+
+    -- Write side
+    s_tvalid : in  std_logic;
+    s_tready : out std_logic;
+    s_tdata  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
+    s_tlast  : in  std_logic;
+
+    -- Read side
+    m_tvalid : out std_logic;
+    m_tready : in  std_logic;
+    m_tdata  : out std_logic_vector(DATA_WIDTH - 1 downto 0);
+    m_tlast  : out std_logic);
+end axi_stream_fifo_simple;
+
+architecture fast of axi_stream_fifo_simple is
+  signal s_axi_dv    : std_logic;
+  signal m_axi_dv    : std_logic;
+
+  signal ram_wr_ptr  : unsigned(numbits(FIFO_DEPTH) downto 0);
+  signal ram_rd_ptr  : unsigned(numbits(FIFO_DEPTH) downto 0);
+  signal ptr_diff    : unsigned(numbits(FIFO_DEPTH) downto 0);
+
+  -- Internals
+  signal ram_wr_addr : std_logic_vector(numbits(FIFO_DEPTH) - 1 downto 0);
+  signal ram_rd_addr : std_logic_vector(numbits(FIFO_DEPTH) - 1 downto 0);
+
+begin
+
+  ram_block : block
+    signal ram_wr_data_agg : std_logic_vector(DATA_WIDTH downto 0);
+    signal ram_rd_data_agg : std_logic_vector(DATA_WIDTH downto 0);
+  begin
+    ram_wr_data_agg <= s_tlast & s_tdata;
+
+    ram_u : entity work.ram_inference
+      generic map (
+        DEPTH        => FIFO_DEPTH,
+        DATA_WIDTH   => DATA_WIDTH + 1,
+        RAM_TYPE     => RAM_TYPE,
+        OUTPUT_DELAY => 0)
+      port map (
+        -- Port A
+        clk_a     => clk,
+        wren_a    => s_axi_dv,
+        addr_a    => ram_wr_addr,
+        wrdata_a  => ram_wr_data_agg,
+        rddata_a  => open,
+
+        -- Port B
+        clk_b     => clk,
+        addr_b    => ram_rd_addr,
+        rddata_b  => ram_rd_data_agg);
+
+    m_tdata <= ram_rd_data_agg(DATA_WIDTH - 1 downto 0) when m_tvalid else (others => 'X');
+    m_tlast <= ram_rd_data_agg(DATA_WIDTH)              when m_tvalid else 'X';
+  end block ram_block;
+
+  s_axi_dv    <= s_tready and s_tvalid;
+  m_axi_dv    <= m_tready and m_tvalid;
+
+  -- Read when ram is not full and pointer diff is not 0
+  m_tvalid    <= or(ptr_diff);
+
+  s_tready    <= not full;
+
+  -- GHDL fails with bound check error if this is wired directly
+  ram_wr_addr <= std_logic_vector(ram_wr_ptr(ram_wr_ptr'length - 2 downto 0));
+  ram_rd_addr <= std_logic_vector(ram_rd_ptr(ram_rd_ptr'length - 2 downto 0));
+
+  entries     <= std_logic_vector(ptr_diff);
+  -- FIFO is empty when the output adapter is empty and ptr diff is 0
+  empty       <= and(not ptr_diff);
+  -- Full when ptr_diff equals FIFO depth, i.e., delta is all 0s
+  full        <= '1' when ptr_diff = FIFO_DEPTH else '0';
+
+  process(clk)
+  begin
+    if rising_edge(clk) then
+      -- Handle write pointer increment (FIFO_DEPTH is not necessarily a power of 2)
+      if s_axi_dv = '1' then
+        if ram_wr_ptr = FIFO_DEPTH - 1 then
+          ram_wr_ptr <= (others => '0');
+        else
+          ram_wr_ptr <= ram_wr_ptr + 1;
+        end if;
+      end if;
+
+      -- Handle read pointer increment (FIFO_DEPTH is not necessarily a power of 2)
+      if m_axi_dv = '1' then
+        if ram_rd_ptr = FIFO_DEPTH - 1 then
+          ram_rd_ptr <= (others => '0');
+        else
+          ram_rd_ptr <= ram_rd_ptr + 1;
+        end if;
+      end if;
+
+      -- Calculate the pointer difference without using the actual pointers; FIFO_DEPTH is
+      -- not necessarily a power of 2
+      if s_axi_dv = '1' and m_axi_dv = '0' then
+        ptr_diff <= ptr_diff + 1;
+      elsif s_axi_dv = '0' and m_axi_dv = '1' then
+        ptr_diff <= ptr_diff - 1;
+      end if;
+
+      if rst = '1' then
+        ptr_diff      <= (others => '0');
+        ram_wr_ptr    <= (others => '0');
+        ram_rd_ptr    <= (others => '0');
+      end if;
+    end if;
+  end process;
+
+end fast;

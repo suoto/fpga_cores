@@ -10,7 +10,7 @@ Code is divided in synthesizable, simulation helpers and testbenches.
 
 * FIFOs
   * async_fifo.vhd: dual clock FIFO
-  * axi_stream_fifo.vhd: single clock AXI stream FIFO
+  * axi_stream_fifo_simple.vhd: single clock AXI stream FIFO
   * sync_fifo.vhd: single clock FIFO
 * AXI Stream infrastructure
   * AXI Stream delay: insert FF delays on an AXI stream data path

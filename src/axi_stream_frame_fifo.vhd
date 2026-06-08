@@ -83,7 +83,7 @@ begin
   -------------------
   -- Port mappings --
   -------------------
-  fifo_u : entity work.axi_stream_fifo
+  fifo_u : entity work.axi_stream_fifo_simple
     generic map (
       FIFO_DEPTH => FIFO_DEPTH,
       DATA_WIDTH => DATA_WIDTH,

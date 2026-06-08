@@ -40,15 +40,15 @@ library fpga_cores;
 use fpga_cores.axi_pkg.all;
 use fpga_cores.common_pkg.all;
 
-entity axi_stream_fifo_tb is
+entity axi_stream_fifo_simple_tb is
   generic (
     runner_cfg : string;
     seed       : integer;
     FIFO_DEPTH : natural := 16;
     DATA_WIDTH : natural := 8);
-end axi_stream_fifo_tb;
+end axi_stream_fifo_simple_tb;
 
-architecture axi_stream_fifo_tb of axi_stream_fifo_tb is
+architecture axi_stream_fifo_simple_tb of axi_stream_fifo_simple_tb is
 
   constant CLK_PERIOD : time := 5 ns;
 
@@ -105,7 +105,7 @@ begin
     m_axi.tlast <= tdata(DATA_WIDTH);
   end block;
 
-  dut : entity fpga_cores.axi_stream_fifo
+  dut : entity fpga_cores.axi_stream_fifo_simple(fast)
     generic map (
       FIFO_DEPTH => FIFO_DEPTH,
       DATA_WIDTH => DATA_WIDTH)
@@ -343,4 +343,4 @@ begin
     end loop;
   end process;
 
-end axi_stream_fifo_tb;
+end axi_stream_fifo_simple_tb;

@@ -38,7 +38,7 @@ Tests run under VUnit via `run.py`. The two practical entry points:
 Common VUnit invocations (pass through either entry point):
 
 - List all tests: `./run.py --list`
-- Run one test/config by glob: `./run.py "*axi_stream_fifo_tb*"`
+- Run one test/config by glob: `./run.py "*axi_stream_fifo_simple_tb*"`
 - Run a single named test: `./run.py "lib.entity.test_name"`
 - Open waveforms in the GUI: `./run.py -g "*pattern*"` (uses `wave.do`)
 - `--seed N` pins the random seed (printed at startup; defaults to random each
