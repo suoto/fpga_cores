@@ -52,7 +52,7 @@ entity axi_stream_fifo_simple is
     m_tlast  : out std_logic);
 end axi_stream_fifo_simple;
 
-architecture fast of axi_stream_fifo_simple is
+architecture rtl of axi_stream_fifo_simple is
   signal s_axi_dv    : std_logic;
   signal m_axi_dv    : std_logic;
 
@@ -150,4 +150,4 @@ begin
     end if;
   end process;
 
-end fast;
+end rtl;
