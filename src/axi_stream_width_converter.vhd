@@ -136,6 +136,7 @@ architecture axi_stream_width_converter of axi_stream_width_converter is
   signal s_tready_i   : std_logic;
   signal m_tvalid_i   : std_logic;
   signal m_tlast_i    : std_logic;
+  signal m_tid_tvalid : std_logic := '1';  -- TID might not be present, force it to 1 so it's transparent
 
 begin
 
@@ -189,40 +190,47 @@ begin
     -- Port mappings --
     -------------------
     g_tid_fifo : if AXI_TID_WIDTH > 0 generate
-      signal wr_en : std_logic;
-      signal rd_en : std_logic;
+      signal s_tid_tready : std_logic;
     begin
-      wr_en <= s_first_word and s_data_valid;
-      rd_en <= m_tlast_i and m_tvalid_i and m_tready;
-
-      -- Need a small FIFO for the TID
-      tid_fifo_u : entity work.sync_fifo
+      tid_fifo_u : entity work.axi_stream_fifo_simple
         generic map (
-          -- FIFO configuration
-          RAM_TYPE           => "distributed",
-          DEPTH              => 4,
-          DATA_WIDTH         => AXI_TID_WIDTH,
-          UPPER_TRESHOLD     => 3,
-          LOWER_TRESHOLD     => 1,
-          EXTRA_OUTPUT_DELAY => 0)
+          FIFO_DEPTH => 2,
+          DATA_WIDTH => AXI_TID_WIDTH
+        )
         port map (
-          -- Write port
+          -- Usual ports
           clk     => clk,
           rst     => rst,
 
-          -- Status
-          full    => open,
-          upper   => open,
-          lower   => open,
-          empty   => open,
+          -- status
+          entries  => open,
+          empty    => open,
+          full     => open,
 
-          wr_en   => wr_en,
-          wr_data => s_tid,
+          -- Write side
+          s_tvalid => s_first_word and s_data_valid,
+          s_tready => s_tid_tready,
+          s_tdata  => s_tid,
+          s_tlast  => '0',
 
-          -- Read port
-          rd_en   => rd_en,
-          rd_data => m_tid,
-          rd_dv   => open);
+          -- Read side
+          m_tvalid => m_tid_tvalid,
+          m_tready => m_tlast_i and m_tvalid_i and m_tready,
+          m_tdata  => m_tid,
+          m_tlast  => open
+        );
+
+      -- Fail when writing to the TID FIFO without tready
+      process(clk)
+      begin
+        if rising_edge(clk) then
+          if s_first_word and s_data_valid then
+            assert s_tid_tready
+              report "Write to TID FIFO without tready"
+              severity Error;
+          end if;
+        end if;
+      end process;
     end generate;
 
     g_no_tid_fifo : if AXI_TID_WIDTH = 0 generate
@@ -355,8 +363,8 @@ begin
 
   m_tdata      <= m_tdata_i when m_tvalid_i = '1' else (others => 'U');
   s_tready     <= s_tready_i;
-  m_tvalid     <= m_tvalid_i;
-  m_tlast      <= m_tlast_i and m_tvalid_i;
+  m_tvalid     <= m_tvalid_i and m_tid_tvalid;
+  m_tlast      <= m_tlast_i when m_tvalid_i = '1' else 'U';
 
   ---------------
   -- Processes --

@@ -39,7 +39,6 @@ entity axi_stream_ram is
     DATA_WIDTH    : natural := 16;
     TAG_WIDTH     : natural := 0;
     INITIAL_VALUE : std_logic_array_t(0 to DEPTH - 1)(DATA_WIDTH - 1 downto 0) := (others => (others => '0'));
-    OUTPUT_DELAY  : natural := 0;
     RAM_TYPE      : string := "auto");
   port (
     clk           : in  std_logic;
@@ -90,9 +89,9 @@ architecture axi_stream_ram of axi_stream_ram is
   signal ram_rd_sync_tag    : std_logic_vector(TAG_WIDTH - 1 downto 0) := (others => 'U');
   signal ram_rd_sync_data   : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
-  signal output_fifo_wr_en  : std_logic;
-  signal output_fifo_full   : std_logic;
-  signal output_fifo_empty  : std_logic;
+  -- signal output_fifo_wr_en  : std_logic;
+  -- signal output_fifo_full   : std_logic;
+  -- signal output_fifo_empty  : std_logic;
 
 begin
 
@@ -183,63 +182,38 @@ begin
   end block;
 
   output_buffer_block : block
-    signal tdata_agg_in       : std_logic_vector(ADDR_WIDTH + TAG_WIDTH + DATA_WIDTH - 1 downto 0);
-    signal output_fifo_tdata  : std_logic_vector(ADDR_WIDTH + TAG_WIDTH + DATA_WIDTH - 1 downto 0);
-    signal output_fifo_tvalid : std_logic;
-    signal output_fifo_tready : std_logic;
-    signal tdata_agg_out      : std_logic_vector(ADDR_WIDTH + TAG_WIDTH + DATA_WIDTH - 1 downto 0);
+    signal tdata_agg_in   : std_logic_vector(ADDR_WIDTH + TAG_WIDTH + DATA_WIDTH - 1 downto 0);
+    signal tdata_agg_out  : std_logic_vector(ADDR_WIDTH + TAG_WIDTH + DATA_WIDTH - 1 downto 0);
   begin
-    credit_return_en <= output_fifo_tvalid and output_fifo_tready;
+    credit_return_en <= rd_out_tvalid and rd_out_tready;
     tdata_agg_in     <= ram_rd_sync_tag & ram_rd_sync_data & ram_rd_sync_addr;
-
-    ram_rd_sync_tready <= not output_fifo_full;
-    output_fifo_wr_en  <= ram_rd_sync_tvalid and ram_rd_sync_tready;
 
     -- Use a very small FIFO to handle backpressure until the pipe stops. The
     -- credits mechanism should prevent this FIFO from overflowing
-    output_fifo_u : entity work.sync_fifo
+    output_fifo_u : entity work.axi_stream_fifo_simple
       generic map (
-        RAM_TYPE           => "distributed",
-        DEPTH              => RAM_LATENCY + 1,
-        DATA_WIDTH         => ADDR_WIDTH + DATA_WIDTH + TAG_WIDTH,
-        EXTRA_OUTPUT_DELAY => 0)
+        FIFO_DEPTH => RAM_LATENCY + 1,
+        DATA_WIDTH => ADDR_WIDTH + DATA_WIDTH + TAG_WIDTH
+      )
       port map (
-        clk     => clk,
-        rst     => rst,
+        clk      => clk,
+        rst      => rst,
 
         -- Status
-        full    => output_fifo_full,
-        upper   => open,
-        lower   => open,
-        empty   => output_fifo_empty,
+        full     => open,
+        empty    => open,
 
         -- Write port
-        wr_en   => output_fifo_wr_en,
-        wr_data => tdata_agg_in,
+        s_tvalid => ram_rd_sync_tvalid,
+        s_tready => ram_rd_sync_tready,
+        s_tdata  => tdata_agg_in,
+        s_tlast  => '0',
 
         -- Read port
-        rd_en   => output_fifo_tready,
-        rd_data => output_fifo_tdata,
-        rd_dv   => output_fifo_tvalid);
-
-    output_delay_u : entity work.axi_stream_delay
-      generic map (
-        DELAY_CYCLES => OUTPUT_DELAY,
-        TDATA_WIDTH  => ADDR_WIDTH + DATA_WIDTH + TAG_WIDTH)
-      port map (
-        -- Usual ports
-        clk     => clk,
-        rst     => rst,
-
-        -- AXI slave input
-        s_tvalid => output_fifo_tvalid,
-        s_tready => output_fifo_tready,
-        s_tdata  => output_fifo_tdata,
-
-        -- AXI master output
         m_tvalid => rd_out_tvalid,
         m_tready => rd_out_tready,
-        m_tdata  => tdata_agg_out);
+        m_tdata  => tdata_agg_out,
+        m_tlast  => open);
 
     rd_out_addr <= tdata_agg_out(ADDR_WIDTH - 1 downto 0);
     rd_out_data <= tdata_agg_out(ADDR_WIDTH + DATA_WIDTH - 1 downto ADDR_WIDTH);
