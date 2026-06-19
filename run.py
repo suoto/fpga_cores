@@ -120,6 +120,7 @@ def addTests(cli, seed):
     addAsyncFifoTests(cli.library("tb").entity("async_fifo_tb"), seed)
     addAxiStreamDelayTests(cli.library("tb").entity("axi_stream_delay_tb"), seed)
     addAxiStreamFifoTests(cli.library("tb").entity("axi_stream_fifo_simple_tb"), seed)
+    addAxiStreamFifoTests(cli.library("tb").entity("axi_stream_fifo_tb"), seed)
     addAxiFileReaderTests(cli.library("tb").entity("axi_file_reader_tb"), seed)
     addAxiFileCompareTests(cli.library("tb").entity("axi_file_compare_tb"), seed)
     addAxiWidthConverterTests(
