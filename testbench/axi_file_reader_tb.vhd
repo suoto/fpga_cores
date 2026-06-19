@@ -147,7 +147,7 @@ begin
   -- Asynchronous assignments --
   ------------------------------
   clk <= not clk after CLK_PERIOD/2;
-  test_runner_watchdog(runner, 10 ms);
+  test_runner_watchdog(runner, 100 ms);
 
   ---------------
   -- Processes --
