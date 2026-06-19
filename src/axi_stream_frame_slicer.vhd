@@ -75,7 +75,7 @@ begin
 
   m_tvalid  <= s_tvalid;
   s_tready  <= m_tready;
-  m_tdata   <= s_tdata;
+  m_tdata   <= s_tdata when s_tvalid else (others => 'U');
 
   -- m_tlast_i <= '1' when length_count = unsigned(frame_length) - 1 else '0';
   m_tlast_i <= s_tlast when length_count < unsigned(frame_length) - 1 else '1';

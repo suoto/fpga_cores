@@ -67,6 +67,7 @@ architecture axi_stream_frame_fifo of axi_stream_frame_fifo is
   signal fifo_empty    : std_logic;
   signal fifo_m_tvalid : std_logic;
   signal fifo_m_tready : std_logic;
+  signal fifo_m_tdata  : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
   signal m_tvalid_i    : std_logic;
   signal m_tlast_i     : std_logic;
@@ -107,7 +108,7 @@ begin
       -- Read side
       m_tvalid => fifo_m_tvalid,
       m_tready => fifo_m_tready,
-      m_tdata  => m_tdata,
+      m_tdata  => fifo_m_tdata,
       m_tlast  => m_tlast_i
     );
 
@@ -115,7 +116,8 @@ begin
   -- Asynchronous assignments --
   ------------------------------
   m_tvalid <= m_tvalid_i;
-  m_tlast  <= m_tlast_i;
+  m_tdata  <= fifo_m_tdata when m_tvalid_i else (others => 'U');
+  m_tlast  <= m_tlast_i when m_tvalid_i else 'U';
 
   s_tready <= s_tready_i;
 

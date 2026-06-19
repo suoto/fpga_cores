@@ -150,11 +150,11 @@ begin
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
-  m_tdata      <= m_tdata_packed(DATA_WIDTH - 1 downto 0);
+  m_tdata      <= m_tdata_packed(DATA_WIDTH - 1 downto 0) when m_tvalid_i else (others => 'U');
   m_tlast_i    <= m_tdata_packed(DATA_WIDTH);
 
   m_tvalid     <= m_tvalid_i;
-  m_tlast      <= m_tlast_i;
+  m_tlast      <= m_tlast_i when m_tvalid_i else 'U';
 
   m_data_valid <= m_tvalid_i and m_tready;
   s_data_valid <= s_tvalid_i and s_tready_i;
