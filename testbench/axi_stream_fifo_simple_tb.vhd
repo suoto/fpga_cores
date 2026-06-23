@@ -105,7 +105,7 @@ begin
     m_axi.tlast <= tdata(DATA_WIDTH);
   end block;
 
-  dut : entity fpga_cores.axi_stream_fifo_simple(fast)
+  dut : entity fpga_cores.axi_stream_fifo_simple
     generic map (
       FIFO_DEPTH => FIFO_DEPTH,
       DATA_WIDTH => DATA_WIDTH)

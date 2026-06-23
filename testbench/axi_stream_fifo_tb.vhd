@@ -123,6 +123,15 @@ begin
       m_tdata  => s_axi.tdata);
       -- m_tlast  => s_axi.tlast);
 
+  process(clk, rst)
+  begin
+    if rst then
+    elsif rising_edge(clk) then
+      assert m_axi.tready /= 'X'
+        severity Error;
+    end if;
+  end process;
+
   ------------------------------
   -- Asynchronous assignments --
   ------------------------------
@@ -152,11 +161,8 @@ begin
       variable frame : frame_t(0 to length - 1);
     begin
       for i in 0 to length - 1 loop
-        if i = length - 1 then
-          frame(i) := wr_data_gen.RandSlv(DATA_WIDTH);
-        else
-          frame(i) := wr_data_gen.RandSlv(DATA_WIDTH);
-        end if;
+        frame(i) := wr_data_gen.RandSlv(DATA_WIDTH);
+        -- frame(i) := std_logic_vector(to_unsigned(i, DATA_WIDTH));
       end loop;
       return frame;
     end;
@@ -210,7 +216,10 @@ begin
       check_frames;
     end procedure;
 
-    variable stat : checker_stat_t;
+    variable stat     : checker_stat_t;
+    variable msg      : msg_t;
+    variable received : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    variable expected : std_logic_vector(DATA_WIDTH - 1 downto 0);
   begin
     wr_data_gen.InitSeed("data_gen" & integer'image(seed));
     rd_data_gen.InitSeed("data_gen" & integer'image(seed));
@@ -274,6 +283,34 @@ begin
       elsif run("test_status_signals") then
         check_equal(empty, '1', "FIFO should be empty after reset");
         check_equal(full, '0', "FIFO should not be full after reset");
+
+      elsif run("test_fill_and_drain") then
+        check_equal(m_axi.tready, '1', "s_tready should be 1 when FIFO is empty");
+        check_equal(s_axi.tvalid, '0', "m_tvalid should be 0 when FIFO is empty");
+
+        axi_bfm_write(net,
+          bfm         => axi_master,
+          data        => generate_frame(FIFO_DEPTH),
+          probability => 1.0,
+          blocking    => False);
+        join(net, axi_master);
+
+        walk(1);
+        check_equal(m_axi.tready, '0', "s_tready should be 0 when FIFO is full");
+        check_equal(s_axi.tvalid, '1', "m_tvalid should be 1 when FIFO is full");
+
+        cfg_rd_probability <= 1.0;
+        for i in 0 to FIFO_DEPTH - 1 loop
+          receive(net, self, msg);
+          received := pop(msg);
+          expected := rd_data_gen.RandSlv(DATA_WIDTH);
+          check_equal(received, expected, sformat("Word %d mismatch", fo(i)));
+        end loop;
+        cfg_rd_probability <= 0.0;
+
+        walk(2);
+        check_equal(m_axi.tready, '1', "s_tready should be 1 after drain");
+        check_equal(s_axi.tvalid, '0', "m_tvalid should be 0 after drain");
 
       end if;
 
