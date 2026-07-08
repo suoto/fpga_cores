@@ -72,14 +72,18 @@ def main():
 
     cli = VUnit.from_args(args=args, compile_builtins=False)
 
+    fpga_cores = cli.add_library("fpga_cores")
+    fpga_cores.add_source_files(p.join(ROOT, "src", "*.sv")).set_compile_option("modelsim.vlog_flags", ["-sv"])
+
     cli.add_vhdl_builtins()
     cli.add_osvvm()
     cli.enable_location_preprocessing()
     cli.add_com()
+
     if cli.get_simulator_name() in ("ghdl", "nvc"):
         cli.add_preprocessor(GhdlPragmaHandler())
 
-    cli.add_library("fpga_cores").add_source_files(p.join(ROOT, "src", "*.vhd"))
+    fpga_cores.add_source_files(p.join(ROOT, "src", "*.vhd"))
 
     cli.add_library("str_format").add_source_files(
         p.join(ROOT, "dependencies", "hdl_string_format", "src", "*.vhd")

@@ -1,0 +1,8 @@
+# veridian SystemVerilog LSP config
+# Directories recursively searched for SV/Verilog sources so verilator (and
+# slang) can resolve submodule instantiations across files.
+source_dirs:
+  - src
+  - testbench
+include_dirs:
+  - src
