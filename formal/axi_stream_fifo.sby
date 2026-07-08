@@ -1,0 +1,57 @@
+[tasks]
+bmc
+cover
+
+[options]
+bmc:   mode bmc
+cover: mode cover
+depth 40
+
+[engines]
+# boolector avoids a z3 "unknown constant" smt2 quirk on the RAM memories and is
+# faster for BMC; yices also works. Swap to `smtbmc z3` if boolector is absent.
+smtbmc yices
+
+[script]
+# ghdl is a yosys plugin in this image (yosys -m ghdl), not built in -> load it
+plugin -i ghdl
+# GHDL frontend: analyse everything into library fpga_cores (axi_stream_mux &
+# friends reference `library fpga_cores` by name), enable PSL with -fpsl, and
+# elaborate the formal wrapper as top. Files are copied in via [files] below, so
+# they are referenced here by basename.
+ghdl --std=08 -fpsl --work=fpga_cores       \
+  common_pkg.vhd                            \
+  sr_delay.vhd                              \
+  axi_stream_forward_slice.vhd              \
+  axi_stream_flow_control.vhd               \
+  ram_inference.vhd                         \
+  axi_stream_mux.vhd                        \
+  axi_stream_demux.vhd                      \
+  axi_stream_credit.vhd                     \
+  axi_stream_delay.vhd                      \
+  axi_stream_fifo_simple.vhd                \
+  axi_stream_ram.vhd                        \
+  axi_stream_fifo.vhd                       \
+  axi_stream_fifo_formal.vhd                \
+  -e axi_stream_fifo_formal
+prep -top axi_stream_fifo_formal
+# TAG_WIDTH=0 leaves a zero-width `rd_in_tag` net in axi_stream_ram that GHDL
+# emits with a malformed (space-containing) smt2 symbol, crashing the VCD/witness
+# dump. Flatten + purge drops the unused net so traces write cleanly.
+flatten
+opt_clean -purge
+
+[files]
+../src/common_pkg.vhd
+../src/sr_delay.vhd
+../src/axi_stream_forward_slice.vhd
+../src/axi_stream_flow_control.vhd
+../src/ram_inference.vhd
+../src/axi_stream_mux.vhd
+../src/axi_stream_demux.vhd
+../src/axi_stream_credit.vhd
+../src/axi_stream_delay.vhd
+../src/axi_stream_fifo_simple.vhd
+../src/axi_stream_ram.vhd
+../src/axi_stream_fifo.vhd
+axi_stream_fifo_formal.vhd

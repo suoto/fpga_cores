@@ -40,7 +40,7 @@ entity axi_stream_frame_fifo is
     rst     : in  std_logic;
 
     -- status
-    entries  : out std_logic_vector(numbits(FIFO_DEPTH) downto 0);
+    entries  : out unsigned(numbits(FIFO_DEPTH) downto 0);
     empty    : out std_logic;
     full     : out std_logic;
 

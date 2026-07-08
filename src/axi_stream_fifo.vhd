@@ -50,10 +50,10 @@ entity axi_stream_fifo is
     m_tdata  : out std_logic_vector(DATA_WIDTH - 1 downto 0));
 end axi_stream_fifo;
 
-architecture fast of axi_stream_fifo is
+architecture rtl of axi_stream_fifo is
 
   type axi_bus_t is record
-    tdata  : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    tdata  : std_logic_vector;
     tvalid : std_logic;
     tready : std_logic;
   end record;
@@ -61,16 +61,15 @@ architecture fast of axi_stream_fifo is
   constant MAIN_RAM_LATENCY   : integer := 3;
   constant MAIN_RAM_DEPTH     : integer := FIFO_DEPTH - MAIN_RAM_LATENCY;
 
-  signal skid_buffer_in           : axi_bus_t;
+  signal skid_buffer_in           : axi_bus_t(tdata(DATA_WIDTH - 1 downto 0));
+  signal skid_buffer_entries      : unsigned(numbits(MAIN_RAM_LATENCY) downto 0);
   signal skid_buffer_full         : std_logic;
   signal skid_buffer_empty        : std_logic;
-  signal write_to_skid_buffer_reg : std_logic;
   signal write_to_skid_buffer     : std_logic;
-  signal write_to_ram             : std_logic;
 
-  signal ram_wr_dv    : std_logic;
+  signal ram_wr_dv        : std_logic;
   signal ram_rd_req_dv    : std_logic;
-  signal ram_rd_resp_dv    : std_logic;
+  signal ram_rd_resp_dv   : std_logic;
 
   signal ram_wr_ptr  : unsigned(numbits(MAIN_RAM_DEPTH) downto 0);
   signal ram_rd_ptr  : unsigned(numbits(MAIN_RAM_DEPTH) downto 0);
@@ -81,17 +80,58 @@ architecture fast of axi_stream_fifo is
 
   -- Internals
   signal ram_wr_addr     : std_logic_vector(numbits(MAIN_RAM_DEPTH) - 1 downto 0);
-  signal ram_rd_req_addr : std_logic_vector(numbits(MAIN_RAM_DEPTH) - 1 downto 0);
+  signal ram_rd_addr     : std_logic_vector(numbits(MAIN_RAM_DEPTH) - 1 downto 0);
+  signal ram_rd_addr_reg : std_logic_vector(numbits(MAIN_RAM_DEPTH) - 1 downto 0);
 
-  signal ram_wr      : axi_bus_t;
-  signal ram_rd_req  : axi_bus_t;  -- tdata is not used
-  signal ram_rd_resp : axi_bus_t;
-  signal bypass      : axi_bus_t;
+  signal ram_wr            : axi_bus_t(tdata(DATA_WIDTH - 1 downto 0));
+  signal ram_rd_req        : axi_bus_t(tdata(numbits(MAIN_RAM_DEPTH) - 1 downto 0));  -- tdata is not used
+  -- signal ram_rd_req : axi_bus_t(tdata(numbits(MAIN_RAM_DEPTH) - 1 downto 0));  -- tdata is not used
+
+  signal ram_rd_resp_addr  : std_logic_vector(numbits(MAIN_RAM_DEPTH) - 1 downto 0);  -- debug only
+  signal ram_rd_resp       : axi_bus_t(tdata(DATA_WIDTH - 1 downto 0));
+  signal bypass            : axi_bus_t(tdata(DATA_WIDTH - 1 downto 0));
+
+  type fsm_st is (write_to_skid_buffer_st, write_to_sram_st);
+  signal fsm      : fsm_st;
+  signal fsm_next : fsm_st;
 
 begin
 
-  write_to_skid_buffer <= write_to_skid_buffer_reg and not skid_buffer_full;
-  write_to_ram         <= not write_to_skid_buffer and not ram_wr_full;
+  process(all)
+  begin
+    fsm_next <= fsm;
+
+    case fsm is
+      when write_to_skid_buffer_st =>
+        if skid_buffer_entries >= MAIN_RAM_LATENCY then
+          fsm_next <= write_to_sram_st;
+        end if;
+      when write_to_sram_st =>
+        if skid_buffer_entries < MAIN_RAM_LATENCY and ram_rd_req.tvalid = '0' and ram_rd_resp.tvalid = '0' then
+          fsm_next <= write_to_skid_buffer_st;
+        end if;
+
+      when others =>
+        report "Stop" severity Failure;
+
+    end case;
+
+    if rst then
+      fsm_next <= write_to_skid_buffer_st;
+    end if;
+  end process;
+
+  process(clk)
+  begin
+    if rising_edge(clk) then
+      fsm <= fsm_next;
+      if rst then
+        fsm <= write_to_skid_buffer_st;
+      end if;
+    end if;
+  end process;
+
+  write_to_skid_buffer <= '1' when fsm_next = write_to_skid_buffer_st else '0';
 
   input_data_fork_u : entity work.axi_stream_demux
     generic map (
@@ -145,7 +185,7 @@ begin
       rst     => rst,
 
       -- status
-      entries  => open,
+      entries  => skid_buffer_entries,
       empty    => skid_buffer_empty,
       full     => skid_buffer_full,
 
@@ -164,25 +204,6 @@ begin
 
   full <= skid_buffer_full and ram_wr_full;
 
-
-  process(clk)
-  begin
-    if rising_edge(clk) then
-      -- Switch to the internal RAM when the skid buffer has enough data to
-      -- accomodate the RAM latency
-      if skid_buffer_full then
-        write_to_skid_buffer_reg <= '0';
-      end if;
-      if skid_buffer_empty then
-        write_to_skid_buffer_reg <= '1';
-      end if;
-
-      if rst then
-        write_to_skid_buffer_reg <= '1';
-      end if;
-    end if;
-  end process;
-
   ram_wr_dv      <= ram_wr.tready and ram_wr.tvalid;
   ram_rd_req_dv  <= ram_rd_req.tready and ram_rd_req.tvalid;
   ram_rd_resp_dv <= ram_rd_resp.tready and ram_rd_resp.tvalid;
@@ -193,8 +214,20 @@ begin
   -- s_tready    <= not full;
 
   -- GHDL fails with bound check error if this is wired directly
-  ram_wr_addr     <= std_logic_vector(ram_wr_ptr(ram_wr_ptr'length - 2 downto 0));
-  ram_rd_req_addr <= std_logic_vector(ram_rd_ptr(ram_rd_ptr'length - 2 downto 0));
+  ram_wr_addr      <= std_logic_vector(ram_wr_ptr(ram_wr_ptr'length - 2 downto 0));
+  ram_rd_req.tdata <= std_logic_vector(ram_rd_ptr(ram_rd_ptr'length - 2 downto 0));
+
+  ram_rd_addr      <= ram_rd_req.tdata when ram_rd_req.tvalid else
+                      ram_rd_addr_reg;
+
+  process(clk)
+  begin
+    if rising_edge(clk) then
+      if ram_rd_req.tvalid and ram_rd_req.tready then
+        ram_rd_addr_reg  <= ram_rd_addr;
+      end if;
+    end if;
+  end process;
 
   entries     <= std_logic_vector(ram_rd_req_ptr_diff);
   -- FIFO is empty when the output adapter is empty and ptr diff is 0
@@ -205,31 +238,45 @@ begin
   -- AXI stream RAM write port is always available
   ram_wr.tready <= not ram_wr_full;
 
-  ram_u : entity work.axi_stream_ram
+  -- Sync the ram_rd_req with data coming out of the RAM
+  ram_rd_delay_u : entity work.axi_stream_delay
+    generic map (
+      DELAY_CYCLES => 1,
+      TDATA_WIDTH  => numbits(MAIN_RAM_DEPTH))
+    port map (
+      -- Usual ports
+      clk     => clk,
+      rst     => rst,
+
+      -- AXI slave input
+      s_tvalid => ram_rd_req.tvalid,
+      s_tready => ram_rd_req.tready,
+      s_tdata  => ram_rd_req.tdata,
+
+      -- AXI master output
+      m_tvalid => ram_rd_resp.tvalid,
+      m_tready => ram_rd_resp.tready,
+      m_tdata  => ram_rd_resp_addr);
+
+  ram_u : entity work.ram_inference
     generic map (
       DEPTH         => MAIN_RAM_DEPTH,
       DATA_WIDTH    => DATA_WIDTH,
-      RAM_TYPE      => RAM_TYPE)
+      RAM_TYPE      => RAM_TYPE,
+      OUTPUT_DELAY  => 1)
     port map (
-      clk           => clk,
-      rst           => rst,
-      -- Write side
-      wr_tready     => open,
-      wr_tvalid     => ram_wr.tvalid,
-      wr_addr       => ram_wr_addr,
-      wr_data_in    => ram_wr.tdata,
-      wr_data_out   => open,
+      -- Port A
+      clk_a     => clk,
+      wren_a    => ram_wr.tvalid and ram_wr.tready,
+      addr_a    => ram_wr_addr,
+      wrdata_a  => ram_wr.tdata,
+      rddata_a  => open,
 
-      -- Read request side
-      rd_in_tready  => ram_rd_req.tready,
-      rd_in_tvalid  => ram_rd_req.tvalid,
-      rd_in_addr    => ram_rd_req_addr,
-
-      -- Read response side
-      rd_out_tready => ram_rd_resp.tready,
-      rd_out_tvalid => ram_rd_resp.tvalid,
-      rd_out_addr   => open,
-      rd_out_data   => ram_rd_resp.tdata);
+      -- Port B
+      clk_b     => clk,
+      en_b      => ram_rd_req.tvalid and ram_rd_req.tready,
+      addr_b    => ram_rd_addr,
+      rddata_b  => ram_rd_resp.tdata);
 
   process(clk)
   begin
@@ -275,4 +322,4 @@ begin
     end if;
   end process;
 
-end fast;
+end rtl;

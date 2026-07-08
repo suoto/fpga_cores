@@ -44,6 +44,7 @@ entity ram_inference is
   port (
     -- Port A
     clk_a     : in  std_logic;
+    en_a      : in  std_logic := '1';
     wren_a    : in  std_logic;
     addr_a    : in  std_logic_vector(numbits(DEPTH) - 1 downto 0);
     wrdata_a  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
@@ -51,6 +52,7 @@ entity ram_inference is
 
     -- Port B
     clk_b     : in  std_logic;
+    en_b      : in  std_logic := '1';
     addr_b    : in  std_logic_vector(numbits(DEPTH) - 1 downto 0);
     rddata_b  : out std_logic_vector(DATA_WIDTH - 1 downto 0));
 end ram_inference;
@@ -132,10 +134,8 @@ begin
   port_a : process(clk_a)
   begin
     if clk_a'event and clk_a = '1' then
-      if to_integer(unsigned(addr_a)) < DEPTH and not has_undefined(addr_a) then
+      if to_integer(unsigned(addr_a)) < DEPTH and not has_undefined(addr_a) and en_a = '1' then
         rddata_a_sync <= ram(to_integer(unsigned(addr_a)));
-      else
-        rddata_a_sync <= (others => 'U');
       end if;
       if wren_a = '1' then
         ram(to_integer(unsigned(addr_a))) <= wrdata_a;
@@ -146,10 +146,8 @@ begin
   port_b : process(clk_b)
   begin
     if clk_b'event and clk_b = '1' then
-      if to_integer(unsigned(addr_b)) < DEPTH and not has_undefined(addr_b) then
+      if to_integer(unsigned(addr_b)) < DEPTH and not has_undefined(addr_b) and en_b = '1' then
         rddata_b_sync <= ram(to_integer(unsigned(addr_b)));
-      else
-        rddata_b_sync <= (others => 'U');
       end if;
     end if;
   end process;

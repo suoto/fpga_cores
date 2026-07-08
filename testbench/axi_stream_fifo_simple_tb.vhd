@@ -62,7 +62,7 @@ architecture axi_stream_fifo_simple_tb of axi_stream_fifo_simple_tb is
   signal m_axi : axi_stream_data_bus_t(tdata(DATA_WIDTH - 1 downto 0));
   signal s_axi : axi_stream_data_bus_t(tdata(DATA_WIDTH - 1 downto 0));
 
-  signal entries : std_logic_vector(numbits(FIFO_DEPTH) downto 0);
+  signal entries : unsigned(numbits(FIFO_DEPTH) downto 0);
   signal empty   : std_logic;
   signal full    : std_logic;
 

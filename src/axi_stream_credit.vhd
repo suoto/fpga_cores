@@ -42,7 +42,7 @@ entity axi_stream_credit is
     rst              : in  std_logic;
 
     credit_return_en : in  std_logic;
-    credit_return    : in  std_logic_vector(numbits(CREDITS + 1) - 1 downto 0);
+    credit_return    : in  std_logic_vector(numbits(CREDITS + 1) - 1 downto 0) := std_logic_vector(to_unsigned(1, numbits(CREDITS + 1)));
     credits_available: out std_logic_vector(numbits(CREDITS + 1) - 1 downto 0);
 
     -- AXI slave input
@@ -103,12 +103,18 @@ begin
   ---------------
   -- Processes --
   ---------------
-  process(clk, rst)
+  process(clk)
   begin
-    if rst = '1' then
-      credits_available_ff <= to_unsigned(CREDITS, credits_available_ff'length);
-    elsif rising_edge(clk) then
+    if rising_edge(clk) then
       credits_available_ff <= credits_available_next;
+
+      if credits_available_ff = CREDITS and credit_return_en = '1' and unsigned(credit_return) /= 0 then
+        report "Credit overflow" severity Error;
+      end if;
+
+      if rst = '1' then
+        credits_available_ff <= to_unsigned(CREDITS, credits_available_ff'length);
+      end if;
     end if;
   end process;
 

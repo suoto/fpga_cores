@@ -35,7 +35,7 @@ entity axi_stream_fifo_simple is
     rst     : in  std_logic;
 
     -- status
-    entries  : out std_logic_vector(numbits(FIFO_DEPTH) downto 0);
+    entries  : out unsigned(numbits(FIFO_DEPTH) downto 0);
     empty    : out std_logic;
     full     : out std_logic;
 
@@ -107,7 +107,7 @@ begin
   ram_wr_addr <= std_logic_vector(ram_wr_ptr(ram_wr_ptr'length - 2 downto 0));
   ram_rd_addr <= std_logic_vector(ram_rd_ptr(ram_rd_ptr'length - 2 downto 0));
 
-  entries     <= std_logic_vector(ptr_diff);
+  entries     <= ptr_diff;
   -- FIFO is empty when the output adapter is empty and ptr diff is 0
   empty       <= and(not ptr_diff);
   -- Full when ptr_diff equals FIFO depth, i.e., delta is all 0s

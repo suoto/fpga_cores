@@ -30,6 +30,7 @@ entity sr_delay is
   port (
     clk     : in  std_logic;
 
+    din_en  : in  std_logic := '1';
     din     : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
     dout    : out std_logic_vector(DATA_WIDTH - 1 downto 0));
 end sr_delay;
@@ -97,8 +98,10 @@ begin
   non_zero_delay_p : if DELAY_CYCLES > 0 generate
     process(clk)
     begin
-      if clk'event and clk = '1' then
-        din_sr  <= din_sr(DELAY_CYCLES - 2 downto 0) & din;
+      if rising_edge(clk) then
+        if din_en then
+          din_sr  <= din_sr(DELAY_CYCLES - 2 downto 0) & din;
+        end if;
       end if;
     end process;
   end generate non_zero_delay_p;

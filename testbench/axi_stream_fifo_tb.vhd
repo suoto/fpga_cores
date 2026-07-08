@@ -167,54 +167,53 @@ begin
       return frame;
     end;
 
+    procedure send_data (
+      constant length         : natural;
+      constant wr_probability : real) is
+      variable data           : frame_ptr_t;
+    begin
+      info(logger, sformat("sending %d bytes", fo(length)));
+      data := new frame_t'(generate_frame(length));
+      for word in data'range loop
+        warning(logger, sformat("word=%d => %r", fo(word), fo(data(word))));
+      end loop;
+      axi_bfm_write(net,
+        bfm         => axi_master,
+        data        => data.all,
+        probability => wr_probability,
+        blocking    => False);
+    end procedure send_data;
+
+    procedure check_data ( constant length : natural ) is
+      variable msg      : msg_t;
+      variable received : std_logic_vector(DATA_WIDTH - 1 downto 0);
+      variable expected : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    begin
+      for word in 0 to length - 1 loop
+        receive(net, self, msg);
+        received := pop(msg);
+        debug(logger, sformat("Checking word %d: %r", fo(word), fo(received)));
+        expected := rd_data_gen.RandSlv(DATA_WIDTH);
+
+        if received /= expected then
+          error(sformat("Word %d: expected %r but got %r",
+          fo(word), fo(expected), fo(received)));
+        end if;
+      end loop;
+    end procedure check_data;
+
     procedure test_data_integrity(
-      constant number_of_frames : natural;
       constant length           : natural;
       constant wr_probability   : real;
       constant rd_probability   : real) is
 
-      procedure write_frames is
-        variable data             : frame_ptr_t;
-      begin
-        for frame in 0 to number_of_frames - 1 loop
-          info(logger, sformat("Writing frame %d/%d, length is %d",
-               fo(frame + 1), fo(number_of_frames), fo(length)));
-          data := new frame_t'(generate_frame(length));
-          axi_bfm_write(net,
-            bfm         => axi_master,
-            data        => data.all,
-            probability => wr_probability,
-            blocking    => False);
-        end loop;
-      end procedure;
-
-    procedure check_frames is
-        variable data     : frame_ptr_t;
-        variable msg      : msg_t;
-        variable received : std_logic_vector(DATA_WIDTH - 1 downto 0);
-        variable expected : std_logic_vector(DATA_WIDTH - 1 downto 0);
-      begin
-        for frame in 0 to number_of_frames - 1 loop
-          for word in 0 to length - 1 loop
-            receive(net, self, msg);
-            received := pop(msg);
-            debug(logger, sformat("Checking frame %d / word %d: %r", fo(frame), fo(word), fo(received)));
-            expected := rd_data_gen.RandSlv(DATA_WIDTH);
-
-            if received /= expected then
-              error(sformat("Frame %d, word %d: expected %r (last=%r) but got %r",
-                            fo(frame), fo(word), fo(expected), fo(data(word))));
-            end if;
-          end loop;
-        end loop;
-      end procedure;
-
     begin
       cfg_rd_probability <= rd_probability;
-      write_frames;
+      warning(logger, "sending data");
+      send_data(length => length, wr_probability => wr_probability);
       join(net, axi_master);
-      check_frames;
-    end procedure;
+      check_data(length => length);
+    end procedure test_data_integrity;
 
     variable stat     : checker_stat_t;
     variable msg      : msg_t;
@@ -228,55 +227,71 @@ begin
     show(display_handler, debug);
     test_runner_setup(runner, runner_cfg);
 
+    walk(16);
     rst <= '1';
     walk(16);
     rst <= '0';
     walk(16);
 
     while test_suite loop
+      check_false(
+        has_message(self),
+        sformat(
+          "main process should have no messages at the start of the test, but it has %d instead",
+          fo(num_of_messages(self)))
+      );
+      check_equal(empty, '1', "FIFO should be empty at the start of the test");
+      check_equal(full, '0', "FIFO should not be full at the start of the test");
+
       cfg_rd_probability <= 0.0;
 
       set_timeout(runner, 100 us);
 
       if run("test_single_word") then
+        warning(logger, "test_singe_word start");
         test_data_integrity(
-          number_of_frames => 1,
           length           => 1,
           wr_probability   => 1.0,
           rd_probability   => 1.0);
+        warning("test_singe_word end");
 
       elsif run("test_back_to_back") then
         test_data_integrity(
-          number_of_frames => 16,
-          length           => FIFO_DEPTH/2,
+          length           => 16*FIFO_DEPTH/2,
           wr_probability   => 1.0,
           rd_probability   => 1.0);
 
       elsif run("test_fill_fifo") then
         test_data_integrity(
-          number_of_frames => 4,
-          length           => FIFO_DEPTH,
+          length           => 4*FIFO_DEPTH,
           wr_probability   => 1.0,
           rd_probability   => 1.0);
 
       elsif run("test_slow_reader") then
         test_data_integrity(
-          number_of_frames => 32,
-          length           => max(FIFO_DEPTH/4, 1),
+          length           => 32*max(FIFO_DEPTH/4, 1),
           wr_probability   => 1.0,
           rd_probability   => 0.5);
 
       elsif run("test_slow_writer") then
         test_data_integrity(
-          number_of_frames => 8,
-          length           => 4,
+          length           => 32,
+          wr_probability   => 0.1,
+          rd_probability   => 1.0);
+
+        test_data_integrity(
+          length           => 32,
           wr_probability   => 0.5,
+          rd_probability   => 1.0);
+
+        test_data_integrity(
+          length           => 32,
+          wr_probability   => 0.9,
           rd_probability   => 1.0);
 
       elsif run("test_slow_both") then
         test_data_integrity(
-          number_of_frames => 32,
-          length           => max(FIFO_DEPTH/4, 1),
+          length           => 32*max(FIFO_DEPTH/4, 1),
           wr_probability   => 0.5,
           rd_probability   => 0.5);
 
@@ -285,6 +300,7 @@ begin
         check_equal(full, '0', "FIFO should not be full after reset");
 
       elsif run("test_fill_and_drain") then
+
         check_equal(m_axi.tready, '1', "s_tready should be 1 when FIFO is empty");
         check_equal(s_axi.tvalid, '0', "m_tvalid should be 0 when FIFO is empty");
 
@@ -301,9 +317,11 @@ begin
 
         cfg_rd_probability <= 1.0;
         for i in 0 to FIFO_DEPTH - 1 loop
+          walk(1);
           receive(net, self, msg);
           received := pop(msg);
           expected := rd_data_gen.RandSlv(DATA_WIDTH);
+          info(sformat("Received word %d: %r", fo(i), fo(received)));
           check_equal(received, expected, sformat("Word %d mismatch", fo(i)));
         end loop;
         cfg_rd_probability <= 0.0;
@@ -311,11 +329,20 @@ begin
         walk(2);
         check_equal(m_axi.tready, '1', "s_tready should be 1 after drain");
         check_equal(s_axi.tvalid, '0', "m_tvalid should be 0 after drain");
-
       end if;
 
       join(net, axi_master);
       walk(16);
+
+      check_false(
+        has_message(self),
+        sformat(
+          "main process should have no messages at the end of the test, but it has %d instead",
+          fo(num_of_messages(self)))
+      );
+      check_equal(empty, '1', "FIFO should be empty at the end of the test");
+      check_equal(full, '0', "FIFO should not be full at the end of the test");
+
     end loop;
 
     cfg_rd_probability <= 0.0;

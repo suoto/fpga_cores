@@ -1,0 +1,14 @@
+# SymbiYosys task output dirs
+axi_stream_fifo_bmc/
+axi_stream_fifo_cover/
+axi_stream_fifo/
+
+# throwaway experiment run dirs (.zinit_test, .meminit_test, ...)
+.*_test*/
+
+# crash dumps from the emulated sby container
+core
+
+# GHDL replay build/sim artifacts
+ghdl_work/
+*.ghw
