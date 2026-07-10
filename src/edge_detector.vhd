@@ -82,6 +82,7 @@ begin
     port map (
       clk     => clk,
 
+      din_en  => '1',
       din(0)  => rising_i,
       din(1)  => falling_i,
       din(2)  => toggle_i,

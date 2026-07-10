@@ -1,3 +1,5 @@
 vunit_out
 .hdl_checker
 hdl_checker.log
+__pycache__
+env

@@ -1,0 +1,9 @@
+# cocotb testbench dependencies.
+#
+# Also requires Icarus Verilog (`iverilog`) on PATH -- install via your distro
+# (e.g. `apt install iverilog`). It is already present in the CI Docker image
+# suoto/dvb_fpga_ci.
+# NOTE: this TB uses cocotb 2.x APIs (cocotb_tools.runner, Clock unit=...).
+cocotb>=2.0
+cocotbext-axi
+pytest

@@ -84,6 +84,7 @@ begin
       port map (
         clk     => clk,
 
+        din_en  => '1',
         din     => rddata_sync,
         dout    => rddata_delay);
     end generate;

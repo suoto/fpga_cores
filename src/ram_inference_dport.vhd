@@ -85,6 +85,7 @@ begin
         port map (
             clk     => clk_a,
 
+            din_en  => '1',
             din     => rddata_a_i,
             dout    => rddata_a);
 
@@ -95,6 +96,7 @@ begin
         port map (
             clk     => clk_b,
 
+            din_en  => '1',
             din     => rddata_b_i,
             dout    => rddata_b);
 

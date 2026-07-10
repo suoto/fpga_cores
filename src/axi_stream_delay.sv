@@ -39,6 +39,11 @@ module axi_stream_delay #(
   output     logic [ TDATA_WIDTH-1:0 ] m_tdata
 );
 
+// Elaboration-time check
+if (DELAY_CYCLES < 0) begin : check
+  $fatal(1, "DELAY_CYCLES must be >= 0");
+end
+
 logic [ TDATA_WIDTH-1:0 ] tdata_pipe  [ DELAY_CYCLES:0 ];
 logic                     tvalid_pipe [ DELAY_CYCLES:0 ];
 logic                     tready_pipe [ DELAY_CYCLES:0 ];

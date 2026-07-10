@@ -111,6 +111,7 @@ begin
     port map (
       clk   => clk,
 
+      din_en => '1',
       din(0) => cfg.clear_max_frame_length,
       din(1) => cfg.clear_min_frame_length,
       din(2) => cfg.clear_s_tvalid,
@@ -271,6 +272,7 @@ begin
       port map (
         clk    => clk,
 
+        din_en => '1',
         din(0) => s_tvalid_latched,
         din(1) => s_tready_latched,
         din(2) => m_tvalid_latched,

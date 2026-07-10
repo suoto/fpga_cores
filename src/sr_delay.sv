@@ -17,26 +17,33 @@
 // sources, You must maintain the Source Location visible on the external case
 // of the FPGA Cores or other product you make using this documentation.
 
-`timescale 1ns / 1ps
-`default_nettype none
-
-module synchronizer #(
-    parameter int SYNC_STAGES = 2,
-    parameter int DATA_WIDTH  = 1
+// Shift register based delay
+module sr_delay #(
+    parameter int DELAY_CYCLES  = 2,
+    parameter int DATA_WIDTH    = 8,
+    parameter bit EXTRACT_SHREG = 1
 ) (
-    input  wire  logic                  clk,
-    input  wire  logic [ DATA_WIDTH-1:0 ] din,
-    output       logic [ DATA_WIDTH-1:0 ] dout
+    input wire logic clk,
+
+    input wire logic                    din_en,
+    input wire logic [ DATA_WIDTH-1:0 ] din,
+    output     logic [ DATA_WIDTH-1:0 ] dout
 );
 
-(* SHREG_EXTRACT = "no" *)
-(* ASYNC_REG = "TRUE" *)
-(* SYN_SRLSTYLE = "registers" *)
-logic [ DATA_WIDTH-1:0 ] din_sr [ SYNC_STAGES-1:0 ];
+if (DELAY_CYCLES == 0) begin : no_delay
+  assign dout = din;
 
-assign dout = din_sr[ SYNC_STAGES-1 ];
+end else begin : non_zero_delay
+  (* SHREG_EXTRACT = EXTRACT_SHREG ? "yes"  : "no" *)
+  (* ASYNC_REG     = EXTRACT_SHREG ? "TRUE" : "FALSE" *)
+  logic [DATA_WIDTH-1:0] din_sr [DELAY_CYCLES-1:0];
 
-always_ff@(posedge clk)
-    din_sr <= { din_sr[ SYNC_STAGES-2:0 ], din };
+  assign dout = din_sr[ DELAY_CYCLES - 1 ];
+
+  always_ff @(posedge clk) begin
+    if (din_en)
+      din_sr <= { din_sr[ DELAY_CYCLES - 2:0 ], din };
+  end
+end
 
 endmodule

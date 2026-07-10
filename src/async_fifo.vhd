@@ -148,6 +148,7 @@ begin
                 DATA_WIDTH   => numbits(FIFO_LEN))
             port map (
                 clk     => rd_clk,
+                din_en  => '1',
                 din     => rclk_wr_ptr_gray_sampled,
                 dout    => rclk_wr_ptr_gray);
 
@@ -188,6 +189,7 @@ begin
             port map (
                 clk     => wr_clk,
 
+                din_en  => '1',
                 din     => wclk_rd_ptr_gray_sampled,
                 dout    => wclk_rd_ptr_gray);
     end block rd_ptr_cdc_block;

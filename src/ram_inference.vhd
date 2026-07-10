@@ -97,6 +97,7 @@ begin
       port map (
         clk     => clk_a,
 
+        din_en  => '1',
         din     => rddata_a_sync,
         dout    => rddata_a_delay);
 
@@ -108,6 +109,7 @@ begin
       port map (
         clk     => clk_b,
 
+        din_en  => '1',
         din     => rddata_b_sync,
         dout    => rddata_b_delay);
     end generate;
