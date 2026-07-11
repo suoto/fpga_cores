@@ -167,7 +167,7 @@ def test_axi_stream_delay(delay_cycles):
         hdl_toplevel="axi_stream_delay",
         parameters={"TDATA_WIDTH": TDATA_WIDTH, "DELAY_CYCLES": delay_cycles},
         build_args=["-g2012"],
-        build_dir=f"sim_build/delay_{delay_cycles}",
+        build_dir=f"sim_build/axi_stream_delay_{delay_cycles}",
         always=True,
         waves=waves,
     )

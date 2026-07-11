@@ -1,8 +1,30 @@
 # veridian SystemVerilog LSP config
-# Directories recursively searched for SV/Verilog sources so verilator (and
-# slang) can resolve submodule instantiations across files.
+#
+# NOTE: source_dirs/include_dirs only feed the completion + goto-def symbol
+# index. They do NOT reach the linters. Cross-file diagnostics come from slang
+# (via auto_search_workdir, walks cwd) and from verilator, which is per-file and
+# only knows the layout you hand it below in verilator.syntax.args.
 source_dirs:
   - src
   - testbench
 include_dirs:
   - src
+
+auto_search_workdir: true
+
+verilator:
+  syntax:
+    enabled: true
+    path: verilator
+    args:
+      - --lint-only
+      - --sv
+      - -Wall
+      - -Wno-fatal          # report all issues, don't bail on the first
+      - -Wno-DECLFILENAME   # module name != filename is common here
+      - +libext+.v+.sv+.svh # else -y dirs are searched for *.v only
+      - -y
+      - src                 # module search dirs (relative to nvim cwd)
+      - -y
+      - testbench
+      - -Isrc               # -Idir == -y dir + +incdir+dir (`include path)

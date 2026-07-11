@@ -37,76 +37,34 @@ module axi_stream_replicate #(
     // AXI stream outputs
     output     logic [ INTERFACES-1:0 ]                    m_tvalid,
     input wire logic [ INTERFACES-1:0 ]                    m_tready,
-    // output     logic [ INTERFACES-1:0 ][ TDATA_WIDTH-1:0 ] m_tdata
-    output     logic [ TDATA_WIDTH-1:0 ] m_tdata [ INTERFACES-1:0 ]
+    output     logic [ INTERFACES-1:0 ][ TDATA_WIDTH-1:0 ] m_tdata
 );
 
-wire                     s_axi_dv = s_tready & s_tvalid;
-// logic [ INTERFACES-1:0 ] m_axi_dv = m_tready & m_tvalid;
+wire s_axi_dv = s_tready & s_tvalid;
 
-logic [ TDATA_WIDTH-1:0 ] s_tdata_i;
-logic [ INTERFACES-1:0 ]  m_tvalid_i;
-
-assign s_tready = &(m_tvalid_i & m_tready) | ~&m_tvalid_i;
-assign m_tvalid = m_tvalid_i;
-
-for (genvar i = 0; i < INTERFACES; i++) begin : g_tdata
-  assign m_tdata[i] = m_tvalid[i] ? s_tdata_i : 'x;
-end
-
+logic [ TDATA_WIDTH-1:0 ] s_tdata_reg;
+logic [ INTERFACES-1:0 ]  m_tvalid_reg;
 
 always_ff @(posedge clk) begin
   if (rst)
-    m_tvalid_i <= 0;
+    m_tvalid_reg <= 0;
   else begin
     // Deassert tvalid of interfaces that have accepted data
-    m_tvalid_i <= m_tvalid_i & ~m_tready;
+    m_tvalid_reg <= m_tvalid_reg & ~m_tready;
 
     // Drive data to all interfaces
     if (s_axi_dv) begin
-      m_tvalid_i <= { INTERFACES{ 1'b1 } };
-      s_tdata_i  <= s_tdata;
+      m_tvalid_reg <= { INTERFACES{ 1'b1 } };
+      s_tdata_reg  <= s_tdata;
     end
   end
 end
 
+assign s_tready = &(m_tvalid_reg & m_tready) | ~|m_tvalid_reg;
+assign m_tvalid = m_tvalid_reg;
 
-//
-//   //-------------
-//   // Processes --
-//   //-------------
-//   process(clk, rst)
-//   begin
-//     if rst = '1' then
-//       m_tvalid_i <= (others => '0');
-//     elsif rising_edge(clk) then
-//       // Deassert tvalid of interfaces that have accepted data
-//       m_tvalid_i <= m_tvalid_i and not m_tready;
-//
-//       // Drive data to all interfaces
-//       if s_axi_dv then
-//         m_tvalid_i <= (others => '1');
-//         s_tdata_i  <= s_tdata;
-//       end if;
-//     end if;
-//   end process;
-//
-//   // Simulation only debug
-//   // synthesis translate_off
-//   process(clk, rst)
-//   begin
-//     if rst then
-//       dbg_count <= (others => 0);
-//     elsif rising_edge(clk) then
-//       for i in 0 to INTERFACES - 1 loop
-//         if m_axi_dv(i) then
-//           dbg_count(i) <= dbg_count(i) + 1;
-//         end if;
-//       end loop;
-//     end if;
-//   end process;
-//   // synthesis translate_on
-//
-// end axi_stream_replicate;
+for (genvar i = 0; i < INTERFACES; i++) begin : gen_tdata
+  assign m_tdata[i] = m_tvalid[i] ? s_tdata_reg : 'x;
+end
 
 endmodule
