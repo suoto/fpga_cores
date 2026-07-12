@@ -14,8 +14,8 @@ import sys
 
 DEFAULT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        "axi_stream_fifo_bmc/engine_0/trace.vcd")
-WANT = ["s_tvalid", "s_tready", "s_tdata", "wr_expected",
-        "m_tvalid", "m_tready", "m_tdata", "rd_expected"]
+WANT = ["s_tvalid", "s_tready", "s_tdata", "s_tlast", "wr_expected",
+        "m_tvalid", "m_tready", "m_tdata", "m_tlast", "rd_expected"]
 
 
 def main(path):

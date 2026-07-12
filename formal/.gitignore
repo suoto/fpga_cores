@@ -8,7 +8,4 @@ axi_stream_fifo/
 
 # crash dumps from the emulated sby container
 core
-
-# GHDL replay build/sim artifacts
-ghdl_work/
-*.ghw
+build

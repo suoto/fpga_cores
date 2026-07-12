@@ -13,45 +13,15 @@ depth 40
 smtbmc yices
 
 [script]
-# ghdl is a yosys plugin in this image (yosys -m ghdl), not built in -> load it
-plugin -i ghdl
-# GHDL frontend: analyse everything into library fpga_cores (axi_stream_mux &
-# friends reference `library fpga_cores` by name), enable PSL with -fpsl, and
-# elaborate the formal wrapper as top. Files are copied in via [files] below, so
-# they are referenced here by basename.
-ghdl --std=08 -fpsl --work=fpga_cores       \
-  common_pkg.vhd                            \
-  sr_delay.vhd                              \
-  axi_stream_forward_slice.vhd              \
-  axi_stream_flow_control.vhd               \
-  ram_inference.vhd                         \
-  axi_stream_mux.vhd                        \
-  axi_stream_demux.vhd                      \
-  axi_stream_credit.vhd                     \
-  axi_stream_delay.vhd                      \
-  axi_stream_fifo_simple.vhd                \
-  axi_stream_ram.vhd                        \
-  axi_stream_fifo.vhd                       \
-  axi_stream_fifo_formal.vhd                \
-  -e axi_stream_fifo_formal
+# The DUT is pre-lowered to Verilog-2005 by sv2v (see run_formal.sh stage 1), so
+# yosys' native frontend reads it plainly. The formal wrapper stays SystemVerilog
+# and is read with -sv -formal so its temporal SVA (|->, |=>, $stable, ...) is
+# turned into formal cells -- sv2v/yosys-slang don't support temporal SVA, hence
+# the wrapper bypasses sv2v. Files are copied in via [files] below (by basename).
+read_verilog dut.v
+read_verilog -sv -formal axi_stream_fifo_formal.sv
 prep -top axi_stream_fifo_formal
-# TAG_WIDTH=0 leaves a zero-width `rd_in_tag` net in axi_stream_ram that GHDL
-# emits with a malformed (space-containing) smt2 symbol, crashing the VCD/witness
-# dump. Flatten + purge drops the unused net so traces write cleanly.
-flatten
-opt_clean -purge
 
 [files]
-../src/common_pkg.vhd
-../src/sr_delay.vhd
-../src/axi_stream_forward_slice.vhd
-../src/axi_stream_flow_control.vhd
-../src/ram_inference.vhd
-../src/axi_stream_mux.vhd
-../src/axi_stream_demux.vhd
-../src/axi_stream_credit.vhd
-../src/axi_stream_delay.vhd
-../src/axi_stream_fifo_simple.vhd
-../src/axi_stream_ram.vhd
-../src/axi_stream_fifo.vhd
-axi_stream_fifo_formal.vhd
+build/dut.v
+axi_stream_fifo_formal.sv

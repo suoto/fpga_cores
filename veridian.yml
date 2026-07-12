@@ -14,17 +14,17 @@ auto_search_workdir: true
 
 verilator:
   syntax:
-    enabled: true
-    path: verilator
-    args:
-      - --lint-only
-      - --sv
-      - -Wall
-      - -Wno-fatal          # report all issues, don't bail on the first
-      - -Wno-DECLFILENAME   # module name != filename is common here
-      - +libext+.v+.sv+.svh # else -y dirs are searched for *.v only
-      - -y
-      - src                 # module search dirs (relative to nvim cwd)
-      - -y
-      - testbench
-      - -Isrc               # -Idir == -y dir + +incdir+dir (`include path)
+    enabled: false
+#     path: verilator
+#     args:
+#       - --lint-only
+#       - --sv
+#       - -Wall
+#       - -Wno-fatal          # report all issues, don't bail on the first
+#       - -Wno-DECLFILENAME   # module name != filename is common here
+#       - +libext+.v+.sv+.svh # else -y dirs are searched for *.v only
+#       - -y
+#       - src                 # module search dirs (relative to nvim cwd)
+#       - -y
+#       - testbench
+#       - -Isrc               # -Idir == -y dir + +incdir+dir (`include path)

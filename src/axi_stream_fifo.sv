@@ -21,34 +21,35 @@
 `default_nettype none
 
 module axi_stream_fifo #(
-    parameter int unsigned FIFO_DEPTH = 10,
-    parameter int unsigned DATA_WIDTH = 8,
-    parameter string       RAM_STYLE  = "auto"
+  parameter int unsigned FIFO_DEPTH                = 10,
+  parameter int unsigned DATA_WIDTH                = 8,
+  parameter int unsigned EXTRA_OUTPUT_DELAY_CYCLES = 0,
+  parameter string       RAM_STYLE                 = "auto"
 ) (
-    // Usual ports
-    input wire logic clk,
-    input wire logic rst,
+  // Usual ports
+  input wire logic                            clk,
+  input wire logic                            rst,
 
-    // status
-    output     logic [ $clog2( FIFO_DEPTH ):0 ] entries,
-    output     logic                            empty,
-    output     logic                            full,
+  // status
+  output     logic [ $clog2( FIFO_DEPTH ):0 ] entries,
+  output     logic                            empty,
+  output     logic                            full,
 
-    // Write side
-    input wire logic                            s_tvalid,
-    output     logic                            s_tready,
-    input wire logic [ DATA_WIDTH-1:0 ]         s_tdata,
-    input wire logic                            s_tlast,  // TODO: remove
+  // Write side
+  input wire logic                            s_tvalid,
+  output     logic                            s_tready,
+  input wire logic [ DATA_WIDTH-1:0 ]         s_tdata,
+  input wire logic                            s_tlast,  // TODO: remove
 
-    // Read side
-    output     logic                            m_tvalid,
-    input wire logic                            m_tready,
-    output     logic [ DATA_WIDTH-1:0 ]         m_tdata,
-    output     logic                            m_tlast  // TODO: remove
+  // Read side
+  output     logic                            m_tvalid,
+  input wire logic                            m_tready,
+  output     logic [ DATA_WIDTH-1:0 ]         m_tdata,
+  output     logic                            m_tlast  // TODO: remove
 );
 
 wire s_axi_dv = s_tready & s_tvalid;
-wire m_axi_dv = m_tready & m_tvalid;
+wire m_axi_dv;
 
 logic [ $clog2( FIFO_DEPTH ):0 ] ptr_diff;
 logic [ $clog2( FIFO_DEPTH ):0 ] ram_wr_ptr;
@@ -77,16 +78,19 @@ always_ff @(posedge clk) begin
   end
 end
 
-logic [ DATA_WIDTH-1:0 ] ram_tdata;
-logic                    ram_tlast;
 wire [ $clog2( FIFO_DEPTH )-1:0 ] ram_wr_addr = ram_wr_ptr[ $clog2( FIFO_DEPTH )-1:0 ];
 wire [ $clog2( FIFO_DEPTH )-1:0 ] ram_rd_addr = ram_rd_ptr[ $clog2( FIFO_DEPTH )-1:0 ];
 
+logic                    ram_tvalid;
+logic                    ram_tready;
+logic [ DATA_WIDTH-1:0 ] ram_tdata;
+logic                    ram_tlast;
+
 ram_inference #(
-  .DEPTH(FIFO_DEPTH),
-  .DATA_WIDTH(DATA_WIDTH + 1),
-  .RAM_STYLE (RAM_STYLE),
-  .OUTPUT_DELAY(0) // We'll add delays in the FIFO
+  .DEPTH        ( FIFO_DEPTH ),
+  .DATA_WIDTH   ( DATA_WIDTH + 1 ),
+  .RAM_STYLE    ( RAM_STYLE ),
+  .OUTPUT_DELAY ( 0 ) // We'll add delays outside of the RAM code
 ) ram_inference_u (
   // Port A
   .clk_a    (clk),
@@ -103,8 +107,26 @@ ram_inference #(
   .rddata_b ({ ram_tlast, ram_tdata })
 );
 
+assign m_axi_dv = ram_tready & ram_tvalid;
+
+axi_stream_delay #(
+  .DELAY_CYCLES ( EXTRA_OUTPUT_DELAY_CYCLES ),
+  .TDATA_WIDTH  ( DATA_WIDTH + 1)
+) axi_stream_delay_output (
+  .clk      (clk),
+  .rst      (rst),
+
+  .s_tvalid (ram_tvalid),
+  .s_tready (ram_tready),
+  .s_tdata  ({ ram_tlast, ram_tdata }),
+
+  .m_tvalid (m_tvalid),
+  .m_tready (m_tready),
+  .m_tdata  ({ m_tlast, m_tdata })
+);
+
 // Read when ram is not full and pointer diff is not 0
-assign m_tvalid = |ptr_diff;
+assign ram_tvalid = |ptr_diff;
 assign s_tready = ~full;
 
 assign entries = ptr_diff;

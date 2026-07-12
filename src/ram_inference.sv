@@ -17,7 +17,12 @@
 // sources, You must maintain the Source Location visible on the external case
 // of the FPGA Cores or other product you make using this documentation.
 
-import common_pkg_sv::is_valid_ram_type;
+// is_valid_ram_type takes an `input string`, which sv2v cannot lower to
+// Verilog-2005 (no string type) -> excluded from the formal flow, which defines
+// FORMAL and always drives a legal RAM_STYLE.
+`ifndef FORMAL
+  import common_pkg_sv::is_valid_ram_type;
+`endif
 
 `timescale 1ns / 1ps
 `default_nettype none
@@ -44,18 +49,25 @@ module ram_inference #(
     output     logic [ DATA_WIDTH-1:0 ]    rddata_b
 );
 
-if (~is_valid_ram_type(RAM_STYLE)) begin : check_ram_style
-  $fatal(1, { "Invalid RAM_TYLE", RAM_STYLE });
-end
+`ifndef FORMAL
+  if (~is_valid_ram_type(RAM_STYLE)) begin : check_ram_style
+    $fatal(1, { "Invalid RAM_TYLE", RAM_STYLE });
+  end
+`endif
 
 (* ram_style = RAM_STYLE *)
-logic [ DATA_WIDTH-1:0 ] ram [DEPTH] = INITIAL_VALUE;
+reg [ DATA_WIDTH-1:0 ] ram [DEPTH]; // = INITIAL_VALUE;
 
-logic [ DATA_WIDTH-1:0 ] rddata_a_async;
-logic [ DATA_WIDTH-1:0 ] rddata_a_delay;
+`ifndef FORMAL
+  wire invalid_addr_a = 32'( addr_a ) >= DEPTH | $isunknown( addr_a );
+  wire invalid_addr_b = 32'( addr_b ) >= DEPTH | $isunknown( addr_b );
+`else
+  wire invalid_addr_a = 32'( addr_a ) >= DEPTH;
+  wire invalid_addr_b = 32'( addr_b ) >= DEPTH;
+`endif
 
-logic [ DATA_WIDTH-1:0 ] rddata_b_async;
-logic [ DATA_WIDTH-1:0 ] rddata_b_delay;
+wire [ DATA_WIDTH-1:0 ] rddata_a_async = invalid_addr_a ? 'x : ram[ addr_a ];
+wire [ DATA_WIDTH-1:0 ] rddata_b_async = invalid_addr_b ? 'x : ram[ addr_b ];
 
 sr_delay #(
   .DELAY_CYCLES  (OUTPUT_DELAY),
@@ -65,7 +77,7 @@ sr_delay #(
   .clk    (clk_a),
   .din_en (en_a),
   .din    (rddata_a_async),
-  .dout   (rddata_a_delay)
+  .dout   (rddata_a)
 );
 
 sr_delay #(
@@ -76,10 +88,13 @@ sr_delay #(
   .clk    (clk_b),
   .din_en (en_b),
   .din    (rddata_b_async),
-  .dout   (rddata_b_delay)
+  .dout   (rddata_b)
 );
 
-assign rddata_a_async = ( $isunknown( addr_a ) | 32'( addr_a ) >= DEPTH ) ? 'x : ram[ addr_a ];
-assign rddata_b_async = ( $isunknown( addr_b ) | 32'( addr_b ) >= DEPTH ) ? 'x : ram[ addr_b ];
+always_ff @(posedge clk_a) begin
+  if (wren_a ) begin
+    ram[ addr_a ] <= wrdata_a;
+  end
+end
 
 endmodule
