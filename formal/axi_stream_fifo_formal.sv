@@ -97,6 +97,20 @@ module axi_stream_fifo_formal #(
     else if (m_tvalid && m_tready)    rd_expected <= rd_expected + 1;
   end
 
+  // Count number of entries inside the FIFO
+  wire s_axi_dv = s_tvalid & s_tready;
+  wire m_axi_dv = m_tvalid & m_tready;
+  (* keep *) logic [ $clog2( FIFO_DEPTH ):0 ] expected_entries;
+
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      expected_entries <= '0;
+    end else begin
+      if      ( s_axi_dv & ~m_axi_dv) expected_entries <= expected_entries + 1;
+      else if (~s_axi_dv &  m_axi_dv) expected_entries <= expected_entries - 1;
+    end
+  end
+
   // ---------------------------------------------------------------------------
   // Properties -- immediate assertions in a clocked block.
   //
@@ -122,7 +136,7 @@ module axi_stream_fifo_formal #(
       // restores SVA `disable iff (rst)` semantics: a |=> property spans two
       // cycles, so it must be skipped when the antecedent cycle was in reset
       // (otherwise $past reaches into the reset state and fires spuriously).
-      if (!$past(rst) && $past(s_tvalid && !s_tready)) begin
+      if (!$past(rst) && $past(s_tvalid & ~s_tready)) begin
         assume (s_tvalid);
         assume (s_tdata == $past(s_tdata));
         assume (s_tlast == $past(s_tlast));
@@ -133,7 +147,7 @@ module axi_stream_fifo_formal #(
 
       // --- DUT must obey AXI-stream on its master port ----------------------
       // Hold valid/data/last stable while backpressured (no dropped/mutated beat).
-      if (!$past(rst) && $past(m_tvalid && !m_tready)) begin
+      if (!$past(rst) && $past(m_tvalid & ~m_tready)) begin
         assert (m_tvalid);
         assert (m_tdata == $past(m_tdata));
         assert (m_tlast == $past(m_tlast));
@@ -142,15 +156,24 @@ module axi_stream_fifo_formal #(
       // Status can never be simultaneously empty and full.
       assert (!(empty && full));
 
+      assert (entries == expected_entries);
+      if (expected_entries == 0) begin
+        assert (empty == 1);
+        assert (full == 0);
+      end else if (32'( expected_entries ) == FIFO_DEPTH) begin
+        assert (empty == 0);
+        assert (full == 1);
+      end
+
       // Data integrity: the n-th delivered beat equals the n-th accepted one.
       if (m_tvalid && m_tready)
         assert (m_tdata == rd_expected);
 
       // --- Reachability (cover) --------------------------------------------
-      // NOTE (WIP RTL): unreachable until axi_stream_fifo's ptr_diff logic is
-      // restored (nothing is emitted today); see header note.
-      cover (full);
       cover (m_tvalid && m_tready);
+      cover (full);
+      cover (empty);
+      cover (32'( entries ) == FIFO_DEPTH);
     end
   end
 

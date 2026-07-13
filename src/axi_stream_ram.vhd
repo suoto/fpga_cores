@@ -135,18 +135,20 @@ begin
     generic map (
       DEPTH         => DEPTH,
       DATA_WIDTH    => DATA_WIDTH,
-      RAM_TYPE      => RAM_TYPE,
+      RAM_STYLE     => RAM_TYPE,
       INITIAL_VALUE => INITIAL_VALUE,
       OUTPUT_DELAY  => 2) -- Assume BRAM style latency
     port map (
       -- Port A
       clk_a     => clk,
+      en_a      => '1',
       wren_a    => wr_tvalid,
       addr_a    => wr_addr,
       wrdata_a  => wr_data_in,
       rddata_a  => wr_data_out,
       -- Port B
       clk_b     => clk,
+      en_b      => '1',
       addr_b    => ram_rd_addr,
       rddata_b  => ram_rd_sync_data);
 
@@ -182,24 +184,27 @@ begin
   end block;
 
   output_buffer_block : block
-    signal tdata_agg_in   : std_logic_vector(ADDR_WIDTH + TAG_WIDTH + DATA_WIDTH - 1 downto 0);
-    signal tdata_agg_out  : std_logic_vector(ADDR_WIDTH + TAG_WIDTH + DATA_WIDTH - 1 downto 0);
+    signal tdata_agg_in         : std_logic_vector(ADDR_WIDTH + TAG_WIDTH + DATA_WIDTH - 1 downto 0);
+    signal tdata_agg_out        : std_logic_vector(ADDR_WIDTH + TAG_WIDTH + DATA_WIDTH - 1 downto 0);
+    signal unconnected_entries  : unsigned(numbits(RAM_LATENCY + 1) downto 0);
   begin
     credit_return_en <= rd_out_tvalid and rd_out_tready;
     tdata_agg_in     <= ram_rd_sync_tag & ram_rd_sync_data & ram_rd_sync_addr;
 
     -- Use a very small FIFO to handle backpressure until the pipe stops. The
     -- credits mechanism should prevent this FIFO from overflowing
-    output_fifo_u : entity work.axi_stream_fifo_simple
+    output_fifo_u : entity work.axi_stream_fifo
       generic map (
-        FIFO_DEPTH => RAM_LATENCY + 1,
-        DATA_WIDTH => ADDR_WIDTH + DATA_WIDTH + TAG_WIDTH
+        FIFO_DEPTH                => RAM_LATENCY + 1,
+        DATA_WIDTH                => ADDR_WIDTH + DATA_WIDTH + TAG_WIDTH,
+        EXTRA_OUTPUT_DELAY_CYCLES => 0
       )
       port map (
         clk      => clk,
         rst      => rst,
 
         -- Status
+        entries  => unconnected_entries,
         full     => open,
         empty    => open,
 

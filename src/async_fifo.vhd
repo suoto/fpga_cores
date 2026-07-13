@@ -84,6 +84,8 @@ architecture async_fifo of async_fifo is
     signal error_rd         : std_logic;
     signal error_wr_rd      : std_logic;
 
+    signal unconnected_rddata_a   : std_logic_vector(DATA_WIDTH - 1 downto 0); -- Fifo read data
+
     attribute ASYNC_REG : boolean;
 
 begin
@@ -99,13 +101,15 @@ begin
         port map (
             -- Port A
             clk_a     => wr_clk,
+            en_a      => '1',
             wren_a    => wr_en,
             addr_a    => std_logic_vector(wclk_wr_ptr),
             wrdata_a  => wr_data,
-            rddata_a  => open,
+            rddata_a  => unconnected_rddata_a,
 
             -- Port B
             clk_b     => rd_clk,
+            en_b      => '1',
             addr_b    => std_logic_vector(rclk_rd_ptr),
             rddata_b  => rd_data);
 

@@ -65,6 +65,8 @@ architecture pipeline_context_ram of pipeline_context_ram is
   signal addr_sr        : addr_array_t(3 downto 0);
   signal en_sr          : std_logic_vector(3 downto 0);
 
+  signal unconnected_rddata_a   : std_logic_vector(DATA_WIDTH - 1 downto 0); -- Fifo read data
+
 begin
 
   -------------------
@@ -74,20 +76,22 @@ begin
     generic map (
       DEPTH        => DEPTH,
       DATA_WIDTH   => DATA_WIDTH,
-      RAM_TYPE     => RAM_TYPE,
+      RAM_STYLE    => RAM_TYPE,
       -- TODO: Adjust the pipeline to handle OUTPUT_DELAY = 2 to get better timing on
       -- Xilinx devices (see message Synth 8-7053)
       OUTPUT_DELAY => 1)
     port map (
       -- Port A
       clk_a     => clk,
+      en_a      => '1',
       wren_a    => en_sr(1),
       addr_a    => addr_sr(1),
       wrdata_a  => context_in,
-      rddata_a  => open,
+      rddata_a  => unconnected_rddata_a,
 
       -- Port B
       clk_b     => clk,
+      en_b      => '1',
       addr_b    => addr_in,
       rddata_b  => ram_rddata);
 

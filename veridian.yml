@@ -12,9 +12,9 @@ include_dirs:
 
 auto_search_workdir: true
 
-verilator:
-  syntax:
-    enabled: false
+# verilator:
+#   syntax:
+#     enabled: false
 #     path: verilator
 #     args:
 #       - --lint-only

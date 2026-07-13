@@ -84,11 +84,12 @@ begin
   -------------------
   -- Port mappings --
   -------------------
-  fifo_u : entity work.axi_stream_fifo_simple
+  fifo_u : entity work.axi_stream_fifo
     generic map (
-      FIFO_DEPTH => FIFO_DEPTH,
-      DATA_WIDTH => DATA_WIDTH,
-      RAM_TYPE   => RAM_TYPE)
+      FIFO_DEPTH                => FIFO_DEPTH,
+      DATA_WIDTH                => DATA_WIDTH,
+      RAM_STYLE                 => RAM_TYPE,
+      EXTRA_OUTPUT_DELAY_CYCLES => 2)
     port map (
       -- Usual ports
       clk     => clk,

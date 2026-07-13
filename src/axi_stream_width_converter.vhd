@@ -191,11 +191,13 @@ begin
     -------------------
     g_tid_fifo : if AXI_TID_WIDTH > 0 generate
       signal s_tid_tready : std_logic;
+      signal unconnected_entries : unsigned(1 downto 0);
     begin
-      tid_fifo_u : entity work.axi_stream_fifo_simple
+      tid_fifo_u : entity work.axi_stream_fifo
         generic map (
-          FIFO_DEPTH => 2,
-          DATA_WIDTH => AXI_TID_WIDTH
+          FIFO_DEPTH                => 2,
+          DATA_WIDTH                => AXI_TID_WIDTH,
+          EXTRA_OUTPUT_DELAY_CYCLES => 0
         )
         port map (
           -- Usual ports
@@ -203,7 +205,7 @@ begin
           rst     => rst,
 
           -- status
-          entries  => open,
+          entries  => unconnected_entries,
           empty    => open,
           full     => open,
 

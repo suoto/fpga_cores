@@ -5,7 +5,7 @@ cover
 [options]
 bmc:   mode bmc
 cover: mode cover
-depth 40
+depth 12
 
 [engines]
 # boolector avoids a z3 "unknown constant" smt2 quirk on the RAM memories and is

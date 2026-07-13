@@ -78,6 +78,8 @@ architecture sync_fifo of sync_fifo is
   signal empty_i     : std_logic;
   signal rd_data_i   : std_logic_vector(DATA_WIDTH - 1 downto 0); -- Fifo read data
 
+  signal unconnected_rddata_a   : std_logic_vector(DATA_WIDTH - 1 downto 0); -- Fifo read data
+
 begin
 
   -------------------
@@ -87,18 +89,20 @@ begin
     generic map (
       DEPTH        => DEPTH,
       DATA_WIDTH   => DATA_WIDTH,
-      RAM_TYPE     => RAM_TYPE,
+      RAM_STYLE    => RAM_TYPE,
       OUTPUT_DELAY => EXTRA_OUTPUT_DELAY)
     port map (
       -- Port A
       clk_a    => clk,
+      en_a     => '1',
       wren_a   => wr_en,
       addr_a   => std_logic_vector(wr_ptr),
       wrdata_a => wr_data,
-      rddata_a => open,
+      rddata_a => unconnected_rddata_a,
 
       -- Port B
       clk_b    => clk,
+      en_b     => '1',
       addr_b   => std_logic_vector(rd_ptr),
       rddata_b => rd_data_i);
 
