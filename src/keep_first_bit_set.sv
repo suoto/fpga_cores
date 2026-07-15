@@ -17,26 +17,17 @@
 // sources, You must maintain the Source Location visible on the external case
 // of the FPGA Cores or other product you make using this documentation.
 
-// Converts a one-hot encoded input into its decimal index. Assumes the input is
-// always one-hot; the datapath is a flat OR-encoder with no priority logic. An
-// all-zero input yields 0. Non one-hot inputs are flagged in simulation only.
 `timescale 1ns / 1ps
+`default_nettype none
 
-module one_hot_to_decimal #(
-    parameter  int unsigned WIDTH  = 8
+module keep_first_bit_set #(
+  parameter int unsigned WIDTH = 8
 ) (
-    input  wire logic [ WIDTH-1:0 ]         in,
-    output      logic [ $clog2(WIDTH)-1:0 ] out
+  input wire logic [ WIDTH-1:0 ] din,
+  output     logic [ WIDTH-1:0 ] dout
 );
 
-  always_comb begin
-    out = '0;
-    for (int unsigned i = 0; i < WIDTH; i++)
-      out |= { $clog2( WIDTH ){ in[i] } } & i[ $clog2(WIDTH)-1:0 ];
-  end
-
-always_comb
-  assert (in == '0 || $onehot(in))
-    else $error("one_hot_to_decimal: input 0x%0h is not one-hot", in);
+assign dout = din & ~(din - 1);
 
 endmodule
+

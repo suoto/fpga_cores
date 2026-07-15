@@ -1,7 +1,7 @@
 //
 // FPGA core library
 //
-// Copyright 2020-2021 by Andre Souto (suoto)
+// Copyright 2014-2021 by Andre Souto (suoto)
 //
 // This source describes Open Hardware and is licensed under the CERN-OHL-W v2
 //
@@ -17,26 +17,41 @@
 // sources, You must maintain the Source Location visible on the external case
 // of the FPGA Cores or other product you make using this documentation.
 
-// Converts a one-hot encoded input into its decimal index. Assumes the input is
-// always one-hot; the datapath is a flat OR-encoder with no priority logic. An
-// all-zero input yields 0. Non one-hot inputs are flagged in simulation only.
+// Synchronizes a pulse between different clock domains
 `timescale 1ns / 1ps
+`default_nettype none
 
-module one_hot_to_decimal #(
-    parameter  int unsigned WIDTH  = 8
+module pulse_sync #(
+  parameter int unsigned EXTRA_DELAY_CYCLES = 1
 ) (
-    input  wire logic [ WIDTH-1:0 ]         in,
-    output      logic [ $clog2(WIDTH)-1:0 ] out
+    // Usual ports
+    input wire logic  src_clk,
+    input wire logic  src_pulse,
+
+    input wire logic  dst_clk,
+    output     logic  dst_pulse
 );
 
-  always_comb begin
-    out = '0;
-    for (int unsigned i = 0; i < WIDTH; i++)
-      out |= { $clog2( WIDTH ){ in[i] } } & i[ $clog2(WIDTH)-1:0 ];
-  end
+logic pulse_toggle;
 
-always_comb
-  assert (in == '0 || $onehot(in))
-    else $error("one_hot_to_decimal: input 0x%0h is not one-hot", in);
+always_ff @(posedge src_clk) begin
+  if (src_pulse)
+    pulse_toggle <= ~pulse_toggle;
+end
+
+edge_detector #(
+  .SYNCHRONIZE_INPUT (1),
+  .OUTPUT_DELAY (EXTRA_DELAY_CYCLES)
+) edge_detector_u (
+  .clk     (dst_clk),
+
+  //
+  .din     (pulse_toggle),
+  // Edges detected
+  .rising  (),
+  .falling (),
+  .toggle  (dst_pulse)
+);
+
 
 endmodule

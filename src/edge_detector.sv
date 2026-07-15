@@ -32,7 +32,7 @@ module edge_detector #(
   output     logic toggle
 );
 
-logic din_i;
+logic din_int;
 if (SYNCHRONIZE_INPUT) begin : synchronize_input
   synchronizer #(
     .SYNC_STAGES (1),
@@ -40,20 +40,20 @@ if (SYNCHRONIZE_INPUT) begin : synchronize_input
   ) synchronizer_din (
     .clk  (clk),
     .din  (din),
-    .dout (din_i)
+    .dout (din_int)
   );
 end else begin : dont_synchronize_input
-  assign din_i = din;
+  assign din_int = din;
 end
 
-logic din_d;
+logic din_reg;
 always_ff @(posedge clk) begin
-  din_d <= din_i;
+  din_reg <= din_int;
 end
 
-wire rising_i  = { din_d, din_i } == 2'b01;
-wire falling_i = { din_d, din_i } == 2'b10;
-wire toggle_i  = rising | falling;
+wire rising_i  = { din_reg, din_int } == 2'b01;
+wire falling_i = { din_reg, din_int } == 2'b10;
+wire toggle_i  = rising_i | falling_i;
 
 sr_delay #(
   .DELAY_CYCLES(OUTPUT_DELAY),

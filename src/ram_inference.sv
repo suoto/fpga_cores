@@ -20,12 +20,13 @@
 // is_valid_ram_type takes an `input string`, which sv2v cannot lower to
 // Verilog-2005 (no string type) -> excluded from the formal flow, which defines
 // FORMAL and always drives a legal RAM_STYLE.
-`ifndef FORMAL
-  import common_pkg_sv::is_valid_ram_type;
-`endif
 
 `timescale 1ns / 1ps
 `default_nettype none
+
+`ifndef FORMAL
+  import common_pkg_sv::is_valid_ram_type;
+`endif
 
 module ram_inference #(
     parameter int unsigned           DEPTH                 = 16,
@@ -56,7 +57,7 @@ module ram_inference #(
 `endif
 
 (* ram_style = RAM_STYLE *)
-reg [ DATA_WIDTH-1:0 ] ram [DEPTH]; // = INITIAL_VALUE;
+logic [ DATA_WIDTH-1:0 ] ram [DEPTH] = INITIAL_VALUE;
 
 `ifndef FORMAL
   wire invalid_addr_a = 32'( addr_a ) >= DEPTH | $isunknown( addr_a );

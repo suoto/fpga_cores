@@ -42,11 +42,10 @@ module axi_stream_arbiter #(
     output     logic                                      m_tlast
 );
 
-`define keep_first_bit_set(v) ((v) & (-(v)))
-
-`ifndef FORMAL
-  if (~(MODE inside {"ROUND_ROBIN", "INTERLEAVED", "ABSOLUTE"}))
+`ifndef FORMAL 
+  if (~(MODE inside {"ROUND_ROBIN", "INTERLEAVED", "ABSOLUTE"})) begin : arbiter_mode_check
     $fatal(1, { "Invalid arbiter mode:", MODE });
+  end
 `endif
 
 // AXI slave input
@@ -125,11 +124,17 @@ always_ff @(posedge clk) begin
 end
 
 if (MODE == "ABSOLUTE" ) begin : absolute_logic
-  assign selected = arbitrate ? `keep_first_bit_set(s_tvalid_i)
-                              : selected_reg;
-end
+  logic [ INTERFACES-1:0 ] s_tvalid_i_first_bit_set;
+  keep_first_bit_set #(
+    .WIDTH( INTERFACES )
+  ) keep_first_bit_set_s_tvalid (
+    .din  ( s_tvalid_i ),
+    .dout ( s_tvalid_i_first_bit_set )
+  );
 
-if ( MODE == "INTERLEAVED" ) begin : interleaved_logic
+  assign selected = arbitrate ? s_tvalid_i_first_bit_set
+                              : selected_reg;
+end else if ( MODE == "INTERLEAVED" ) begin : interleaved_logic
   logic [ INTERFACES-1:0 ] selected_next;
 
   assign selected = arbitrate ? selected_next : selected_reg;
@@ -143,9 +148,8 @@ if ( MODE == "INTERLEAVED" ) begin : interleaved_logic
         selected_next <= { selected_next[ INTERFACES - 2:0 ], selected_next[ INTERFACES - 1 ] };
     end
   end
-end
 
-if ( MODE == "ROUND_ROBIN" ) begin : round_robin_logic
+end else if ( MODE == "ROUND_ROBIN" ) begin : round_robin_logic
   // Rotating priority round-robin: after serving interface N, priority rotates
   // so that N+1 has highest priority, wrapping around. This ensures no interface
   // is permanently advantaged by its index position.
@@ -153,7 +157,14 @@ if ( MODE == "ROUND_ROBIN" ) begin : round_robin_logic
   wire  [ INTERFACES-1:1 ]         mask = { (INTERFACES-1){1'b1} } << last_grant_id;
 
   wire [ 2*INTERFACES-2:0 ] candidates_wide = { s_tvalid_i, s_tvalid_i[ INTERFACES-1:1 ] & mask };
-  wire [ 2*INTERFACES-2:0 ] chosen_wide = `keep_first_bit_set(candidates_wide);
+
+  logic [ 2*INTERFACES-2:0 ] chosen_wide;
+  keep_first_bit_set #(
+    .WIDTH( 2*INTERFACES-1 )
+  ) keep_first_bit_set_s_tvalid (
+    .din  ( candidates_wide ),
+    .dout ( chosen_wide )
+  );
 
   assign selected = arbitrate ? chosen_wide[ 2*INTERFACES - 2 : INTERFACES - 1 ] | { chosen_wide[ INTERFACES - 2 : 0 ], 1'b0 }
                               : selected_reg;
@@ -171,7 +182,6 @@ if ( MODE == "ROUND_ROBIN" ) begin : round_robin_logic
       if (m_data_valid & m_tlast)
         last_grant_id <= selected_id;
   end
-
 end
 
 endmodule

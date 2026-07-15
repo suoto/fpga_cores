@@ -26,7 +26,7 @@ module rom_inference #(
 ) (
   input wire logic                       clk,
   input wire logic [ $clog2(DEPTH)-1:0 ] addr,
-  output     logic                       rddata
+  output     logic [ DATA_WIDTH-1:0 ]    rddata
 );
 
 (* rom_style = ROM_STYLE *)
@@ -37,8 +37,8 @@ wire                     invalid_addr = 32'( addr ) >= DEPTH | $isunknown( addr 
 assign rddata_async = invalid_addr ? 'x : rom[addr];
 
 sr_delay #(
-  .DELAY_CYCLES (OUTPUT_DELAY),
-  .DATA_WIDTH (DATA_WIDTH),
+  .DELAY_CYCLES  (OUTPUT_DELAY),
+  .DATA_WIDTH    (DATA_WIDTH),
   .EXTRACT_SHREG (0)
 ) sr_delay_output (
   .clk    (clk),

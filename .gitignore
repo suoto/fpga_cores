@@ -3,3 +3,4 @@ vunit_out
 hdl_checker.log
 __pycache__
 env
+sim_build
